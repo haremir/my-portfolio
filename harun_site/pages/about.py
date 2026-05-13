@@ -15,11 +15,17 @@ from harun_site.theme import (
     FONT_MONO,
     FONT_SANS,
 )
+from typing import TypedDict
 
+class ProjectDict(TypedDict):
+    name: str
+    desc: str
+    tags: list[str]
+    display_index: str
 
 class AboutState(rx.State):
     selected_skills: list[str] = []
-    projects: list[dict] = []
+    projects: list[ProjectDict] = []
     
     def on_load(self):
         from harun_site.utils import data_manager
@@ -44,7 +50,7 @@ class AboutState(rx.State):
 
 
     @rx.var
-    def filtered_projects(self) -> list[dict]:
+    def filtered_projects(self) -> list[ProjectDict]:
         res = []
         for i, project in enumerate(self.projects):
             # Check filter
@@ -54,8 +60,12 @@ class AboutState(rx.State):
                     continue
             
             # Add index
-            p = dict(project)
-            p["display_index"] = f"0{len(res) + 1}"
+            p = ProjectDict(
+                name=project.get("name", ""),
+                desc=project.get("desc", ""),
+                tags=project.get("tags", []),
+                display_index=f"0{len(res) + 1}"
+            )
             res.append(p)
         return res
 
@@ -108,7 +118,7 @@ def skill_tag(name: str) -> rx.Component:
     )
 
 
-def project_card(project: dict) -> rx.Component:
+def project_card(project: ProjectDict) -> rx.Component:
     return rx.hstack(
         rx.text(
             project["display_index"],
