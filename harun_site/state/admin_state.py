@@ -39,6 +39,27 @@ class AdminBlogState(rx.State):
     
     is_uploading: bool = False
     
+    def set_blog_title(self, val: str):
+        self.blog_title = val
+        
+    def set_blog_slug(self, val: str):
+        self.blog_slug = val
+        
+    def set_blog_date(self, val: str):
+        self.blog_date = val
+        
+    def set_blog_description(self, val: str):
+        self.blog_description = val
+        
+    def set_blog_tags_str(self, val: str):
+        self.blog_tags_str = val
+        
+    def set_blog_content(self, val: str):
+        self.blog_content = val
+        
+    def set_blog_cover_path(self, val: str):
+        self.blog_cover_path = val
+    
     def load_posts(self):
         posts = get_all_posts()
         self.all_admin_posts = [
@@ -118,6 +139,15 @@ class AdminProjectState(rx.State):
     project_name: str = ""
     project_desc: str = ""
     project_tags_str: str = ""
+    
+    def set_project_name(self, val: str):
+        self.project_name = val
+        
+    def set_project_desc(self, val: str):
+        self.project_desc = val
+        
+    def set_project_tags_str(self, val: str):
+        self.project_tags_str = val
     
     def load_projects(self):
         self.all_admin_projects = data_manager.load_projects()
