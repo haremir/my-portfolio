@@ -135,8 +135,9 @@ def project_card(project: dict) -> rx.Component:
                 style={"font_size": "0.85em", "line_height": "1.5"},
             ),
             rx.hstack(
-                *[
-                    rx.text(
+                rx.foreach(
+                    project["tags"],
+                    lambda tag: rx.text(
                         tag,
                         font_family=FONT_MONO,
                         color=PRIMARY,
@@ -147,8 +148,7 @@ def project_card(project: dict) -> rx.Component:
                             "border_radius": "3px",
                         },
                     )
-                    for tag in project["tags"]
-                ],
+                ),
                 wrap="wrap",
                 style={"gap": "0.5em"},
             ),
