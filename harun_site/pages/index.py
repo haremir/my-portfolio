@@ -31,6 +31,7 @@ class IndexChatState(rx.State):
             return rx.redirect(f"/chat?q={self.query}")
 
 
+@rx.page(route="/")
 def index_page() -> rx.Component:
     return rx.vstack(
         navbar(),

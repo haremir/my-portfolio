@@ -55,4 +55,33 @@ class ChatState(rx.State):
 		from harun_site.utils import data_manager
 		data_manager.save_chat_log(self.messages)
 		
+		# Summarization logic
+		user_msg_count = sum(1 for m in self.messages if m["role"] == "user")
+		if user_msg_count >= 6 and user_msg_count % 6 == 0:
+			yield ChatState._summarize_and_save
+		
 		yield
+
+	async def _summarize_and_save(self):
+		from harun_site.utils.groq_client import stream_chat
+		from harun_site.utils.data_manager import save_chat_summary
+		import json, re, sys
+
+		summary_prompt = f"""Aşağıdaki portfolyo sitesi ziyaretçi konuşmasını analiz et.
+SADECE şu JSON formatında yanıt ver, başka hiçbir şey yazma:
+{{"summary": "2-3 cümle Türkçe özet", "top_topics": ["konu1", "konu2"], "message_count": {len(self.messages)}}}
+
+Konuşma:
+{chr(10).join(f'{m["role"]}: {m["content"][:200]}' for m in self.messages)}"""
+
+		result = ""
+		async for chunk in stream_chat([{"role": "user", "content": summary_prompt}]):
+			result += chunk
+
+		try:
+			# Remove markdown code blocks if present
+			clean = re.sub(r"```json|```", "", result).strip()
+			data = json.loads(clean)
+			save_chat_summary(data)
+		except Exception as e:
+			print(f"[SUMMARY] Failed: {e}", file=sys.stderr)

@@ -9,11 +9,16 @@ DATA_DIR = BASE_DIR / "data"
 PROJECTS_FILE = DATA_DIR / "projects.json"
 CHAT_LOGS_DIR = DATA_DIR / "chat_logs"
 POSTS_DIR = BASE_DIR / "posts"
+SUMMARIES_DIR = DATA_DIR / "summaries"
+TAGS_FILE = DATA_DIR / "tags.json"
+CV_DIR = BASE_DIR / "assets" / "cv"
 
 # Ensure directories exist
 DATA_DIR.mkdir(exist_ok=True)
 CHAT_LOGS_DIR.mkdir(exist_ok=True)
 POSTS_DIR.mkdir(exist_ok=True)
+SUMMARIES_DIR.mkdir(exist_ok=True)
+CV_DIR.mkdir(parents=True, exist_ok=True)
 
 # ---- PROJECTS ----
 
@@ -121,3 +126,50 @@ def delete_chat_log(filename: str):
     filepath = CHAT_LOGS_DIR / filename
     if filepath.exists():
         filepath.unlink()
+
+# ---- CHAT SUMMARIES ----
+
+def save_chat_summary(data: dict):
+    from datetime import datetime
+    SUMMARIES_DIR.mkdir(parents=True, exist_ok=True)
+    filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".json"
+    data["date"] = datetime.now().isoformat()
+    (SUMMARIES_DIR / filename).write_text(
+        json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+# ---- TAGS ----
+
+def load_tags() -> list[str]:
+    if not TAGS_FILE.exists():
+        return []
+    try:
+        return json.loads(TAGS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+def save_tags(tags: list[str]):
+    TAGS_FILE.write_text(json.dumps(tags, ensure_ascii=False, indent=2), encoding="utf-8")
+
+def add_tag(tag: str):
+    tags = load_tags()
+    if tag not in tags:
+        tags.append(tag)
+        save_tags(tags)
+
+# ---- CV ----
+
+def save_cv(file_data: bytes, filename: str) -> str:
+    CV_DIR.mkdir(parents=True, exist_ok=True)
+    # Clear previous CVs
+    for old in CV_DIR.glob("*.pdf"):
+        old.unlink()
+    path = CV_DIR / filename
+    path.write_bytes(file_data)
+    return f"/cv/{filename}"
+
+def get_cv_path() -> str:
+    if not CV_DIR.exists():
+        return ""
+    files = list(CV_DIR.glob("*.pdf"))
+    return f"/cv/{files[0].name}" if files else ""

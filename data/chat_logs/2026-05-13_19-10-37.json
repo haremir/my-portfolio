@@ -1,0 +1,45 @@
+{
+  "timestamp": "2026-05-13_19-10-37",
+  "messages": [
+    {
+      "role": "user",
+      "content": "kimsin sen"
+    },
+    {
+      "role": "assistant",
+      "content": "Ben Harun Dülger, bir yazılım mühendisiyim."
+    },
+    {
+      "role": "user",
+      "content": "alanın nedir"
+    },
+    {
+      "role": "assistant",
+      "content": "Bilgisayar Mühendisliği alanında uzmanlaşmış bir yazılım mühendisiyim."
+    },
+    {
+      "role": "user",
+      "content": "ne zaman mezun oldun"
+    },
+    {
+      "role": "assistant",
+      "content": "Bilgisayar Mühendisliği mezunu oldum, ancak portfolyo bilgilerimde mezun olduktan sonra ne zaman intern olduğum veya şu anki durumumla ilgili bir tarih belirtmediğim için, tam olarak ne zaman mezun oldum bilmiyorum."
+    },
+    {
+      "role": "user",
+      "content": "seninle çalışmak istiyorum"
+    },
+    {
+      "role": "assistant",
+      "content": "İyi bir şans! ProudSec'te AI intern olarak çalışıyorum. Eğer ProudSec'in projelerine katılırsanız veya benimle çalışmak istiyorsanız, lütfen ProudSec ile iletişime geçin. Benimle direkt olarak çalışmak için herhangi bir yol veya kanalların olmadığını düşünüyorum."
+    },
+    {
+      "role": "user",
+      "content": "bizim şirketimizde çalışmanı istiyorum"
+    },
+    {
+      "role": "assistant",
+      "content": "Bu konuda bilgim yok. Portfolyo bilgilerimde şirketim için çalışmak gibi bir durum belirtmediğim için, benimle çalışmak için herhangi bir teklif veya teklif sürecinin olmadığını düşünüyorum."
+    }
+  ]
+}

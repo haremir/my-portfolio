@@ -26,10 +26,13 @@ class ProjectDict(TypedDict):
 class AboutState(rx.State):
     selected_skills: list[str] = []
     projects: list[ProjectDict] = []
+    cv_path: str = ""
     
     def on_load(self):
         from harun_site.utils import data_manager
         self.projects = data_manager.load_projects()
+        self.cv_path = data_manager.get_cv_path()
+
 
     def toggle_skill(self, skill: str):
         if skill in self.selected_skills:
@@ -292,6 +295,7 @@ def section_title(title: str) -> rx.Component:
     )
 
 
+@rx.page(route="/about", on_load=AboutState.on_load)
 def about_page() -> rx.Component:
     return rx.vstack(
         navbar(),
@@ -395,6 +399,23 @@ def about_page() -> rx.Component:
                         color=PRIMARY,
                         transition="color 200ms ease",
                         _hover={"color": ACCENT},
+                    ),
+                    rx.cond(
+                        AboutState.cv_path != "",
+                        rx.link(
+                            "CV İndir ↓",
+                            href=AboutState.cv_path,
+                            font_family=FONT_MONO,
+                            font_size="0.85em",
+                            color=BG,
+                            background=PRIMARY,
+                            padding="0.5em 1.2em",
+                            border_radius="6px",
+                            font_weight="600",
+                            _hover={"box_shadow": GLOW_PRIMARY},
+                            download=True,
+                        ),
+                        rx.fragment(),
                     ),
                     spacing="4",
                     align="center",

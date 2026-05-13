@@ -1,9 +1,14 @@
 import reflex as rx
 
-from harun_site.pages.index import index_page
-from harun_site.pages.about import about_page
-from harun_site.pages import blog, blog_post, chat, admin
-
+# Import all pages to trigger @rx.page decorators
+from harun_site.pages import (
+    index,
+    about,
+    blog,
+    blog_post,
+    chat,
+    admin,
+)
 
 app = rx.App(
 	head_components=[
@@ -15,5 +20,3 @@ app = rx.App(
 		)
 	]
 )
-app.add_page(index_page, route="/")
-app.add_page(about_page, route="/about")

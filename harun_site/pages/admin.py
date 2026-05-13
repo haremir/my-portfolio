@@ -2,8 +2,8 @@ import reflex as rx
 
 from harun_site.components.navbar import navbar
 from harun_site.components.footer import footer
-from harun_site.state.admin_state import AdminAuthState, AdminBlogState, AdminProjectState, AdminChatLogState
-from harun_site.theme import BG, BG_CARD, PRIMARY, TEXT, TEXT_MUTED, BORDER, ACCENT, FONT_SANS, FONT_MONO
+from harun_site.state.admin_state import AdminAuthState, AdminBlogState, AdminProjectState, AdminChatLogState, AdminCVState
+from harun_site.theme import BG, BG_CARD, PRIMARY, TEXT, TEXT_MUTED, BORDER, ACCENT, FONT_SANS, FONT_MONO, GLOW_PRIMARY
 
 def login_form() -> rx.Component:
     return rx.center(
@@ -45,6 +45,52 @@ def login_form() -> rx.Component:
         width="100%"
     )
 
+def tag_checkbox_grid(state_class) -> rx.Component:
+    return rx.vstack(
+        rx.text("Etiketler", font_size="0.9em", color=TEXT_MUTED),
+        rx.flex(
+            rx.foreach(
+                state_class.available_tags,
+                lambda tag: rx.box(
+                    rx.hstack(
+                        rx.cond(
+                            state_class.selected_tags.contains(tag),
+                            rx.text("✓", color=PRIMARY, font_family=FONT_MONO, font_size="0.8em"),
+                            rx.text("○", color=TEXT_MUTED, font_family=FONT_MONO, font_size="0.8em"),
+                        ),
+                        rx.text(tag, font_family=FONT_MONO, font_size="0.8em", color=TEXT),
+                        gap="0.4em", align="center",
+                    ),
+                    padding="0.3em 0.8em",
+                    border=rx.cond(state_class.selected_tags.contains(tag), f"1px solid {PRIMARY}", f"1px solid {BORDER}"),
+                    border_radius="4px",
+                    background=rx.cond(state_class.selected_tags.contains(tag), f"{PRIMARY}15", BG_CARD),
+                    cursor="pointer",
+                    on_click=lambda: state_class.toggle_tag(tag),
+                    transition="all 150ms",
+                )
+            ),
+            wrap="wrap",
+            spacing="2",
+            width="100%"
+        ),
+        rx.hstack(
+            rx.input(
+                placeholder="Yeni etiket...", 
+                value=state_class.new_tag_name, 
+                on_change=state_class.set_new_tag_name,
+                background=BG,
+                size="1"
+            ),
+            rx.button("Ekle", on_click=state_class.add_new_tag, size="1", background=PRIMARY, color=BG),
+            spacing="2",
+            margin_top="0.5em"
+        ),
+        width="100%",
+        align_items="start",
+        spacing="2"
+    )
+
 def blog_tab() -> rx.Component:
     return rx.vstack(
         rx.heading("Yeni Blog Yazısı", size="4", color=TEXT),
@@ -56,10 +102,9 @@ def blog_tab() -> rx.Component:
         ),
         rx.hstack(
             rx.input(placeholder="Tarih (YYYY-MM-DD)", value=AdminBlogState.blog_date, on_change=AdminBlogState.set_blog_date, width="100%", background=BG),
-            rx.input(placeholder="Etiketler (virgülle ayrılmış)", value=AdminBlogState.blog_tags_str, on_change=AdminBlogState.set_blog_tags_str, width="100%", background=BG),
             width="100%",
-            spacing="4"
         ),
+        tag_checkbox_grid(AdminBlogState),
         rx.text_area(placeholder="Kısa Açıklama", value=AdminBlogState.blog_description, on_change=AdminBlogState.set_blog_description, width="100%", background=BG),
         
         rx.vstack(
@@ -126,7 +171,7 @@ def project_tab() -> rx.Component:
     return rx.vstack(
         rx.heading("Yeni Proje Ekle", size="4", color=TEXT),
         rx.input(placeholder="Proje İsmi", value=AdminProjectState.project_name, on_change=AdminProjectState.set_project_name, width="100%", background=BG),
-        rx.input(placeholder="Etiketler (virgülle ayrılmış)", value=AdminProjectState.project_tags_str, on_change=AdminProjectState.set_project_tags_str, width="100%", background=BG),
+        tag_checkbox_grid(AdminProjectState),
         rx.text_area(placeholder="Açıklama", value=AdminProjectState.project_desc, on_change=AdminProjectState.set_project_desc, width="100%", background=BG),
         rx.button("Projeyi Kaydet", on_click=AdminProjectState.save_project, background=PRIMARY, color=BG, width="100%"),
         
@@ -161,84 +206,139 @@ def chat_log_tab() -> rx.Component:
     return rx.hstack(
         # Sol taraf: liste
         rx.vstack(
-            rx.heading("Sohbet Kayıtları", size="4", color=TEXT),
+            rx.heading("Sohbet Özetleri", size="4", color=TEXT),
             rx.foreach(
                 AdminChatLogState.chat_logs,
-                lambda log: rx.hstack(
-                    rx.vstack(
-                        rx.text(log["timestamp"], color=TEXT, font_size="0.9em"),
+                lambda log: rx.vstack(
+                    rx.hstack(
+                        rx.text(log["date"], color=TEXT, font_size="0.8em", font_family=FONT_MONO),
+                        rx.spacer(),
                         rx.text(f"{log['message_count']} mesaj", color=TEXT_MUTED, font_size="0.75em"),
-                        align_items="start"
-                    ),
-                    rx.spacer(),
-                    rx.button("Gör", on_click=lambda: AdminChatLogState.view_log(log["filename"]), background="transparent", border=f"1px solid {PRIMARY}", color=PRIMARY, size="1"),
-                    rx.button("Sil", on_click=lambda: AdminChatLogState.delete_log(log["filename"]), background="transparent", border=f"1px solid {ACCENT}", color=ACCENT, size="1"),
-                    width="100%",
-                    padding="0.8em",
-                    border=f"1px solid {BORDER}",
-                    border_radius="8px",
-                    background=BG,
-                    align_items="center"
-                )
-            ),
-            width="35%",
-            height="600px",
-            overflow_y="auto",
-            spacing="2"
-        ),
-        
-        # Sağ taraf: detay
-        rx.box(
-            rx.cond(
-                AdminChatLogState.selected_log_name != "",
-                rx.vstack(
-                    rx.text(f"Kayıt: {AdminChatLogState.selected_log_name}", color=PRIMARY, font_family=FONT_MONO),
-                    rx.divider(border_color=BORDER),
-                    rx.box(
-                        rx.vstack(
-                            rx.foreach(
-                                AdminChatLogState.selected_log,
-                                lambda msg: rx.box(
-                                    rx.text(msg["role"].upper(), font_size="0.7em", color=PRIMARY, margin_bottom="0.2em", font_family=FONT_MONO),
-                                    rx.text(msg["content"], font_size="0.9em"),
-                                    background=rx.cond(msg["role"] == "user", f"{PRIMARY}22", BG_CARD),
-                                    border=rx.cond(msg["role"] == "user", f"1px solid {PRIMARY}", f"1px solid {BORDER}"),
-                                    padding="1em",
-                                    border_radius="8px",
-                                    width="100%",
-                                    margin_bottom="1em"
-                                )
-                            ),
-                            width="100%",
+                        rx.button(
+                            rx.icon("trash-2", size=14),
+                            on_click=lambda: AdminChatLogState.delete_log(log["filename"]),
+                            background="transparent",
+                            color=ACCENT,
+                            _hover={"color": "red"},
+                            padding="0"
                         ),
                         width="100%",
-                        height="500px",
-                        overflow_y="auto",
-                        padding="1em",
-                        background=BG,
-                        border_radius="8px"
+                        align_items="center"
                     ),
-                    width="100%"
-                ),
-                rx.center(rx.text("Bir kayıt seçin.", color=TEXT_MUTED), height="100%")
+                    rx.flex(
+                        rx.foreach(
+                            log["top_topics"],
+                            lambda topic: rx.text(
+                                topic,
+                                font_family=FONT_MONO,
+                                font_size="0.7em",
+                                color=PRIMARY,
+                                border=f"1px solid {BORDER}",
+                                padding="0.1em 0.4em",
+                                border_radius="3px"
+                            )
+                        ),
+                        wrap="wrap",
+                        spacing="2",
+                        width="100%"
+                    ),
+                    rx.text(
+                        log["summary"],
+                        color=TEXT_MUTED,
+                        font_size="0.85em",
+                        line_height="1.6",
+                        text_align="left",
+                        width="100%"
+                    ),
+                    width="100%",
+                    padding="1.2em",
+                    border=f"1px solid {BORDER}",
+                    border_radius="12px",
+                    background=BG,
+                    spacing="3",
+                    align_items="start"
+                )
             ),
-            width="65%",
-            height="600px",
-            background=BG_CARD,
-            border_radius="12px",
-            padding="2em",
-            border=f"1px solid {BORDER}"
+            width="100%",
+            height="700px",
+            overflow_y="auto",
+            spacing="4"
         ),
+        
         width="100%",
         spacing="4",
         align_items="start"
+    )
+
+def cv_tab() -> rx.Component:
+    return rx.vstack(
+        rx.heading("CV Yönetimi", size="4", color=TEXT),
+        rx.cond(
+            AdminCVState.cv_url != "",
+            rx.vstack(
+                rx.hstack(
+                    rx.icon("file-text", color=PRIMARY),
+                    rx.text(AdminCVState.cv_filename, color=TEXT),
+                    rx.spacer(),
+                    rx.link(
+                        rx.button("İndir", background=PRIMARY, color=BG, size="1"),
+                        href=AdminCVState.cv_url,
+                        download=True
+                    ),
+                    rx.button("Sil", on_click=AdminCVState.delete_cv, background=ACCENT, color=BG, size="1"),
+                    width="100%",
+                    padding="1em",
+                    background=BG,
+                    border=f"1px solid {BORDER}",
+                    border_radius="8px",
+                    align_items="center"
+                ),
+                width="100%"
+            ),
+            rx.text("Henüz CV yüklenmemiş.", color=TEXT_MUTED)
+        ),
+        
+        rx.divider(margin_y="2em", border_color=BORDER),
+        
+        rx.vstack(
+            rx.text("Yeni CV Yükle (PDF)", font_size="0.9em", color=TEXT_MUTED),
+            rx.upload(
+                rx.vstack(
+                    rx.button("PDF Seç", background=BG, border=f"1px solid {BORDER}", color=TEXT),
+                    rx.text("PDF dosyasını sürükleyin veya tıklayın", font_size="0.8em", color=TEXT_MUTED)
+                ),
+                id="cv_upload",
+                border=f"1px dashed {BORDER}",
+                padding="2em",
+                border_radius="8px",
+                width="100%",
+                accept={
+                    "application/pdf": [".pdf"]
+                }
+            ),
+            rx.button(
+                "Yükle", 
+                on_click=AdminCVState.handle_cv_upload(rx.upload_files(upload_id="cv_upload")),
+                background=PRIMARY, 
+                color=BG,
+                width="100%"
+            ),
+            width="100%",
+            spacing="4"
+        ),
+        width="100%",
+        spacing="4",
+        padding="2em",
+        background=BG_CARD,
+        border_radius="12px"
     )
 
 def on_load_admin():
     return [
         AdminBlogState.load_posts(),
         AdminProjectState.load_projects(),
-        AdminChatLogState.load_logs()
+        AdminChatLogState.load_logs(),
+        AdminCVState.load_cv()
     ]
 
 @rx.page(route="/admin", on_load=on_load_admin)
@@ -260,6 +360,7 @@ def admin_page() -> rx.Component:
                     rx.tabs.trigger("Blog Yönetimi", value="blog"),
                     rx.tabs.trigger("Proje Yönetimi", value="projects"),
                     rx.tabs.trigger("Sohbet Kayıtları", value="chats"),
+                    rx.tabs.trigger("CV Yönetimi", value="cv"),
                     background=BG_CARD
                 ),
                 rx.tabs.content(
@@ -275,6 +376,11 @@ def admin_page() -> rx.Component:
                 rx.tabs.content(
                     chat_log_tab(),
                     value="chats",
+                    padding_top="2em"
+                ),
+                rx.tabs.content(
+                    cv_tab(),
+                    value="cv",
                     padding_top="2em"
                 ),
                 defaultValue="blog",
