@@ -2,6 +2,26 @@ import os
 import reflex as rx
 from harun_site.utils import data_manager
 from harun_site.utils.markdown_parser import get_all_posts
+from typing import TypedDict
+
+class ChatMessageDict(TypedDict):
+    role: str
+    content: str
+
+class ChatLogDict(TypedDict):
+    timestamp: str
+    message_count: int
+    filename: str
+
+class AdminPostDict(TypedDict):
+    slug: str
+    title: str
+    date: str
+
+class AdminProjectDict(TypedDict):
+    name: str
+    desc: str
+    tags: list[str]
 
 class AdminAuthState(rx.State):
     password: str = ""
@@ -26,7 +46,7 @@ class AdminAuthState(rx.State):
 
 
 class AdminBlogState(rx.State):
-    all_admin_posts: list[dict] = []
+    all_admin_posts: list[AdminPostDict] = []
     
     # Form fields
     blog_title: str = ""
@@ -134,7 +154,7 @@ class AdminBlogState(rx.State):
 
 
 class AdminProjectState(rx.State):
-    all_admin_projects: list[dict] = []
+    all_admin_projects: list[AdminProjectDict] = []
     
     project_name: str = ""
     project_desc: str = ""
@@ -171,8 +191,8 @@ class AdminProjectState(rx.State):
 
 
 class AdminChatLogState(rx.State):
-    chat_logs: list[dict] = []
-    selected_log: list[dict] = []
+    chat_logs: list[ChatLogDict] = []
+    selected_log: list[ChatMessageDict] = []
     selected_log_name: str = ""
     
     def load_logs(self):
