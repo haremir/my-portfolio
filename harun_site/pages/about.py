@@ -17,27 +17,13 @@ from harun_site.theme import (
 )
 
 
-PROJECTS = [
-    {
-        "name": "dent-bot",
-        "desc": "Telegram tabanlı çok kiracılı diş klinik yönetim SaaS",
-        "tags": ["Python", "PostgreSQL"],
-    },
-    {
-        "name": "C-Module / ProudSec",
-        "desc": "Sosyal medya sahte reklam tespiti için görsel ve video analiz modülü",
-        "tags": ["YOLOv8", "CLIP", "Whisper"],
-    },
-    {
-        "name": "fraud-eye",
-        "desc": "Kredi kartı dolandırıcılığı tespiti ML pipeline",
-        "tags": ["ML", "Pipeline"],
-    },
-]
-
-
 class AboutState(rx.State):
     selected_skills: list[str] = []
+    projects: list[dict] = []
+    
+    def on_load(self):
+        from harun_site.utils import data_manager
+        self.projects = data_manager.load_projects()
 
     def toggle_skill(self, skill: str):
         if skill in self.selected_skills:
@@ -56,6 +42,22 @@ class AboutState(rx.State):
     def has_filter(self) -> bool:
         return len(self.selected_skills) > 0
 
+
+    @rx.var
+    def filtered_projects(self) -> list[dict]:
+        res = []
+        for i, project in enumerate(self.projects):
+            # Check filter
+            if self.has_filter:
+                match = any(skill in project.get("tags", []) for skill in self.selected_skills)
+                if not match:
+                    continue
+            
+            # Add index
+            p = dict(project)
+            p["display_index"] = f"0{len(res) + 1}"
+            res.append(p)
+        return res
 
 class ProjectModalState(rx.State):
     is_open: bool = False
@@ -106,10 +108,10 @@ def skill_tag(name: str) -> rx.Component:
     )
 
 
-def project_card(project: dict, index: int) -> rx.Component:
+def project_card(project: dict) -> rx.Component:
     return rx.hstack(
         rx.text(
-            f"0{index + 1}",
+            project["display_index"],
             font_family=FONT_MONO,
             color=PRIMARY,
             style={
@@ -362,14 +364,10 @@ def about_page() -> rx.Component:
                 ),
                 section_title("Projeler"),
                 rx.vstack(
-                    *[
-                        rx.cond(
-                            _skill_matches(project["tags"]),
-                            project_card(project, index),
-                            rx.fragment(),
-                        )
-                        for index, project in enumerate(PROJECTS)
-                    ],
+                    rx.foreach(
+                        AboutState.filtered_projects,
+                        lambda project: project_card(project)
+                    ),
                     spacing="1",
                 ),
                 section_title("İletişim"),

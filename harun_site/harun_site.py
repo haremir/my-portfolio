@@ -2,7 +2,7 @@ import reflex as rx
 
 from harun_site.pages.index import index_page
 from harun_site.pages.about import about_page
-from harun_site.pages import blog, blog_post, chat
+from harun_site.pages import blog, blog_post, chat, admin
 
 
 app = rx.App(

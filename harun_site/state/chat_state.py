@@ -50,4 +50,9 @@ class ChatState(rx.State):
 			yield
 
 		self.is_loading = False
+		
+		# Save chat log
+		from harun_site.utils import data_manager
+		data_manager.save_chat_log(self.messages)
+		
 		yield

@@ -1,0 +1,27 @@
+[
+  {
+    "name": "dent-bot",
+    "desc": "Telegram tabanlı çok kiracılı diş klinik yönetim SaaS",
+    "tags": [
+      "Python",
+      "PostgreSQL"
+    ]
+  },
+  {
+    "name": "C-Module / ProudSec",
+    "desc": "Sosyal medya sahte reklam tespiti için görsel ve video analiz modülü",
+    "tags": [
+      "YOLOv8",
+      "CLIP",
+      "Whisper"
+    ]
+  },
+  {
+    "name": "fraud-eye",
+    "desc": "Kredi kartı dolandırıcılığı tespiti ML pipeline",
+    "tags": [
+      "ML",
+      "Pipeline"
+    ]
+  }
+]
