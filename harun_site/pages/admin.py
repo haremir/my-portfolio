@@ -773,10 +773,6 @@ def edu_exp_tab() -> rx.Component:
         spacing="4",
     )
 
-@rx.page(
-    route="/admin", 
-    on_load=[AdminState.load_admin_data, AdminEduExpState.on_load]
-)
 def admin_page() -> rx.Component:
     return rx.cond(
         AdminAuthState.is_authenticated,

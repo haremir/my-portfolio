@@ -58,7 +58,6 @@ class BlogPostState(rx.State):
             self.is_loaded = True
 
 
-@rx.page(route="/blog/[slug]", on_load=BlogPostState.load_post)
 def blog_post_page() -> rx.Component:
     return rx.vstack(
         navbar(),

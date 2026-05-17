@@ -99,8 +99,7 @@ def blog_card(post: dict) -> rx.Component:
     )
 
 
-@rx.page(route="/blog", on_load=BlogState.on_load)
-def blog_page() -> rx.Component:
+def blog() -> rx.Component:
 	return rx.vstack(
 		navbar(),
 		rx.box(

@@ -189,7 +189,6 @@ def education_card(edu: dict) -> rx.Component:
     )
 
 
-@rx.page(route="/about", on_load=AboutState.on_load)
 def about_page() -> rx.Component:
     return rx.vstack(
         navbar(),

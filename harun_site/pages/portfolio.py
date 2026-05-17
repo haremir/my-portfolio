@@ -111,7 +111,6 @@ def project_card(project: ProjectDict) -> rx.Component:
     )
 
 
-@rx.page(route="/portfolio")
 def portfolio_page() -> rx.Component:
     return rx.vstack(
         navbar(),

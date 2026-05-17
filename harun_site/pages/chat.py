@@ -61,7 +61,6 @@ def message_row(message) -> rx.Component:
     )
 
 
-@rx.page(route="/chat", on_load=ChatState.load_from_params)
 def chat_page() -> rx.Component:
     return rx.vstack(
         navbar(),
