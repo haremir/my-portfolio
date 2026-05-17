@@ -321,7 +321,7 @@ def about_page() -> rx.Component:
                     ),
                     rx.link(
                         "Blog",
-                        href="https://haremir.blogspot.com",
+                        href="/blog",
                         color=PRIMARY,
                         transition="color 200ms ease",
                         _hover={"color": ACCENT},
