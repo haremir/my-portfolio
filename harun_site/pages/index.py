@@ -229,13 +229,13 @@ def about_preview() -> rx.Component:
                         font_size="1.05em",
                     ),
                     rx.text(
-                        "AI Systems Architect & Data Science Researcher",
+                        "AI & Backend Engineer",
                         font_family=FONT_MONO,
                         color=PRIMARY,
                         font_size="0.78em",
                     ),
                     rx.text(
-                        "Python, AI and backend systems; large-scale data pipelines and production-ready ML systems.",
+                        "Python, Yapay Zeka ve backend sistemleri; büyük ölçekli veri ardışık düzenleri ve üretime hazır ML sistemleri geliştiriyorum.",
                         font_family=FONT_SANS,
                         color=TEXT_MUTED,
                         font_size="0.87em",
