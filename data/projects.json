@@ -1,5 +1,9 @@
 [
-  {"name": "dent-bot", "desc": "Telegram tabanlı çok kiracılı diş klinik yönetim SaaS", "tags": ["Python", "PostgreSQL", "Telegram"]},
-  {"name": "C-Module / ProudSec", "desc": "Sosyal medya sahte reklam tespiti için görsel ve video analiz modülü", "tags": ["YOLOv8", "CLIP", "Whisper"]},
-  {"name": "fraud-eye", "desc": "Kredi kartı dolandırıcılığı tespiti ML pipeline", "tags": ["Python", "ML", "Pipeline"]}
+  {"name": "CebirX", "desc": "Multi-tenant AI Gateway & runtime engine — FastAPI, PostgreSQL, Redis, metering & credit-guard mechanisms.", "tags": ["API Gateway", "FastAPI", "PostgreSQL", "Redis", "Multi-tenant", "Production"]},
+  {"name": "DentBot", "desc": "Multi-channel clinic management ecosystem; LangChain + LangGraph orchestration and deterministic state-machine integration.", "tags": ["LangChain", "LangGraph", "State Machine", "Healthcare", "Tooling"]},
+  {"name": "MergenX", "desc": "NLP-driven dynamic travel package search widget (in collaboration with biTur).", "tags": ["NLP", "Search", "Recommendation", "Python"]},
+  {"name": "GameGain", "desc": "User behavior analysis and revenue forecasting using time-series models and RFM segmentation.", "tags": ["Big Data", "Time-Series", "Forecasting", "Pandas"]},
+  {"name": "FraudEye", "desc": "Credit card fraud detection system using SMOTE, Random Forest and XGBoost for high-accuracy anomaly detection.", "tags": ["ML", "Anomaly Detection", "XGBoost", "SMOTE"]},
+  {"name": "ScoutMaster", "desc": "Player performance analytics and market value prediction (Coderspace Summer School 2024).", "tags": ["Analytics", "Regression", "Sports Analytics"]},
+  {"name": "LazyEda", "desc": "Open-source library automating common exploratory data analysis steps with optional LLM integration.", "tags": ["EDA", "Python", "Open Source"]}
 ]

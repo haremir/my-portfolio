@@ -1,0 +1,100 @@
+[
+  {
+    "company": "ProudSec",
+    "role": "Associate AI Engineer",
+    "start_date": "2026",
+    "end_date": "Devam ediyor",
+    "description": "Sosyal medya sahte reklam tespiti sistemi için görsel ve video analiz modülü geliştiriyorum. YOLOv8, CLIP, Whisper modelleri ile çalışıyorum.",
+    "tags": [
+      "Python",
+      "YOLOv8",
+      "CLIP",
+      "Whisper"
+    ]
+  },
+  {
+    "company": "Lotus AI",
+    "role": "Data Science & AI Intern",
+    "start_date": "EYLÜL 2025",
+    "end_date": "KASIM 2025",
+    "description": "Uçtan Uca Makine Öğrenmesi (CRISP-DM): Python ve KNIME kullanarak enerji tahmini, oltalama (phishing) tespiti ve ağ trafiği analizi dahil olmak üzere 5 proje geliştirildi.\nİleri Düzey Yapay Zeka ve ETL: 100’den fazla SQL/Pandas sorgusu geliştirildi ve kurumsal LLM çözümleri için RAG ve CAG mimarileri üzerine karşılaştırmalı araştırmalar gerçekleştirildi.",
+    "tags": [
+      "NLP",
+      "Classification",
+      "TF-IDF",
+      "Embeddings",
+      "Python",
+      "ML",
+      "AI",
+      "rag"
+    ]
+  },
+  {
+    "company": "ICED Company",
+    "role": "AI Research Intern",
+    "start_date": "ŞUBAT 2025",
+    "end_date": "HAZİRAN 2025",
+    "description": "Python (Pandas, NumPy) kullanılarak büyük ölçekli veri setlerinin ön işleme ve veri temizleme süreçleri gerçekleştirildi.\nHukuki dokümanların verimli şekilde erişilebilir olması için RAG framework’ü ve FAISS embedding yapıları uygulandı.\nHukuki problemleri analiz eden ve ilgili emsal davaları getiren avukatlara yönelik prototip bir yapay zeka aracı geliştirildi.",
+    "tags": [
+      "RAG",
+      "FAISS",
+      "Retrieval",
+      "Python"
+    ]
+  },
+  {
+    "company": "SCA & TNC Group",
+    "role": "Project Management & Strategy Intern",
+    "start_date": "HAZİRAN 2025",
+    "end_date": "TEMMUZ 2025",
+    "description": "Proje Yönetimi: Yönetim, organizasyon ve proje stratejileri üzerine profesyonel eğitim tamamlandı.\nBilişim Hukuku ve Uyumluluk: KVKK (GDPR) ve veri gizliliği regülasyonları üzerine vaka çalışmaları yürütülerek hukuki uyumluluk raporları hazırlandı.\nKurumsal Liderlik: Organizasyon teorileri, yönetici simülasyonları ve stratejik planlama çalışmaları üzerinden uygulamalı olarak değerlendirildi.",
+    "tags": [
+      "Project Management",
+      "KVKK",
+      "Strategy"
+    ]
+  },
+  {
+    "company": "Takımada",
+    "role": "Part-time Data Labeling Specialist",
+    "start_date": "Eylül 2024",
+    "end_date": "Eylül 2025",
+    "description": "Çeşitli makine öğrenmesi projeleri için veri anotasyonu ve etiketleme süreçlerinde görev alındı.\nYüksek kaliteli etiketlenmiş veri setleri sağlayarak yapay zeka modellerinin doğruluk oranlarının artırılmasına katkıda bulunuldu.",
+    "tags": [
+      "Data Labeling",
+      "Annotation",
+      "Quality Assurance"
+    ]
+  },
+  {
+    "company": "Mucitpark ETÜ",
+    "role": "Part-time Instructor",
+    "start_date": "KASIM 2021",
+    "end_date": "EKİM 2022",
+    "description": "İlkokul ve ortaokul öğrencilerine sosyal bilimler ve mühendislik alanlarında proje tabanlı eğitimler verildi.\nArduino eğitimleri düzenlenerek robotik kodlama atölyeleri yürütüldü.\nDonanım ve yazılım projeleri tasarlanıp mentorluk sağlanarak disiplinlerarası çalışma yaklaşımı desteklendi.",
+    "tags": [
+      "Teaching",
+      "Robotics",
+      "Arduino",
+      "Python"
+    ]
+  },
+  {
+    "company": "Acun Medya Akademi",
+    "role": "AI & Python Training Intern",
+    "start_date": "OCAK 2025",
+    "end_date": "TEMMUZ 2025",
+    "description": "Yapay zeka uygulamalarına yönelik Python programlama alanında yoğun uygulamalı eğitim tamamlandı.\nVeri ön işleme ve model prototipleme odaklı pratik projeler geliştirildi.",
+    "tags": [
+      "Python",
+      "PostgreSQL",
+      "FastAPI",
+      "LangChain",
+      "RAG",
+      "Docker",
+      "Git",
+      "AI",
+      "Pipeline"
+    ]
+  }
+]
