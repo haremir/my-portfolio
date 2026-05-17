@@ -109,11 +109,13 @@ def blog_post_page() -> rx.Component:
             ),
             style={"max_width": "800px", "margin": "0 auto", "padding": "6em 2em 3em 2em"},
             width="100%",
+            flex="1",
         ),
         footer(),
         floating_chat(),
         min_height="100vh",
         width="100%",
         bg=BG,
+        spacing="0",
     )
 

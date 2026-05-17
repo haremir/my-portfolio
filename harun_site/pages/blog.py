@@ -180,10 +180,12 @@ def blog_page() -> rx.Component:
 			),
 			style={"max_width": "1100px", "margin": "0 auto", "padding": "8em 2em 3em 2em"},
 			width="100%",
+			flex="1",
 		),
 		footer(),
 		floating_chat(),
 		min_height="100vh",
 		width="100%",
 		bg=BG,
+		spacing="0",
 	)

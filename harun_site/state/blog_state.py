@@ -24,6 +24,7 @@ class BlogState(rx.State):
     selected_tags: list[str] = []
     all_posts: list[PostDict] = []
 
+    @rx.event
     def on_load(self):
         posts = get_all_posts()
         months_tr = {
@@ -56,12 +57,14 @@ class BlogState(rx.State):
                 )
             )
 
+    @rx.event
     def toggle_tag(self, tag: str):
         if tag in self.selected_tags:
             self.selected_tags = [t for t in self.selected_tags if t != tag]
         else:
             self.selected_tags = self.selected_tags + [tag]
 
+    @rx.event
     def clear_tags(self):
         self.selected_tags = []
 

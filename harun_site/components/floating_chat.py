@@ -9,6 +9,7 @@ from harun_site.theme import (
     TEXT,
     TEXT_MUTED,
     BORDER,
+    ACCENT,
     GLOW_PRIMARY,
     FONT_MONO,
     FONT_SANS,
@@ -22,17 +23,22 @@ class FloatingChatState(rx.State):
     input_value: str = ""
     is_loading: bool = False
     show_redirect: bool = False
+    current_log_filename: str = ""
 
+    @rx.event
     def toggle(self):
         self.is_open = not self.is_open
 
+    @rx.event
     def set_input_value(self, value: str):
         self.input_value = value
 
+    @rx.event
     def handle_keydown(self, key: str, info: rx.event.KeyInputInfo):
         if key == "Enter":
             return self.send_message()
 
+    @rx.event
     async def send_message(self):
         if not self.input_value.strip():
             return
@@ -65,10 +71,35 @@ class FloatingChatState(rx.State):
             yield
 
         self.is_loading = False
+        from harun_site.utils import data_manager
+
+        self.current_log_filename = data_manager.save_chat_log(
+            self.messages,
+            self.current_log_filename or None,
+        )
         user_count = sum(1 for message in self.messages if message["role"] == "user")
         if user_count >= 2:
             self.show_redirect = True
         yield
+
+    @rx.event
+    def reset_chat(self):
+        self.messages = []
+        return rx.window_alert("Sohbet sıfırlandı.")
+
+    @rx.event
+    def clear_chat(self):
+        self.messages = []
+        self.input_value = ""
+        self.is_loading = False
+        self.show_redirect = False
+        self.current_log_filename = ""
+
+    @rx.event
+    def go_fullscreen_chat(self):
+        if self.current_log_filename:
+            return rx.redirect(f"/chat?c={self.current_log_filename}")
+        return rx.redirect("/chat")
 
 
 def _message_bubble(message: dict) -> rx.Component:
@@ -86,7 +117,7 @@ def _message_bubble(message: dict) -> rx.Component:
             font_family=FONT_SANS,
         ),
         rx.box(
-            message["content"],
+            rx.markdown(message["content"]),
             align_self="flex-start",
             background_color=BG,
             border=f"1px solid {BORDER}",
@@ -105,35 +136,40 @@ def floating_chat(show: bool = True) -> rx.Component:
 
     header = rx.box(
         rx.hstack(
-            rx.hstack(
-                rx.text(
-                    "harun.",
-                    font_family=FONT_MONO,
-                    color=PRIMARY,
-                    font_size="0.85em",
-                ),
-                rx.text("●", color="#00ff88", font_size="0.5em"),
-                align="center",
-                spacing="1",
+            rx.text(
+                "harun.",
+                font_family=FONT_MONO,
+                font_size="0.8em",
+                color=PRIMARY,
+                style={"letter_spacing": "0.1em"},
             ),
+            rx.button(
+                "↺", 
+                on_click=FloatingChatState.clear_chat, 
+                background="transparent", 
+                border="none", 
+                color=TEXT_MUTED, 
+                cursor="pointer", 
+                font_size="0.85em", 
+                padding="0 0.3em", 
+                _hover={"color": PRIMARY}
+            ),
+            rx.spacer(),
             rx.button(
                 "×",
                 on_click=FloatingChatState.toggle,
-                background_color="transparent",
+                variant="ghost",
                 color=TEXT_MUTED,
                 padding="0",
-                height="20px",
-                width="20px",
-                _hover={"color": TEXT},
-                style={"cursor": "pointer"},
+                size="1",
+                _hover={"color": PRIMARY},
             ),
-            justify="between",
-            align="center",
             width="100%",
+            padding="1em 1.2em",
+            border_bottom=f"1px solid {BORDER}",
+            align="center",
         ),
         background=BG,
-        padding="0.8em 1em",
-        border_bottom=f"1px solid {BORDER}",
     )
 
     empty_state = rx.text(
@@ -145,35 +181,25 @@ def floating_chat(show: bool = True) -> rx.Component:
         margin_top="2em",
     )
 
-    messages = rx.vstack(
-        rx.foreach(FloatingChatState.messages, _message_bubble),
-        rx.cond(
-            FloatingChatState.is_loading,
-            rx.text(
-                "...",
-                color=TEXT_MUTED,
-                font_size="0.8em",
-                align_self="flex-start",
-            ),
-            rx.fragment(),
-        ),
-        spacing="2",
-        width="100%",
-        align="stretch",
-    )
-
     messages_panel = rx.box(
-        rx.cond(
-            FloatingChatState.messages.length() == 0,
-            empty_state,
-            messages,
+        rx.vstack(
+            rx.foreach(FloatingChatState.messages, _message_bubble),
+            rx.cond(
+                FloatingChatState.is_loading,
+                rx.text(
+                    "...",
+                    color=TEXT_MUTED,
+                    font_size="0.8em",
+                    align_self="flex-start",
+                ),
+                rx.fragment(),
+            ),
+            spacing="2",
         ),
-        height="220px",
+        height="420px",
         overflow_y="auto",
-        padding="0.8em",
-        display="flex",
-        flex_direction="column",
-        gap="0.5em",
+        padding="1.2em",
+        flex="1",
     )
 
     redirect_banner = rx.cond(
@@ -186,12 +212,14 @@ def floating_chat(show: bool = True) -> rx.Component:
                     font_size="0.75em",
                     color=TEXT_MUTED,
                 ),
-                rx.link(
+                rx.button(
                     "Tam ekran aç",
-                    href="/chat",
+                    on_click=FloatingChatState.go_fullscreen_chat,
+                    background="transparent",
+                    color=PRIMARY,
                     font_family=FONT_MONO,
                     font_size="0.75em",
-                    color=PRIMARY,
+                    padding="0",
                 ),
                 justify="between",
                 align="center",
@@ -252,7 +280,7 @@ def floating_chat(show: bool = True) -> rx.Component:
         background=BG_CARD,
         border=f"1px solid {PRIMARY}",
         box_shadow=GLOW_PRIMARY,
-        border_radius="12px",
+        border_radius="14px",
         overflow="hidden",
         display="flex",
         flex_direction="column",
@@ -282,9 +310,9 @@ def floating_chat(show: bool = True) -> rx.Component:
         rx.cond(FloatingChatState.is_open, popup, rx.fragment()),
         toggle_button,
         position="fixed",
-        bottom="2em",
-        right="2em",
-        z_index="200",
+        bottom="1.5em",
+        right="1.5em",
+        z_index="1000",
         display="flex",
         flex_direction="column",
         align_items="flex-end",

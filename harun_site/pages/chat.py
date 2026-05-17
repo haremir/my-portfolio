@@ -1,6 +1,7 @@
 import reflex as rx
 
 from harun_site.components.navbar import navbar
+from harun_site.components.footer import footer
 from harun_site.components.floating_chat import floating_chat
 from harun_site.state.chat_state import ChatState
 from harun_site.theme import (
@@ -31,6 +32,8 @@ def message_row(message) -> rx.Component:
                     "border_radius": "18px 18px 4px 18px",
                     "font_family": FONT_SANS,
                     "font_size": "0.9em",
+                    "white_space": "pre-wrap",
+                    "word_break": "break-word",
                 },
                 max_width="70%",
             ),
@@ -39,7 +42,7 @@ def message_row(message) -> rx.Component:
         ),
         rx.hstack(
             rx.box(
-                message["content"],
+                rx.markdown(message["content"]),
                 background_color=BG_CARD,
                 color=TEXT,
                 style={
@@ -48,6 +51,7 @@ def message_row(message) -> rx.Component:
                     "border": f"1px solid {BORDER}",
                     "font_family": FONT_SANS,
                     "font_size": "0.9em",
+                    "word_break": "break-word",
                 },
                 max_width="80%",
             ),
@@ -59,21 +63,41 @@ def message_row(message) -> rx.Component:
 
 @rx.page(route="/chat", on_load=ChatState.load_from_params)
 def chat_page() -> rx.Component:
-    return rx.box(
+    return rx.vstack(
         navbar(),
         rx.box(
             rx.vstack(
-                rx.heading(
-                    "Harun ile Sohbet",
-                    size="4",
-                    color=PRIMARY,
-                    font_family=FONT_MONO,
-                    style={
-                        "font_size": "0.75em",
-                        "letter_spacing": "0.2em",
-                        "text_transform": "uppercase",
-                        "text_shadow": GLOW_PRIMARY,
-                    },
+                rx.hstack(
+                    rx.heading(
+                        "HARUN İLE SOHBET",
+                        size="4",
+                        color=PRIMARY,
+                        font_family=FONT_MONO,
+                        style={
+                            "font_size": "0.75em",
+                            "letter_spacing": "0.2em",
+                            "text_transform": "uppercase",
+                            "text_shadow": GLOW_PRIMARY,
+                        },
+                    ),
+                    rx.spacer(),
+                    rx.button(
+                        "+ Yeni Sohbet", 
+                        on_click=ChatState.new_conversation, 
+                        font_family=FONT_MONO, 
+                        font_size="0.75em", 
+                        background="transparent", 
+                        color=TEXT_MUTED, 
+                        border=f"1px solid {BORDER}", 
+                        padding="0.4em 0.9em", 
+                        border_radius="6px", 
+                        cursor="pointer", 
+                        _hover={"color": PRIMARY, "border_color": PRIMARY}, 
+                        transition="all 150ms"
+                    ),
+                    width="100%",
+                    align="center",
+                    justify="between",
                 ),
                 rx.text(
                     "Portfolyo, projeler ve teknik beceriler hakkinda soru sorabilirsiniz.",
@@ -81,17 +105,16 @@ def chat_page() -> rx.Component:
                     font_family=FONT_SANS,
                     style={"font_size": "0.85em", "margin_bottom": "1.5em"},
                 ),
-                rx.box(
-                    rx.vstack(
-                        rx.foreach(ChatState.messages, message_row),
-                        rx.cond(
-                            ChatState.is_loading,
-                            rx.text("...", color=TEXT_MUTED),
-                            rx.fragment(),
-                        ),
-                        spacing="3",
+                rx.vstack(
+                    rx.foreach(ChatState.messages, message_row),
+                    rx.cond(
+                        ChatState.is_loading,
+                        rx.text("...", color=TEXT_MUTED),
+                        rx.fragment(),
                     ),
-                    flex="1",
+                    spacing="3",
+                    height="50vh",
+                    max_height="450px",
                     overflow_y="auto",
                     background_color=BG_CARD,
                     border=f"1px solid {PRIMARY}",
@@ -145,9 +168,12 @@ def chat_page() -> rx.Component:
                 "flex_direction": "column",
             },
             width="100%",
+            flex="1",
         ),
+        footer(),
         floating_chat(show=False),
         width="100%",
         min_height="100vh",
         bg=BG,
+        spacing="0",
     )

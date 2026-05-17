@@ -1,7 +1,6 @@
 import reflex as rx
 
-pythonBG = "#050d0f"
-BG = pythonBG
+BG = "#050d0f"
 BG_CARD = "#0a1a1d"
 PRIMARY = "#00f5d4"
 ACCENT = "#ff2d55"

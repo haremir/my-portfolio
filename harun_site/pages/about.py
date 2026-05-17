@@ -15,263 +15,20 @@ from harun_site.theme import (
     FONT_MONO,
     FONT_SANS,
 )
-from typing import TypedDict
-
-class ProjectDict(TypedDict):
-    name: str
-    desc: str
-    tags: list[str]
-    display_index: str
-
-class AboutState(rx.State):
-    selected_skills: list[str] = []
-    projects: list[ProjectDict] = []
-    cv_path: str = ""
-    
-    def on_load(self):
-        from harun_site.utils import data_manager
-        self.projects = data_manager.load_projects()
-        self.cv_path = data_manager.get_cv_path()
-
-
-    def toggle_skill(self, skill: str):
-        if skill in self.selected_skills:
-            self.selected_skills = [s for s in self.selected_skills if s != skill]
-        else:
-            self.selected_skills = self.selected_skills + [skill]
-
-    def clear_skills(self):
-        self.selected_skills = []
-
-    @rx.var
-    def selected_skills_str(self) -> str:
-        return ",".join(self.selected_skills)
-
-    @rx.var
-    def has_filter(self) -> bool:
-        return len(self.selected_skills) > 0
-
-
-    @rx.var
-    def filtered_projects(self) -> list[ProjectDict]:
-        res = []
-        for i, project in enumerate(self.projects):
-            # Check filter
-            if self.has_filter:
-                match = any(skill in project.get("tags", []) for skill in self.selected_skills)
-                if not match:
-                    continue
-            
-            # Add index
-            p = ProjectDict(
-                name=project.get("name", ""),
-                desc=project.get("desc", ""),
-                tags=project.get("tags", []),
-                display_index=f"0{len(res) + 1}"
-            )
-            res.append(p)
-        return res
-
-class ProjectModalState(rx.State):
-    is_open: bool = False
-    selected_name: str = ""
-    selected_desc: str = ""
-    selected_tags: list[str] = []
-
-    def open_modal(self, project: dict):
-        self.selected_name = project.get("name", "")
-        self.selected_desc = project.get("desc", "")
-        self.selected_tags = project.get("tags", [])
-        self.is_open = True
-
-    def close_modal(self):
-        self.is_open = False
+from harun_site.state.about_state import AboutState
 
 
 def skill_tag(name: str) -> rx.Component:
-    return rx.button(
+    return rx.box(
         name,
-        on_click=AboutState.toggle_skill(name),
         font_family=FONT_MONO,
         font_size="0.8em",
         padding="0.3em 0.8em",
         border_radius="4px",
-        cursor="pointer",
-        transition="all 150ms",
-        background=rx.cond(
-            AboutState.selected_skills_str.contains(name),
-            "#00f5d415",
-            BG_CARD,
-        ),
-        color=rx.cond(
-            AboutState.selected_skills_str.contains(name),
-            PRIMARY,
-            TEXT_MUTED,
-        ),
-        border=rx.cond(
-            AboutState.selected_skills_str.contains(name),
-            f"1px solid {PRIMARY}",
-            f"1px solid {BORDER}",
-        ),
-        text_shadow=rx.cond(
-            AboutState.selected_skills_str.contains(name),
-            GLOW_PRIMARY,
-            "none",
-        ),
-    )
-
-
-def project_card(project: ProjectDict) -> rx.Component:
-    return rx.hstack(
-        rx.text(
-            project["display_index"],
-            font_family=FONT_MONO,
-            color=PRIMARY,
-            style={
-                "font_size": "1.5em",
-                "font_weight": "600",
-                "opacity": "0.4",
-                "min_width": "2em",
-            },
-        ),
-        rx.vstack(
-            rx.text(
-                project["name"],
-                font_family=FONT_SANS,
-                color=TEXT,
-                style={"font_size": "1.05em", "font_weight": "600"},
-            ),
-            rx.text(
-                project["desc"],
-                font_family=FONT_SANS,
-                color=TEXT_MUTED,
-                style={"font_size": "0.85em", "line_height": "1.5"},
-            ),
-            rx.hstack(
-                rx.foreach(
-                    project["tags"],
-                    lambda tag: rx.text(
-                        tag,
-                        font_family=FONT_MONO,
-                        color=PRIMARY,
-                        style={
-                            "font_size": "0.7em",
-                            "border": f"1px solid {BORDER}",
-                            "padding": "0.15em 0.5em",
-                            "border_radius": "3px",
-                        },
-                    )
-                ),
-                wrap="wrap",
-                style={"gap": "0.5em"},
-            ),
-            align="start",
-            style={"gap": "0.3em"},
-        ),
-        align="start",
-        style={"gap": "1.5em", "cursor": "pointer"},
-        width="100%",
-        background_color=BG_CARD,
-        border=f"1px solid {BORDER}",
-        border_radius="8px",
-        padding="1.5em",
-        margin_bottom="1em",
-        _hover={"border_color": PRIMARY, "box_shadow": GLOW_PRIMARY},
-        transition="all 200ms",
-        on_click=lambda: ProjectModalState.open_modal(project),
-    )
-
-
-def _skill_matches(tags: list[str]) -> rx.Var:
-    condition = AboutState.has_filter == False
-    for tag in tags:
-        condition = condition | AboutState.selected_skills_str.contains(tag)
-    return condition
-
-
-def project_modal() -> rx.Component:
-    modal_content = rx.box(
-        rx.hstack(
-            rx.text(
-                ProjectModalState.selected_name,
-                color=PRIMARY,
-                font_family=FONT_SANS,
-                font_size="1.3em",
-                font_weight="700",
-            ),
-            rx.button(
-                "×",
-                on_click=ProjectModalState.close_modal,
-                background_color="transparent",
-                color=TEXT_MUTED,
-                padding="0",
-                height="24px",
-                width="24px",
-                _hover={"color": TEXT},
-                style={"cursor": "pointer"},
-            ),
-            justify="between",
-            align="center",
-            width="100%",
-        ),
-        rx.text(
-            ProjectModalState.selected_desc,
-            color=TEXT,
-            font_family=FONT_SANS,
-            style={"line_height": "1.7", "margin_top": "1em"},
-        ),
-        rx.hstack(
-            rx.foreach(
-                ProjectModalState.selected_tags,
-                lambda tag: rx.text(
-                    tag,
-                    font_family=FONT_MONO,
-                    color=PRIMARY,
-                    style={
-                        "font_size": "0.7em",
-                        "border": f"1px solid {BORDER}",
-                        "padding": "0.15em 0.5em",
-                        "border_radius": "3px",
-                    },
-                ),
-            ),
-            wrap="wrap",
-            style={"gap": "0.5em", "margin_top": "1em"},
-        ),
-        rx.text(
-            "× dışarı tıkla kapatır",
-            color=TEXT_MUTED,
-            font_size="0.72em",
-            font_family=FONT_MONO,
-            margin_top="1.5em",
-        ),
         background=BG_CARD,
-        border=f"1px solid {PRIMARY}",
-        box_shadow=GLOW_PRIMARY,
-        border_radius="12px",
-        padding="2em",
-        max_width="480px",
-        width="90%",
-        on_click=rx.stop_propagation,
-    )
-
-    return rx.cond(
-        ProjectModalState.is_open,
-        rx.box(
-            modal_content,
-            position="fixed",
-            top="0",
-            left="0",
-            width="100vw",
-            height="100vh",
-            background="#000000aa",
-            z_index="300",
-            display="flex",
-            align_items="center",
-            justify_content="center",
-            on_click=ProjectModalState.close_modal,
-        ),
-        rx.fragment(),
+        color=PRIMARY,
+        border=f"1px solid {BORDER}",
+        text_shadow="none",
     )
 
 
@@ -295,6 +52,143 @@ def section_title(title: str) -> rx.Component:
     )
 
 
+def experience_card(exp: dict) -> rx.Component:
+    return rx.box(
+        rx.vstack(
+            rx.hstack(
+                rx.vstack(
+                    rx.text(
+                        exp["company"],
+                        font_family=FONT_SANS,
+                        font_weight="700",
+                        color=TEXT,
+                        font_size="1.05em",
+                    ),
+                    rx.text(
+                        exp["role"],
+                        font_family=FONT_MONO,
+                        color=PRIMARY,
+                        font_size="0.82em",
+                    ),
+                    align_items="start",
+                    gap="0.1em",
+                ),
+                rx.text(
+                    f"{exp['start_date']} – {exp['end_date']}",
+                    font_family=FONT_MONO,
+                    font_size="0.75em",
+                    color=TEXT_MUTED,
+                    white_space="nowrap",
+                ),
+                justify="between",
+                align="start",
+                width="100%",
+            ),
+            rx.text(
+                exp["description"],
+                font_family=FONT_SANS,
+                color=TEXT_MUTED,
+                font_size="0.87em",
+                line_height="1.7",
+                margin_top="0.8em",
+            ),
+            rx.hstack(
+                rx.foreach(
+                    exp["tags"],
+                    lambda tag: rx.text(
+                        tag,
+                        font_family=FONT_MONO,
+                        font_size="0.7em",
+                        color=PRIMARY,
+                        border=f"1px solid {BORDER}",
+                        padding="0.15em 0.5em",
+                        border_radius="3px",
+                    ),
+                ),
+                gap="0.4em",
+                flex_wrap="wrap",
+                margin_top="0.8em",
+                width="100%",
+            ),
+            align_items="start",
+            width="100%",
+        ),
+        background=BG_CARD,
+        border=f"1px solid {BORDER}",
+        border_radius="10px",
+        padding="1.5em",
+        width="100%",
+        margin_bottom="1em",
+        _hover={"border_color": PRIMARY},
+        transition="all 200ms",
+    )
+
+
+def education_card(edu: dict) -> rx.Component:
+    return rx.box(
+        rx.vstack(
+            rx.hstack(
+                rx.vstack(
+                    rx.text(
+                        edu["school"],
+                        font_family=FONT_SANS,
+                        font_weight="700",
+                        color=TEXT,
+                        font_size="1.05em",
+                    ),
+                    rx.text(
+                        edu["department"],
+                        font_family=FONT_MONO,
+                        color=PRIMARY,
+                        font_size="0.82em",
+                    ),
+                    align_items="start",
+                    gap="0.1em",
+                ),
+                rx.text(
+                    f"{edu['start_year']} – {edu['end_year']}",
+                    font_family=FONT_MONO,
+                    font_size="0.75em",
+                    color=TEXT_MUTED,
+                    white_space="nowrap",
+                ),
+                justify="between",
+                align="start",
+                width="100%",
+            ),
+            rx.badge(
+                edu["degree"],
+                font_family=FONT_MONO,
+                font_size="0.72em",
+                background="#00f5d415",
+                color=PRIMARY,
+                border=f"1px solid {PRIMARY}44",
+                padding="0.2em 0.6em",
+                border_radius="4px",
+                margin_top="0.8em",
+            ),
+            rx.text(
+                edu["description"],
+                font_family=FONT_SANS,
+                color=TEXT_MUTED,
+                font_size="0.87em",
+                line_height="1.7",
+                margin_top="0.8em",
+            ),
+            align_items="start",
+            width="100%",
+        ),
+        background=BG_CARD,
+        border=f"1px solid {BORDER}",
+        border_radius="10px",
+        padding="1.5em",
+        width="100%",
+        margin_bottom="1em",
+        _hover={"border_color": PRIMARY},
+        transition="all 200ms",
+    )
+
+
 @rx.page(route="/about", on_load=AboutState.on_load)
 def about_page() -> rx.Component:
     return rx.vstack(
@@ -312,21 +206,19 @@ def about_page() -> rx.Component:
                     ),
                     rx.vstack(
                         rx.text(
-                            "Harun Dülger",
+                            "HARUN EMİRHAN BOSTANCI",
                             color=TEXT,
                             font_family=FONT_SANS,
                             style={"font_size": "2em", "font_weight": "700"},
                         ),
                         rx.text(
-                            "AI & Backend Engineer · Computer Engineering Graduate",
+                            "── AI & BACKEND ENGINEER ──",
                             color=PRIMARY,
                             font_family=FONT_MONO,
                             style={"font_size": "0.85em"},
                         ),
                         rx.text(
-                            "Yoğun makine öğrenmesi ve backend geliştirme deneyimi. "
-                            "Bilgisayar Mühendisliği mezunu. ProudSec'te AI intern olarak çalışıyor. "
-                            "Kendi yazılımımızı geliştirmeyi ve yeni teknolojiler keşfetmeyi seviyorum.",
+                            "Erzurum Teknik Üniversitesi mezunu bir bilgisayar mühendisi olarak yapay zeka, makine öğrenmesi ve veri mühendisliği alanlarında çalışıyorum. Özellikle RAG mimarileri, büyük dil modelleri (LLM), veri işleme sistemleri ve üretim odaklı AI uygulamaları üzerine yoğunlaşıyorum. Python tabanlı ölçeklenebilir yapay zeka çözümleri, veri pipeline’ları ve uçtan uca AI sistemleri geliştiriyor; siber güvenlik alanında faaliyet gösteren bir girişimde yapay zeka ürünlerinin geliştirme süreçlerinde aktif rol alıyorum.",
                             color=TEXT_MUTED,
                             font_family=FONT_SANS,
                             style={"font_size": "0.9em", "line_height": "1.6", "margin_top": "0.5em"},
@@ -341,70 +233,105 @@ def about_page() -> rx.Component:
                     *[
                         skill_tag(skill)
                         for skill in [
+                            "Machine Learning",
+                            "Deep Learning",
+                            "NLP",
+                            "Predictive Modeling",
+                            "Feature Engineering",
+                            "Time-Series Forecasting",
+                            "Anomaly Detection",
                             "Python",
-                            "Reflex",
-                            "FastAPI",
+                            "SQL",
+                            "Scikit-learn",
+                            "TensorFlow",
+                            "PyTorch",
+                            "Hugging Face",
                             "LangChain",
-                            "RAG",
+                            "LangGraph",
+                            "FastAPI",
                             "PostgreSQL",
+                            "Redis",
                             "Docker",
-                            "Git",
-                            "Groq",
+                            "FAISS",
+                            "Plotly",
+                            "Reflex",
                             "YOLOv8",
-                            "Whisper",
                             "CLIP",
+                            "Whisper",
+                            "RAG",
+                            "Pipeline",
+                            "Classification",
+                            "Embeddings",
+                            "Retrieval",
+                            "Data Labeling",
+                            "Annotation",
+                            "Quality Assurance",
+                            "Project Management",
+                            "Strategy",
+                            "KVKK",
+                            "Teaching",
+                            "Robotics",
+                            "Arduino",
                         ]
                     ],
-                    rx.cond(
-                        AboutState.has_filter,
-                        rx.button(
-                            "✕ temizle",
-                            on_click=AboutState.clear_skills,
-                            font_family=FONT_MONO,
-                            font_size="0.8em",
-                            padding="0.3em 0.8em",
-                            border_radius="4px",
-                            background="transparent",
-                            color=ACCENT,
-                            border=f"1px solid {ACCENT}66",
-                            cursor="pointer",
-                            transition="all 150ms",
-                            _hover={"border_color": ACCENT, "color": ACCENT},
-                        ),
-                        rx.fragment(),
-                    ),
                     spacing="2",
                     wrap="wrap",
                 ),
+                section_title("DENEYİM"),
+                rx.vstack(
+                    rx.foreach(AboutState.experience, experience_card),
+                    width="100%",
+                ),
+                section_title("EĞİTİM"),
+                rx.vstack(
+                    rx.foreach(AboutState.education, education_card),
+                    width="100%",
+                ),
                 section_title("Projeler"),
                 rx.vstack(
-                    rx.foreach(
-                        AboutState.filtered_projects,
-                        lambda project: project_card(project)
-                    ),
-                    spacing="1",
+                    rx.text("PORTFOLYO", font_family=FONT_MONO, font_size="0.75em",
+                            letter_spacing="0.2em", color=PRIMARY, text_shadow=GLOW_PRIMARY),
+                    rx.text("Projeler, yarışmalar ve başarılar için portfolyo sayfasına göz at.",
+                            font_family=FONT_SANS, color=TEXT_MUTED, font_size="0.87em"),
+                    rx.link("Portfolyo'ya git →", href="/portfolio",
+                            font_family=FONT_MONO, font_size="0.85em", color=PRIMARY,
+                            _hover={"text_shadow": GLOW_PRIMARY}, text_decoration="none"),
+                    align_items="start", gap="0.5em",
+                    padding="1.2em 1.5em",
+                    background=BG_CARD,
+                    border=f"1px solid {BORDER}",
+                    border_radius="8px",
+                    width="100%",
+                    margin_top="1em",
                 ),
                 section_title("İletişim"),
                 rx.hstack(
                     rx.link(
                         "GitHub",
-                        href="https://github.com",
+                        href="https://github.com/haremir",
                         color=PRIMARY,
                         transition="color 200ms ease",
                         _hover={"color": ACCENT},
                     ),
                     rx.link(
                         "LinkedIn",
-                        href="https://linkedin.com",
+                        href="https://linkedin.com/in/haremir826",
+                        color=PRIMARY,
+                        transition="color 200ms ease",
+                        _hover={"color": ACCENT},
+                    ),
+                    rx.link(
+                        "Blog",
+                        href="https://haremir.blogspot.com",
                         color=PRIMARY,
                         transition="color 200ms ease",
                         _hover={"color": ACCENT},
                     ),
                     rx.cond(
                         AboutState.cv_path != "",
-                        rx.link(
+                        rx.button(
                             "CV İndir ↓",
-                            href=AboutState.cv_path,
+                            on_click=rx.download(AboutState.cv_path),
                             font_family=FONT_MONO,
                             font_size="0.85em",
                             color=BG,
@@ -413,7 +340,6 @@ def about_page() -> rx.Component:
                             border_radius="6px",
                             font_weight="600",
                             _hover={"box_shadow": GLOW_PRIMARY},
-                            download=True,
                         ),
                         rx.fragment(),
                     ),
@@ -431,11 +357,12 @@ def about_page() -> rx.Component:
                 "background_color": BG,
             },
             width="100%",
+            flex="1",
         ),
         footer(),
-        project_modal(),
         floating_chat(),
         width="100%",
         min_height="100vh",
         bg=BG,
+        spacing="0",
     )

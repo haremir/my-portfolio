@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 from datetime import datetime
+from uuid import uuid4
 
 # Paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -74,22 +75,24 @@ cover: "{cover}"
 
 # ---- CHAT LOGS ----
 
-def save_chat_log(messages: list[dict]):
-    # Save a chat log with a timestamped filename
+def save_chat_log(messages: list[dict], filename: str | None = None) -> str:
+    # Save a chat log with a timestamped filename, or overwrite an existing one.
     if not messages:
-        return
+        return ""
         
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    filename = f"{timestamp}.json"
+    if not filename:
+        filename = f"{uuid4().hex}.json"
     filepath = CHAT_LOGS_DIR / filename
     
     log_data = {
-        "timestamp": timestamp,
+        "timestamp": datetime.now().isoformat(),
         "messages": messages
     }
     
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(log_data, f, ensure_ascii=False, indent=2)
+
+    return filename
 
 def load_chat_logs() -> list[dict]:
     logs = []
@@ -103,13 +106,14 @@ def load_chat_logs() -> list[dict]:
                 logs.append({
                     "filename": path.name,
                     "timestamp": data.get("timestamp", ""),
+                    "mtime": path.stat().st_mtime,
                     "message_count": len(data.get("messages", []))
                 })
         except Exception:
             pass
             
-    # Sort newest first
-    return sorted(logs, key=lambda x: x["filename"], reverse=True)
+    # Sort newest first using saved timestamp when available.
+    return sorted(logs, key=lambda x: (x.get("timestamp") or "", x.get("mtime", 0)), reverse=True)
 
 def load_chat_log_messages(filename: str) -> list[dict]:
     filepath = CHAT_LOGS_DIR / filename
@@ -126,6 +130,13 @@ def delete_chat_log(filename: str):
     filepath = CHAT_LOGS_DIR / filename
     if filepath.exists():
         filepath.unlink()
+
+def clear_all_chat_logs():
+    # Delete all files in chat_logs and summaries directories
+    for f in CHAT_LOGS_DIR.glob("*.json"):
+        f.unlink()
+    for f in SUMMARIES_DIR.glob("*.json"):
+        f.unlink()
 
 # ---- CHAT SUMMARIES ----
 
@@ -157,6 +168,12 @@ def add_tag(tag: str):
         tags.append(tag)
         save_tags(tags)
 
+def delete_tag(tag: str):
+    tags = load_tags()
+    if tag in tags:
+        tags = [item for item in tags if item != tag]
+        save_tags(tags)
+
 # ---- CV ----
 
 def save_cv(file_data: bytes, filename: str) -> str:
@@ -173,3 +190,35 @@ def get_cv_path() -> str:
         return ""
     files = list(CV_DIR.glob("*.pdf"))
     return f"/cv/{files[0].name}" if files else ""
+
+
+# ---- EDUCATION & EXPERIENCE ----
+
+def load_education() -> list[dict]:
+    path = BASE_DIR / "data" / "education.json"
+    if not path.exists():
+        return []
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+
+def save_education(data: list[dict]):
+    path = BASE_DIR / "data" / "education.json"
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def load_experience() -> list[dict]:
+    path = BASE_DIR / "data" / "experience.json"
+    if not path.exists():
+        return []
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+
+def save_experience(data: list[dict]):
+    path = BASE_DIR / "data" / "experience.json"
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
