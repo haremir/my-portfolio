@@ -121,9 +121,11 @@ class AdminBlogState(rx.State):
         self.selected_tags = [item for item in self.selected_tags if item != tag]
         self.load_tags()
 
+    @rx.event
     def load_tags(self):
         self.available_tags = data_manager.load_tags()
 
+    @rx.event
     def load_posts(self):
         self.load_tags()
         posts = get_all_posts()
@@ -260,9 +262,11 @@ class AdminProjectState(rx.State):
         self.selected_tags = [item for item in self.selected_tags if item != tag]
         self.load_tags()
 
+    @rx.event
     def load_tags(self):
         self.available_tags = data_manager.load_tags()
 
+    @rx.event
     def load_projects(self):
         self.load_tags()
         self.all_admin_projects = data_manager.load_projects()
@@ -347,6 +351,7 @@ class AdminChatLogState(rx.State):
     selected_log: list[ChatMessageDict] = []
     selected_log_name: str = ""
     
+    @rx.event
     def load_logs(self):
         logs = data_manager.load_chat_logs()
         self.chat_logs = [
@@ -386,6 +391,7 @@ class AdminCVState(rx.State):
     cv_filename: str = ""
     cv_url: str = ""
     
+    @rx.event
     def load_cv(self):
         self.cv_url = data_manager.get_cv_path()
         if self.cv_url:
