@@ -307,14 +307,14 @@ def floating_chat(show: bool = True) -> rx.Component:
     )
 
     return rx.box(
-        rx.cond(FloatingChatState.is_open, popup, rx.fragment()),
         toggle_button,
+        rx.cond(FloatingChatState.is_open, popup, rx.fragment()),
         position="fixed",
         bottom="1.5em",
-        right="1.5em",
+        left="1.5em",
         z_index="1000",
         display="flex",
         flex_direction="column",
-        align_items="flex-end",
+        align_items="flex-start",
         gap="0.5em",
     )

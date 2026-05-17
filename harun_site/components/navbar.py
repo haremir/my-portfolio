@@ -32,6 +32,7 @@ def navbar() -> rx.Component:
                 rx.link("Ana Sayfa", href="/", color=TEXT, font_family=FONT_MONO, font_size="0.75em", _hover={"color": PRIMARY}, text_decoration="none"),
                 rx.link("Hakkımda", href="/about", color=TEXT, font_family=FONT_MONO, font_size="0.75em", _hover={"color": PRIMARY}, text_decoration="none"),
                 rx.link("Portfolyo", href="/portfolio", color=TEXT, font_family=FONT_MONO, font_size="0.75em", _hover={"color": PRIMARY}, text_decoration="none"),
+                rx.link("Blog", href="/blog", color=TEXT, font_family=FONT_MONO, font_size="0.75em", _hover={"color": PRIMARY}, text_decoration="none"),
                 rx.link("Chat", href="/chat", color=TEXT, font_family=FONT_MONO, font_size="0.75em", _hover={"color": PRIMARY}, text_decoration="none"),
                 spacing="5",
                 align="center",
