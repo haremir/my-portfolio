@@ -74,10 +74,17 @@ class ChatState(rx.State):
 				yield
 			self.messages[-1]["content"] = format_chat_response(raw_assistant_content)
 			yield
-		except RuntimeError as exc:
-			self.messages[-1]["content"] = (
-				"GROQ_API_KEY is not set. Update .env and reload."
-			)
+		except Exception as exc:
+			err = str(exc)
+			if "api_key" in err.lower() or "authentication" in err.lower() or "invalid_api_key" in err.lower():
+				self.messages[-1]["content"] = (
+					"⚠️ Yapay zeka servisi şu an yapılandırılmamış. "
+					"Lütfen daha sonra tekrar deneyin."
+				)
+			else:
+				self.messages[-1]["content"] = (
+					f"⚠️ Bir hata oluştu, lütfen tekrar deneyin."
+				)
 			yield
 
 		self.is_loading = False
@@ -110,10 +117,10 @@ Konuşma:
 {chr(10).join(f'{m["role"]}: {m["content"][:200]}' for m in self.messages)}"""
 
 		result = ""
-		async for chunk in stream_chat([{"role": "user", "content": summary_prompt}]):
-			result += chunk
-
 		try:
+			async for chunk in stream_chat([{"role": "user", "content": summary_prompt}]):
+				result += chunk
+
 			# Remove markdown code blocks if present
 			clean = re.sub(r"```json|```", "", result).strip()
 			data = json.loads(clean)

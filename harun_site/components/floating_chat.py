@@ -64,10 +64,16 @@ class FloatingChatState(rx.State):
             ):
                 self.messages[-1]["content"] += chunk
                 yield
-        except RuntimeError:
-            self.messages[-1]["content"] = (
-                "GROQ_API_KEY is not set. Update .env and reload."
-            )
+        except Exception as exc:
+            err = str(exc)
+            if "api_key" in err.lower() or "authentication" in err.lower():
+                self.messages[-1]["content"] = (
+                    "⚠️ Yapay zeka servisi şu an yapılandırılmamış."
+                )
+            else:
+                self.messages[-1]["content"] = (
+                    "⚠️ Bir hata oluştu, lütfen tekrar deneyin."
+                )
             yield
 
         self.is_loading = False
