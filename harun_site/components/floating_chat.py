@@ -24,6 +24,14 @@ class FloatingChatState(rx.State):
     is_loading: bool = False
     show_redirect: bool = False
     current_log_filename: str = ""
+    suggestions: list[str] = [
+        "Kendinden bahset",
+        "CebirX nedir?",
+        "Hangi teknolojileri kullanıyorsun?",
+        "Benimle çalışabilir misin?",
+        "Blog yazıların hakkında ne söylersin?",
+    ]
+    show_suggestions: bool = True
 
     @rx.event
     def toggle(self):
@@ -37,6 +45,12 @@ class FloatingChatState(rx.State):
     def handle_keydown(self, key: str, info: rx.event.KeyInputInfo):
         if key == "Enter":
             return self.send_message()
+
+    @rx.event
+    def use_suggestion(self, suggestion: str):
+        self.input_value = suggestion
+        self.show_suggestions = False
+        return FloatingChatState.send_message()
 
     @rx.event
     async def send_message(self):
@@ -91,12 +105,14 @@ class FloatingChatState(rx.State):
     @rx.event
     def reset_chat(self):
         self.messages = []
+        self.show_suggestions = True
         return rx.window_alert("Sohbet sıfırlandı.")
 
     @rx.event
     def clear_chat(self):
         self.messages = []
         self.input_value = ""
+        self.show_suggestions = True
         self.is_loading = False
         self.show_redirect = False
         self.current_log_filename = ""
@@ -178,15 +194,6 @@ def floating_chat(show: bool = True) -> rx.Component:
         background=BG,
     )
 
-    empty_state = rx.text(
-        "Portfolyo, projeler veya teknik beceriler hakkında soru sor.",
-        color=TEXT_MUTED,
-        font_size="0.8em",
-        font_family=FONT_SANS,
-        text_align="center",
-        margin_top="2em",
-    )
-
     messages_panel = rx.box(
         rx.vstack(
             rx.foreach(FloatingChatState.messages, _message_bubble),
@@ -197,6 +204,38 @@ def floating_chat(show: bool = True) -> rx.Component:
                     color=TEXT_MUTED,
                     font_size="0.8em",
                     align_self="flex-start",
+                ),
+                rx.fragment(),
+            ),
+            rx.cond(
+                FloatingChatState.show_suggestions & (FloatingChatState.messages.length() == 0),
+                rx.vstack(
+                    rx.text("Başlamak için bir soru seç:", font_family=FONT_MONO,
+                            font_size="0.75em", color=TEXT_MUTED),
+                    rx.hstack(
+                        rx.foreach(
+                            FloatingChatState.suggestions,
+                            lambda s: rx.button(
+                                s,
+                                on_click=FloatingChatState.use_suggestion(s),
+                                font_family=FONT_MONO,
+                                font_size="0.78em",
+                                background="transparent",
+                                color=TEXT_MUTED,
+                                border=f"1px solid {BORDER}",
+                                padding="0.4em 0.9em",
+                                border_radius="20px",
+                                cursor="pointer",
+                                transition="all 150ms",
+                                _hover={"color": PRIMARY, "border_color": PRIMARY},
+                            )
+                        ),
+                        flex_wrap="wrap",
+                        gap="0.5em",
+                    ),
+                    align_items="flex-start",
+                    gap="0.8em",
+                    padding="1em",
                 ),
                 rx.fragment(),
             ),

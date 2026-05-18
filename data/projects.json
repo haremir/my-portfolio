@@ -1,9 +1,93 @@
 [
-  {"name": "CebirX", "desc": "Multi-tenant AI Gateway & runtime engine — FastAPI, PostgreSQL, Redis, metering & credit-guard mechanisms.", "tags": ["API Gateway", "FastAPI", "PostgreSQL", "Redis", "Multi-tenant", "Production"]},
-  {"name": "DentBot", "desc": "Multi-channel clinic management ecosystem; LangChain + LangGraph orchestration and deterministic state-machine integration.", "tags": ["LangChain", "LangGraph", "State Machine", "Healthcare", "Tooling"]},
-  {"name": "MergenX", "desc": "NLP-driven dynamic travel package search widget (in collaboration with biTur).", "tags": ["NLP", "Search", "Recommendation", "Python"]},
-  {"name": "GameGain", "desc": "User behavior analysis and revenue forecasting using time-series models and RFM segmentation.", "tags": ["Big Data", "Time-Series", "Forecasting", "Pandas"]},
-  {"name": "FraudEye", "desc": "Credit card fraud detection system using SMOTE, Random Forest and XGBoost for high-accuracy anomaly detection.", "tags": ["ML", "Anomaly Detection", "XGBoost", "SMOTE"]},
-  {"name": "ScoutMaster", "desc": "Player performance analytics and market value prediction (Coderspace Summer School 2024).", "tags": ["Analytics", "Regression", "Sports Analytics"]},
-  {"name": "LazyEda", "desc": "Open-source library automating common exploratory data analysis steps with optional LLM integration.", "tags": ["EDA", "Python", "Open Source"]}
+  {
+    "name": "CebirX",
+    "slug": "cebirx",
+    "desc": "Multi-tenant AI Gateway & runtime engine — FastAPI, PostgreSQL, Redis, metering & credit-guard mechanisms.",
+    "tags": ["API Gateway", "FastAPI", "PostgreSQL", "Redis", "Multi-tenant", "Production"],
+    "case_study": {
+      "problem": "Placeholder — sen dolduracaksın",
+      "architecture": "Placeholder",
+      "stack_reason": "Placeholder",
+      "challenges": "Placeholder",
+      "learnings": "Placeholder"
+    }
+  },
+  {
+    "name": "DentBot",
+    "slug": "dentbot",
+    "desc": "Multi-channel clinic management ecosystem; LangChain + LangGraph orchestration and deterministic state-machine integration.",
+    "tags": ["LangChain", "LangGraph", "State Machine", "Healthcare", "Tooling"],
+    "case_study": {
+      "problem": "Placeholder — sen dolduracaksın",
+      "architecture": "Placeholder",
+      "stack_reason": "Placeholder",
+      "challenges": "Placeholder",
+      "learnings": "Placeholder"
+    }
+  },
+  {
+    "name": "MergenX",
+    "slug": "mergenx",
+    "desc": "NLP-driven dynamic travel package search widget (in collaboration with biTur).",
+    "tags": ["NLP", "Search", "Recommendation", "Python"],
+    "case_study": {
+      "problem": "Placeholder — sen dolduracaksın",
+      "architecture": "Placeholder",
+      "stack_reason": "Placeholder",
+      "challenges": "Placeholder",
+      "learnings": "Placeholder"
+    }
+  },
+  {
+    "name": "GameGain",
+    "slug": "gamegain",
+    "desc": "User behavior analysis and revenue forecasting using time-series models and RFM segmentation.",
+    "tags": ["Big Data", "Time-Series", "Forecasting", "Pandas"],
+    "case_study": {
+      "problem": "Placeholder — sen dolduracaksın",
+      "architecture": "Placeholder",
+      "stack_reason": "Placeholder",
+      "challenges": "Placeholder",
+      "learnings": "Placeholder"
+    }
+  },
+  {
+    "name": "FraudEye",
+    "slug": "fraudeye",
+    "desc": "Credit card fraud detection system using SMOTE, Random Forest and XGBoost for high-accuracy anomaly detection.",
+    "tags": ["ML", "Anomaly Detection", "XGBoost", "SMOTE"],
+    "case_study": {
+      "problem": "Placeholder — sen dolduracaksın",
+      "architecture": "Placeholder",
+      "stack_reason": "Placeholder",
+      "challenges": "Placeholder",
+      "learnings": "Placeholder"
+    }
+  },
+  {
+    "name": "ScoutMaster",
+    "slug": "scoutmaster",
+    "desc": "Player performance analytics and market value prediction (Coderspace Summer School 2024).",
+    "tags": ["Analytics", "Regression", "Sports Analytics"],
+    "case_study": {
+      "problem": "Placeholder — sen dolduracaksın",
+      "architecture": "Placeholder",
+      "stack_reason": "Placeholder",
+      "challenges": "Placeholder",
+      "learnings": "Placeholder"
+    }
+  },
+  {
+    "name": "LazyEda",
+    "slug": "lazyeda",
+    "desc": "Open-source library automating common exploratory data analysis steps with optional LLM integration.",
+    "tags": ["EDA", "Python", "Open Source"],
+    "case_study": {
+      "problem": "Placeholder — sen dolduracaksın",
+      "architecture": "Placeholder",
+      "stack_reason": "Placeholder",
+      "challenges": "Placeholder",
+      "learnings": "Placeholder"
+    }
+  }
 ]

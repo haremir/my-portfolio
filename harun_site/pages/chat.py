@@ -104,6 +104,58 @@ def chat_page() -> rx.Component:
                     font_family=FONT_SANS,
                     style={"font_size": "0.85em", "margin_bottom": "1.5em"},
                 ),
+                rx.box(
+                    rx.hstack(
+                        rx.text("⚙", font_size="0.8em"),
+                        rx.text("Nasıl çalışır?", font_family=FONT_MONO,
+                                font_size="0.75em", color=PRIMARY, font_weight="600"),
+                        rx.text("·", color=BORDER),
+                        rx.text("Groq API · llama-3.3-70b-versatile · Dinamik context · Streaming",
+                                font_family=FONT_MONO, font_size="0.72em", color=TEXT_MUTED),
+                        gap="0.5em",
+                        align="center",
+                        flex_wrap="wrap",
+                    ),
+                    padding="0.6em 1em",
+                    background=BG_CARD,
+                    border=f"1px solid {BORDER}",
+                    border_radius="8px",
+                    margin_bottom="1em",
+                    width="100%",
+                ),
+                rx.cond(
+                    ChatState.show_suggestions & (ChatState.messages.length() == 0),
+                    rx.vstack(
+                        rx.text("Başlamak için bir soru seç:", font_family=FONT_MONO,
+                                font_size="0.75em", color=TEXT_MUTED),
+                        rx.hstack(
+                            rx.foreach(
+                                ChatState.suggestions,
+                                lambda s: rx.button(
+                                    s,
+                                    on_click=ChatState.use_suggestion(s),
+                                    font_family=FONT_MONO,
+                                    font_size="0.78em",
+                                    background="transparent",
+                                    color=TEXT_MUTED,
+                                    border=f"1px solid {BORDER}",
+                                    padding="0.4em 0.9em",
+                                    border_radius="20px",
+                                    cursor="pointer",
+                                    transition="all 150ms",
+                                    _hover={"color": PRIMARY, "border_color": PRIMARY},
+                                )
+                            ),
+                            flex_wrap="wrap",
+                            gap="0.5em",
+                        ),
+                        align_items="flex-start",
+                        gap="0.8em",
+                        padding="1em",
+                        margin_bottom="1em",
+                    ),
+                    rx.fragment(),
+                ),
                 rx.vstack(
                     rx.foreach(ChatState.messages, message_row),
                     rx.cond(

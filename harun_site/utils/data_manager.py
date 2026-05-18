@@ -41,6 +41,10 @@ def add_project(name: str, desc: str, tags: list[str]):
     projects.append({"name": name, "desc": desc, "tags": tags})
     save_projects(projects)
 
+def get_project_by_slug(slug: str) -> dict | None:
+    projects = load_projects()
+    return next((p for p in projects if p.get("slug") == slug), None)
+
 def delete_project(index: int):
     projects = load_projects()
     if 0 <= index < len(projects):

@@ -11,6 +11,14 @@ class ChatState(rx.State):
 	current_input: str = ""
 	is_loading: bool = False
 	current_log_filename: str = ""
+	suggestions: list[str] = [
+		"Kendinden bahset",
+		"CebirX nedir?",
+		"Hangi teknolojileri kullanıyorsun?",
+		"Benimle çalışabilir misin?",
+		"Blog yazıların hakkında ne söylersin?",
+	]
+	show_suggestions: bool = True
 
 	@rx.event
 	def load_from_params(self):
@@ -48,6 +56,12 @@ class ChatState(rx.State):
 	def handle_keydown(self, key: str, info: rx.event.KeyInputInfo):
 		if key == "Enter":
 			return self.send_message()
+
+	@rx.event
+	def use_suggestion(self, suggestion: str):
+		self.current_input = suggestion
+		self.show_suggestions = False
+		return ChatState.send_message()
 
 	@rx.event
 	async def send_message(self):
@@ -131,6 +145,7 @@ Konuşma:
 	@rx.event
 	def reset_chat(self):
 		self.messages = []
+		self.show_suggestions = True
 		return rx.window_alert("Sohbet sıfırlandı.")
 
 	@rx.event
@@ -139,3 +154,4 @@ Konuşma:
 		self.current_input = ""
 		self.is_loading = False
 		self.current_log_filename = ""
+		self.show_suggestions = True

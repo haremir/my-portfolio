@@ -18,8 +18,9 @@ from harun_site.theme import (
 
 from typing import TypedDict
 
-class ProjectDict(TypedDict):
+class ProjectDict(TypedDict, total=False):
     name: str
+    slug: str
     desc: str
     tags: list[str]
 
@@ -91,6 +92,22 @@ def project_card(project: ProjectDict) -> rx.Component:
                 ),
                 wrap="wrap",
                 style={"gap": "0.4em"},
+            ),
+            rx.cond(
+                project.contains("slug") & (project["slug"] != ""),
+                rx.link(
+                    "Case Study →",
+                    href="/portfolio/" + project["slug"],
+                    font_family=FONT_MONO,
+                    font_size="0.75em",
+                    color=PRIMARY,
+                    text_decoration="none",
+                    _hover={"text_shadow": GLOW_PRIMARY},
+                    margin_top="0.8em",
+                    display="block",
+                    on_click=rx.stop_propagation,
+                ),
+                rx.fragment(),
             ),
             align_items="start",
             gap="0.4em",
