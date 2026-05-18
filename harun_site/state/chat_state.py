@@ -90,6 +90,9 @@ class ChatState(rx.State):
 			yield
 		except Exception as exc:
 			err = str(exc)
+			print(f"[GROQ ERROR] {type(exc).__name__}: {err}")
+			import traceback
+			traceback.print_exc()
 			if "api_key" in err.lower() or "authentication" in err.lower() or "invalid_api_key" in err.lower():
 				self.messages[-1]["content"] = (
 					"⚠️ Yapay zeka servisi şu an yapılandırılmamış. "

@@ -48,7 +48,7 @@ FORMAT — KRİTİK:
 
 CASE STUDY LİNKLERİ:
 Eğer kullanıcı bir proje hakkında detay isterse, cevabının sonuna şu formatta link ekle:
-[→ Case Study'yi gör](/portfolio/{proje-slug})
+[→ Case Study'yi gör](/portfolio/<proje-slug>)
 Örnek: [→ Case Study'yi gör](/portfolio/cebirx)
 Sadece portfolyomda olan projeler için link ver.
 
