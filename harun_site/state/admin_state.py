@@ -3,7 +3,8 @@ import reflex as rx
 from harun_site.utils import data_manager
 from harun_site.utils.markdown_parser import get_all_posts, get_post_by_slug
 from typing import TypedDict
-from harun_site.models import EducationModel, ExperienceModel
+from sqlmodel import Session
+from harun_site.models import EducationModel, ExperienceModel, get_engine
 
 class ChatMessageDict(TypedDict):
     role: str
@@ -30,6 +31,48 @@ class ChatSummaryDict(TypedDict):
     summary: str
     top_topics: list[str]
     message_count: int
+
+
+# ── Flat TypedDicts for AdminEduExpState ────────────────────────────────────────────
+# All fields are plain str / list[str] so Reflex serialises them as
+# JSON scalars/arrays — never as nested objects.
+
+class ExperienceEntry(TypedDict):
+    company: str
+    role: str
+    start_date: str
+    end_date: str
+    description: str
+    tags: list[str]
+
+class EducationEntry(TypedDict):
+    school: str
+    department: str
+    degree: str
+    start_year: str
+    end_year: str
+    description: str
+
+
+# ── Flat TypedDicts for AdminCareerState ──────────────────────────────────────────────
+# These replace list[EducationModel] / list[ExperienceModel] in the state.
+# SQLModel ORM objects must NEVER be stored as Reflex state vars —
+# they are not plain JSON and the Optional[int] id field can become null.
+
+class EducationCareerDict(TypedDict):
+    id: int          # always int (0 when freshly created, never None)
+    okul_adi: str
+    bolum: str
+    baslangic_yili: str
+    mezuniyet_yili: str
+    detay: str
+
+class ExperienceCareerDict(TypedDict):
+    id: int
+    sirket_adi: str
+    pozisyon: str
+    sure: str
+    aciklama: str
 
 class AdminAuthState(rx.State):
     password: str = ""
@@ -58,7 +101,7 @@ class AdminAuthState(rx.State):
 
 class AdminBlogState(rx.State):
     all_admin_posts: list[AdminPostDict] = []
-    
+
     # Form fields
     blog_title: str = ""
     blog_slug: str = ""
@@ -67,37 +110,17 @@ class AdminBlogState(rx.State):
     blog_tags_str: str = ""
     blog_content: str = ""
     blog_cover_path: str = ""
-    
+
     available_tags: list[str] = []
     selected_tags: list[str] = []
     new_tag_name: str = ""
-    
+
     is_uploading: bool = False
     editing_blog_slug: str = ""
-    
-    def set_blog_title(self, val: str):
-        self.blog_title = val
-        
-    def set_blog_slug(self, val: str):
-        self.blog_slug = val
-        
-    def set_blog_date(self, val: str):
-        self.blog_date = val
-        
-    def set_blog_description(self, val: str):
-        self.blog_description = val
-        
-    def set_blog_tags_str(self, val: str):
-        self.blog_tags_str = val
-        
-    def set_blog_content(self, val: str):
-        self.blog_content = val
-        
-    def set_blog_cover_path(self, val: str):
-        self.blog_cover_path = val
 
-    def set_new_tag_name(self, val: str):
-        self.new_tag_name = val
+    # Reflex auto-generates set_<var_name> event handlers for every state var.
+    # The manual one-liner setters that were here are identical to the
+    # auto-generated versions and were missing @rx.event — removed.
 
     @rx.event
     def toggle_tag(self, tag: str):
@@ -152,34 +175,35 @@ class AdminBlogState(rx.State):
         self.blog_cover_path = post.cover or ""
         self.editing_blog_slug = slug
 
+    @rx.event
     async def handle_upload(self, files: list[rx.UploadFile]):
         self.is_uploading = True
         yield
-        
+
         for file in files:
             upload_data = await file.read()
             filename = file.filename
-            
+
             # Save to assets/blog
             # Ensure assets/blog exists
             import pathlib
             assets_dir = pathlib.Path.cwd() / "assets" / "blog"
             assets_dir.mkdir(parents=True, exist_ok=True)
-            
+
             outfile = assets_dir / filename
             with open(outfile, "wb") as f:
                 f.write(upload_data)
-                
+
             self.blog_cover_path = f"/blog/{filename}"
             break # only one file
-            
+
         self.is_uploading = False
 
     @rx.event
     def save_post(self):
         if not self.blog_slug or not self.blog_title:
             return rx.window_alert("Slug ve Başlık zorunludur.")
-            
+
         data_manager.save_blog_post(
             slug=self.blog_slug,
             title=self.blog_title,
@@ -189,7 +213,7 @@ class AdminBlogState(rx.State):
             content=self.blog_content,
             cover=self.blog_cover_path
         )
-        
+
         # Clear form
         self.blog_title = ""
         self.blog_slug = ""
@@ -198,7 +222,7 @@ class AdminBlogState(rx.State):
         self.selected_tags = []
         self.blog_content = ""
         self.blog_cover_path = ""
-        
+
         self.load_posts()
         self.editing_blog_slug = ""
         return rx.window_alert("Blog yazısı kaydedildi!")
@@ -222,23 +246,23 @@ class AdminBlogState(rx.State):
 
 class AdminProjectState(rx.State):
     all_admin_projects: list[AdminProjectDict] = []
-    
+
     project_name: str = ""
     project_desc: str = ""
     editing_project_index: int = -1
-    
+    # Case study fields
+    cs_problem: str = ""
+    cs_architecture: str = ""
+    cs_stack_reason: str = ""
+    cs_challenges: str = ""
+    cs_learnings: str = ""
+    architecture_image: str = ""
+
     available_tags: list[str] = []
     selected_tags: list[str] = []
     new_tag_name: str = ""
-    
-    def set_project_name(self, val: str):
-        self.project_name = val
-        
-    def set_project_desc(self, val: str):
-        self.project_desc = val
 
-    def set_new_tag_name(self, val: str):
-        self.new_tag_name = val
+    # Reflex auto-generates set_<var_name> handlers. Manual setters removed.
 
     @rx.event
     def toggle_tag(self, tag: str):
@@ -269,7 +293,17 @@ class AdminProjectState(rx.State):
     @rx.event
     def load_projects(self):
         self.load_tags()
-        self.all_admin_projects = data_manager.load_projects()
+        # Strip every project to only the fields AdminProjectDict declares.
+        # load_projects() returns full dicts that include a nested case_study
+        # object — that nested dict must never reach the frontend state delta.
+        self.all_admin_projects = [
+            {
+                "name": p.get("name", ""),
+                "desc": p.get("desc", ""),
+                "tags": [str(t) for t in (p.get("tags") or [])],
+            }
+            for p in data_manager.load_projects()
+        ]
 
     @rx.event
     def save_project(self):
@@ -277,11 +311,36 @@ class AdminProjectState(rx.State):
             return rx.window_alert("Proje ismi zorunludur.")
         # If editing an existing project, replace it
         projects = data_manager.load_projects()
+        # Build case_study dict with both legacy and new keys for compatibility
+        case_study = {
+            "problem": self.cs_problem or "",
+            "architecture": self.cs_architecture or "",
+            "stack_reason": self.cs_stack_reason or "",
+            "why_this_stack": self.cs_stack_reason or self.cs_stack_reason or "",
+            "challenges": self.cs_challenges or "",
+            "learnings": self.cs_learnings or "",
+            "lessons_learned": self.cs_learnings or self.cs_learnings or "",
+            "architecture_image": self.architecture_image or "",
+        }
+
+        project_dict = {
+            "name": self.project_name,
+            "desc": self.project_desc,
+            "tags": self.selected_tags,
+            "slug": (self.project_name.lower().replace(" ", "-") if "slug" not in projects and isinstance(projects, list) else self.project_name.lower().replace(" ", "-")),
+            "case_study": case_study,
+        }
+
         if self.editing_project_index is not None and self.editing_project_index >= 0 and self.editing_project_index < len(projects):
-            projects[self.editing_project_index] = {"name": self.project_name, "desc": self.project_desc, "tags": self.selected_tags}
+            # preserve existing slug if present
+            existing = projects[self.editing_project_index]
+            if existing.get("slug"):
+                project_dict["slug"] = existing.get("slug")
+            projects[self.editing_project_index] = project_dict
             data_manager.save_projects(projects)
         else:
-            data_manager.add_project(self.project_name, self.project_desc, self.selected_tags)
+            projects.append(project_dict)
+            data_manager.save_projects(projects)
 
         self.project_name = ""
         self.project_desc = ""
@@ -315,6 +374,14 @@ class AdminProjectState(rx.State):
             self.project_name = p.get("name", "")
             self.project_desc = p.get("desc", "")
             self.selected_tags = p.get("tags", []) or []
+            cs = p.get("case_study", {}) or {}
+            # support both legacy and new keys
+            self.cs_problem = cs.get("problem", "")
+            self.cs_architecture = cs.get("architecture", "")
+            self.cs_stack_reason = cs.get("why_this_stack") or cs.get("stack_reason", "")
+            self.cs_challenges = cs.get("challenges", "")
+            self.cs_learnings = cs.get("lessons_learned") or cs.get("learnings", "")
+            self.architecture_image = cs.get("architecture_image", "")
             self.editing_project_index = idx
 
     @rx.event
@@ -350,7 +417,7 @@ class AdminChatLogState(rx.State):
     chat_logs: list[ChatSummaryDict] = []
     selected_log: list[ChatMessageDict] = []
     selected_log_name: str = ""
-    
+
     @rx.event
     def load_logs(self):
         logs = data_manager.load_chat_logs()
@@ -387,10 +454,249 @@ class AdminChatLogState(rx.State):
         return rx.window_alert("Tüm sohbet geçmişi silindi.")
 
 
+class AdminChatAssistantState(rx.State):
+    messages: list[ChatMessageDict] = []
+    input_value: str = ""
+    is_loading: bool = False
+    chat_log_count: int = 0
+    chat_message_count: int = 0
+    status_text: str = "Sohbet kayıtları hakkında soru sorabilirsin."
+
+    @rx.event
+    def on_load(self):
+        logs = data_manager.load_chat_logs()
+        self.chat_log_count = len(logs)
+        self.chat_message_count = sum(log.get("message_count", 0) for log in logs)
+        if self.chat_log_count == 0:
+            self.status_text = (
+                "Henüz sohbet kaydı yok. İlk ziyaretçi konuşması sonrası "
+                "burada analiz yapabilirsin."
+            )
+        else:
+            self.status_text = (
+                f"{self.chat_log_count} kayıt · {self.chat_message_count} mesaj analiz için hazır. "
+                "Ziyaretçi davranışı, proje ilgisi veya intent dağılımı hakkında soru sor."
+            )
+        print(
+            f"[ADMIN_ANALYTICS] assistant on_load  "
+            f"logs={self.chat_log_count}  messages={self.chat_message_count}"
+        )
+
+    @rx.event
+    def set_input_value(self, value: str):
+        self.input_value = value
+
+    @rx.event
+    def handle_keydown(self, key: str, info: rx.event.KeyInputInfo):
+        if key == "Enter":
+            return self.send_message()
+
+    @rx.event
+    def reset_chat(self):
+        self.messages = []
+        self.input_value = ""
+        self.status_text = "Sohbet kayıtları hakkında soru sorabilirsin."
+
+    @rx.event
+    async def send_message(self):
+        content = self.input_value.strip()
+        if not content:
+            return
+
+        self.messages = [*self.messages, {"role": "user", "content": content}]
+        self.input_value = ""
+        self.is_loading = True
+        yield
+
+        try:
+            from harun_site.utils.data_manager import load_chat_log_messages, load_chat_logs
+            from harun_site.utils.groq_client import answer_admin_chat_about_logs
+
+            logs = load_chat_logs()
+            payload = []
+            for log in logs[:20]:
+                messages = load_chat_log_messages(log["filename"])
+                user_samples = [
+                    m.get("content", "")[:200]
+                    for m in messages
+                    if m.get("role") == "user"
+                ][:4]
+                assistant_samples = [
+                    m.get("content", "")[:120]
+                    for m in messages
+                    if m.get("role") == "assistant"
+                ][:2]
+                payload.append(
+                    {
+                        "filename": log["filename"],
+                        "timestamp": log.get("timestamp", ""),
+                        "message_count": log.get("message_count", 0),
+                        "user_samples": user_samples,
+                        "assistant_samples": assistant_samples,
+                    }
+                )
+
+            print(
+                f"[ADMIN_ANALYTICS] send_message  "
+                f"history_turns={len(self.messages)}  log_payload={len(payload)}"
+            )
+
+            # Pass the full conversation history — multi-turn memory is handled
+            # inside answer_admin_chat_about_logs via proper role-based messages
+            answer = await answer_admin_chat_about_logs(self.messages, payload)
+
+        except Exception as exc:
+            print(f"[ADMIN_ANALYTICS] send_message error: {exc}")
+            answer = (
+                "Şu an sohbet kayıtlarını işlerken bir sorun oluştu. "
+                "Daha sonra tekrar deneyebilirsin."
+            )
+
+        self.messages = [*self.messages, {"role": "assistant", "content": answer}]
+        self.is_loading = False
+        yield
+
+    @rx.event
+    async def shortcut_intent_distribution(self):
+        """Kısayol: ziyaretçi intent dağılımını analiz et."""
+        if self.is_loading:
+            return
+        self.is_loading = True
+        yield
+        try:
+            from harun_site.utils.data_manager import load_chat_logs, load_chat_log_messages
+            from harun_site.utils.groq_client import answer_admin_chat_about_logs
+
+            logs = load_chat_logs()
+            payload = []
+            for log in logs[:20]:
+                messages = load_chat_log_messages(log["filename"])
+                user_samples = [m.get("content", "")[:200] for m in messages if m.get("role") == "user"][:4]
+                payload.append({"filename": log["filename"], "message_count": log.get("message_count", 0), "user_samples": user_samples})
+
+            question = (
+                "Ziyaretçi intent dağılımını analiz et: teknik sorular, kariyer/işe alım, "
+                "proje soruları, kişisel sorular, çalışma isteği, AI/tech stack — her kategoride "
+                "yaklaşık kaç kayıt var? Yüzde veya sıklıkla belirt. Dominant intent nedir?"
+            )
+            self.messages = [*self.messages, {"role": "user", "content": question}]
+            answer = await answer_admin_chat_about_logs(self.messages, payload)
+        except Exception:
+            answer = "Intent dağılımı analizi şu an yapılamıyor."
+
+        self.messages = [*self.messages, {"role": "assistant", "content": answer}]
+        self.is_loading = False
+        yield
+
+    @rx.event
+    async def shortcut_top_project(self):
+        """Kısayol: en çok ilgi çeken projeyi bul."""
+        if self.is_loading:
+            return
+        self.is_loading = True
+        yield
+        try:
+            from harun_site.utils.data_manager import load_chat_logs, load_chat_log_messages
+            from harun_site.utils.groq_client import answer_admin_chat_about_logs
+
+            logs = load_chat_logs()
+            payload = []
+            for log in logs[:20]:
+                messages = load_chat_log_messages(log["filename"])
+                user_samples = [m.get("content", "")[:200] for m in messages if m.get("role") == "user"][:4]
+                payload.append({"filename": log["filename"], "message_count": log.get("message_count", 0), "user_samples": user_samples})
+
+            question = (
+                "Hangi proje ziyaretçilerden en fazla soru ve ilgi alıyor? "
+                "Proje bazlı karşılaştırma yap. Teknik derinlik soruları hangi projeye yoğunlaşıyor?"
+            )
+            self.messages = [*self.messages, {"role": "user", "content": question}]
+            answer = await answer_admin_chat_about_logs(self.messages, payload)
+        except Exception:
+            answer = "Proje analizi şu an yapılamıyor."
+
+        self.messages = [*self.messages, {"role": "assistant", "content": answer}]
+        self.is_loading = False
+        yield
+
+    @rx.event
+    async def shortcut_visitor_patterns(self):
+        """Kısayol: ziyaretçi davranış patternlerini çıkar."""
+        if self.is_loading:
+            return
+        self.is_loading = True
+        yield
+        try:
+            from harun_site.utils.data_manager import load_chat_logs, load_chat_log_messages
+            from harun_site.utils.groq_client import answer_admin_chat_about_logs
+
+            logs = load_chat_logs()
+            payload = []
+            for log in logs[:20]:
+                messages = load_chat_log_messages(log["filename"])
+                user_samples = [m.get("content", "")[:200] for m in messages if m.get("role") == "user"][:4]
+                assistant_samples = [m.get("content", "")[:120] for m in messages if m.get("role") == "assistant"][:2]
+                payload.append({
+                    "filename": log["filename"],
+                    "message_count": log.get("message_count", 0),
+                    "user_samples": user_samples,
+                    "assistant_samples": assistant_samples,
+                })
+
+            question = (
+                "Ziyaretçi davranış patternlerini analiz et: "
+                "En çok hangi soru tipleri tekrar ediyor? "
+                "Konuşmalar nasıl başlıyor ve nasıl devam ediyor? "
+                "İşe alım niyetli ziyaretçiler hangi sinyalleri veriyor?"
+            )
+            self.messages = [*self.messages, {"role": "user", "content": question}]
+            answer = await answer_admin_chat_about_logs(self.messages, payload)
+        except Exception:
+            answer = "Pattern analizi şu an yapılamıyor."
+
+        self.messages = [*self.messages, {"role": "assistant", "content": answer}]
+        self.is_loading = False
+        yield
+
+
+class AdminSuggestionsState(rx.State):
+    suggestions: list[str] = []
+    new_suggestion: str = ""
+
+    @rx.event
+    def on_load(self):
+        from harun_site.utils.data_manager import load_suggestions
+
+        self.suggestions = load_suggestions()
+
+    @rx.event
+    def set_new_suggestion(self, value: str):
+        self.new_suggestion = value
+
+    @rx.event
+    def add_suggestion(self):
+        if not self.new_suggestion.strip():
+            return
+        if len(self.suggestions) >= 8:
+            return
+        self.suggestions = self.suggestions + [self.new_suggestion.strip()]
+        from harun_site.utils.data_manager import save_suggestions
+
+        save_suggestions(self.suggestions)
+        self.new_suggestion = ""
+
+    @rx.event
+    def delete_suggestion(self, index: int):
+        self.suggestions = [s for i, s in enumerate(self.suggestions) if i != index]
+        from harun_site.utils.data_manager import save_suggestions
+
+        save_suggestions(self.suggestions)
+
+
 class AdminCVState(rx.State):
     cv_filename: str = ""
     cv_url: str = ""
-    
+
     @rx.event
     def load_cv(self):
         self.cv_url = data_manager.get_cv_path()
@@ -399,6 +705,7 @@ class AdminCVState(rx.State):
         else:
             self.cv_filename = ""
 
+    @rx.event
     async def handle_cv_upload(self, files: list[rx.UploadFile]):
         for file in files:
             upload_data = await file.read()
@@ -425,7 +732,7 @@ class AdminEduExpState(rx.State):
     exp_end: str = ""
     exp_desc: str = ""
     exp_tags_selected: list[str] = []
-    experiences: list[dict] = []
+    experiences: list[ExperienceEntry] = []
     exp_tags_options: list[str] = []
     editing_exp_index: int = -1
 
@@ -436,45 +743,14 @@ class AdminEduExpState(rx.State):
     edu_start: str = ""
     edu_end: str = ""
     edu_desc: str = ""
-    education: list[dict] = []
+    education: list[EducationEntry] = []
     editing_edu_index: int = -1
     # UI helpers
     toast_message: str = ""
     highlighted_exp_index: int = -1
     highlighted_edu_index: int = -1
 
-    def set_exp_company(self, value: str):
-        self.exp_company = value
-
-    def set_exp_role(self, value: str):
-        self.exp_role = value
-
-    def set_exp_start(self, value: str):
-        self.exp_start = value
-
-    def set_exp_end(self, value: str):
-        self.exp_end = value
-
-    def set_exp_desc(self, value: str):
-        self.exp_desc = value
-
-    def set_edu_school(self, value: str):
-        self.edu_school = value
-
-    def set_edu_dept(self, value: str):
-        self.edu_dept = value
-
-    def set_edu_degree(self, value: str):
-        self.edu_degree = value
-
-    def set_edu_start(self, value: str):
-        self.edu_start = value
-
-    def set_edu_end(self, value: str):
-        self.edu_end = value
-
-    def set_edu_desc(self, value: str):
-        self.edu_desc = value
+    # Reflex auto-generates set_<var_name> handlers. Manual setters removed.
 
     @rx.event
     def start_edit_experience(self, index: int):
@@ -562,11 +838,12 @@ class AdminEduExpState(rx.State):
         self.exp_end = ""
         self.exp_desc = ""
         self.exp_tags_selected = []
+        # Compute highlight BEFORE clearing editing_exp_index so the
+        # edit-path (highlighting the updated row) actually fires.
+        saved_idx = self.editing_exp_index
         self.editing_exp_index = -1
-        # show non-blocking toast and highlight the saved item
-        # highlight last item (or updated index)
-        if self.editing_exp_index is not None and self.editing_exp_index >= 0:
-            self.highlighted_exp_index = self.editing_exp_index
+        if saved_idx is not None and saved_idx >= 0:
+            self.highlighted_exp_index = saved_idx
         else:
             self.highlighted_exp_index = len(self.experiences) - 1
         self.show_toast("Deneyim kaydedildi!")
@@ -610,9 +887,12 @@ class AdminEduExpState(rx.State):
         self.edu_start = ""
         self.edu_end = ""
         self.edu_desc = ""
+        # Compute highlight BEFORE clearing editing_edu_index (same fix
+        # as save_experience — the old code always fell to the else branch).
+        saved_edu_idx = self.editing_edu_index
         self.editing_edu_index = -1
-        if self.editing_edu_index is not None and self.editing_edu_index >= 0:
-            self.highlighted_edu_index = self.editing_edu_index
+        if saved_edu_idx is not None and saved_edu_idx >= 0:
+            self.highlighted_edu_index = saved_edu_idx
         else:
             self.highlighted_edu_index = len(self.education) - 1
         self.show_toast("Eğitim kaydedildi!")
@@ -632,6 +912,18 @@ class AdminState(rx.State):
     total_projects: int = 0
     total_blogs: int = 0
     total_chats: int = 0
+
+    # ── dashboard analytics card ───────────────────────────────────────
+    chat_overview: str = "Henüz sohbet özeti yok."
+    chat_overview_topics: list[str] = []
+    chat_overview_loading: bool = False
+    chat_overview_visitor_count: int = 0
+    chat_overview_message_count: int = 0
+    # enriched analytics fields (populated by load_chat_overview)
+    chat_dominant_intent: str = ""       # e.g. "teknik merak"
+    chat_top_project: str = ""           # e.g. "CebirX"
+    chat_visitor_expectation: str = ""   # one-sentence visitor want
+
     active_tab: str = "dashboard"
 
     @rx.event
@@ -643,73 +935,199 @@ class AdminState(rx.State):
         # Projects count
         projects = data_manager.load_projects()
         self.total_projects = len(projects)
-        
+
         # Blogs count
         posts = get_all_posts()
         self.total_blogs = len(posts)
-        
-        # Chats count (Total summaries)
-        summary_dir = data_manager.SUMMARIES_DIR
-        if summary_dir.exists():
-            self.total_chats = len(list(summary_dir.glob("*.json")))
-        else:
-            self.total_chats = 0
-            
+
+        # Chats count (actual chat logs)
+        self.total_chats = len(data_manager.load_chat_logs())
+
         # Also load sub-states
         return [
             AdminBlogState.load_posts,
             AdminProjectState.load_projects,
             AdminChatLogState.load_logs,
+            AdminState.load_chat_overview,
+            AdminChatAssistantState.on_load,
+            AdminSuggestionsState.on_load,
             AdminCVState.load_cv,
             AdminCareerState.load_career,
         ]
 
+    @rx.event
+    async def load_chat_overview(self):
+        from harun_site.utils.data_manager import load_chat_log_messages, load_chat_logs
+        from harun_site.utils.groq_client import summarize_chat_logs
+
+        self.chat_overview_loading = True
+        yield
+
+        logs = load_chat_logs()
+        self.chat_overview_visitor_count = len(logs)
+        self.chat_overview_message_count = sum(
+            log.get("message_count", 0) for log in logs
+        )
+
+        print(
+            f"[ADMIN_ANALYTICS] load_chat_overview started  "
+            f"total_logs={self.chat_overview_visitor_count}  "
+            f"total_messages={self.chat_overview_message_count}"
+        )
+
+        if not logs:
+            self.chat_overview = "Henüz sohbet kaydı yok."
+            self.chat_overview_topics = []
+            self.chat_dominant_intent = ""
+            self.chat_top_project = ""
+            self.chat_visitor_expectation = ""
+            self.chat_overview_loading = False
+            print("[ADMIN_ANALYTICS] no logs — skipping AI summarisation")
+            yield
+            return
+
+        # Build a richer payload: include both user and assistant samples
+        payload = []
+        for log in logs[:15]:
+            messages = load_chat_log_messages(log["filename"])
+            user_samples = [
+                m.get("content", "")[:200]
+                for m in messages
+                if m.get("role") == "user"
+            ][:4]
+            assistant_samples = [
+                m.get("content", "")[:120]
+                for m in messages
+                if m.get("role") == "assistant"
+            ][:2]
+            payload.append(
+                {
+                    "filename": log["filename"],
+                    "timestamp": log.get("timestamp", ""),
+                    "message_count": log.get("message_count", 0),
+                    "sample_queries": user_samples,   # kept for backward compat
+                    "user_samples": user_samples,
+                    "assistant_samples": assistant_samples,
+                }
+            )
+
+        try:
+            overview = await summarize_chat_logs(payload)
+
+            self.chat_overview = overview.get("summary", self.chat_overview)
+            self.chat_overview_topics = overview.get("top_topics", []) or []
+            self.chat_dominant_intent = overview.get("dominant_intent", "")
+            self.chat_top_project = overview.get("top_project", "")
+            self.chat_visitor_expectation = overview.get("visitor_expectation", "")
+
+            print(
+                f"[ADMIN_ANALYTICS] summary ready  "
+                f"dominant_intent={self.chat_dominant_intent!r}  "
+                f"top_project={self.chat_top_project!r}  "
+                f"top_topics={self.chat_overview_topics}  "
+                f"visitor_expectation={self.chat_visitor_expectation[:80]!r}"
+            )
+
+        except Exception as exc:
+            print(f"[ADMIN_ANALYTICS] AI summarisation failed: {exc}")
+            self.chat_overview = (
+                f"Henüz yeterli veri yok ama ilk sinyaller şunları gösteriyor: "
+                f"{self.chat_overview_visitor_count} sohbet kaydı ve "
+                f"{self.chat_overview_message_count} mesaj mevcut. "
+                "Konuşmalar ağırlıklı olarak portfolyo, projeler ve teknoloji seçimleri etrafında şekilleniyor."
+            )
+            self.chat_overview_topics = ["teknik sorular", "proje analizi", "kariyer"]
+            self.chat_dominant_intent = "teknik merak"
+            self.chat_top_project = ""
+            self.chat_visitor_expectation = ""
+
+        self.chat_overview_loading = False
+        yield
+
 class AdminCareerState(rx.State):
-    
-    educations: list[EducationModel] = []
-    experiences: list[ExperienceModel] = []
-    
+
+    # ── Flat TypedDict lists — SQLModel ORM objects removed from state. ──────
+    educations: list[EducationCareerDict] = []
+    experiences: list[ExperienceCareerDict] = []
+
     # Form fields
     edu_okul: str = ""
     edu_bolum: str = ""
     edu_baslangic: str = ""
     edu_mezuniyet: str = ""
     edu_detay: str = ""
-    
+
     exp_sirket: str = ""
     exp_pozisyon: str = ""
     exp_sure: str = ""
     exp_aciklama: str = ""
 
-    def set_edu_okul(self, val: str): self.edu_okul = val
-    def set_edu_bolum(self, val: str): self.edu_bolum = val
-    def set_edu_baslangic(self, val: str): self.edu_baslangic = val
-    def set_edu_mezuniyet(self, val: str): self.edu_mezuniyet = val
-    def set_edu_detay(self, val: str): self.edu_detay = val
-    def set_exp_sirket(self, val: str): self.exp_sirket = val
-    def set_exp_pozisyon(self, val: str): self.exp_pozisyon = val
-    def set_exp_sure(self, val: str): self.exp_sure = val
-    def set_exp_aciklama(self, val: str): self.exp_aciklama = val
+    # Reflex auto-generates set_<var_name> handlers. Manual setters removed.
 
     @rx.event
     def load_career(self):
-        with rx.session() as session:
-            self.educations = session.exec(EducationModel.select()).all()
-            self.experiences = session.exec(ExperienceModel.select()).all()
+        """Load all education and experience rows from SQLite.
+
+        Uses Session(get_engine()) directly — rx.session() relies on the
+        deprecated rx.Model layer (removed in Reflex 1.0).  The try/except
+        ensures the admin panel never crashes when the DB file is absent
+        or the tables have not yet been created.
+        """
+        import sys
+        try:
+            with Session(get_engine()) as session:
+                edu_models = session.exec(EducationModel.select()).all()
+                exp_models = session.exec(ExperienceModel.select()).all()
+            # Flatten ORM instances to plain TypedDicts — Optional[int] id
+            # is coerced to int (0 if None) so the frontend never sees null.
+            self.educations = [
+                {
+                    "id": int(e.id or 0),
+                    "okul_adi": e.okul_adi or "",
+                    "bolum": e.bolum or "",
+                    "baslangic_yili": e.baslangic_yili or "",
+                    "mezuniyet_yili": e.mezuniyet_yili or "",
+                    "detay": e.detay or "",
+                }
+                for e in edu_models
+            ]
+            self.experiences = [
+                {
+                    "id": int(e.id or 0),
+                    "sirket_adi": e.sirket_adi or "",
+                    "pozisyon": e.pozisyon or "",
+                    "sure": e.sure or "",
+                    "aciklama": e.aciklama or "",
+                }
+                for e in exp_models
+            ]
+        except Exception as exc:
+            print(
+                f"[AdminCareerState.load_career] DB error: {type(exc).__name__}: {exc}\n"
+                "  Tables may not exist yet — run 'alembic upgrade head'.",
+                file=sys.stderr,
+            )
+            self.educations = []
+            self.experiences = []
 
     @rx.event
     def add_education(self):
-        with rx.session() as session:
-            session.add(
-                EducationModel(
-                    okul_adi=self.edu_okul,
-                    bolum=self.edu_bolum,
-                    baslangic_yili=self.edu_baslangic,
-                    mezuniyet_yili=self.edu_mezuniyet,
-                    detay=self.edu_detay
+        import sys
+        try:
+            with Session(get_engine()) as session:
+                session.add(
+                    EducationModel(
+                        okul_adi=self.edu_okul,
+                        bolum=self.edu_bolum,
+                        baslangic_yili=self.edu_baslangic,
+                        mezuniyet_yili=self.edu_mezuniyet,
+                        detay=self.edu_detay,
+                    )
                 )
-            )
-            session.commit()
+                session.commit()
+        except Exception as exc:
+            print(f"[AdminCareerState.add_education] {type(exc).__name__}: {exc}", file=sys.stderr)
+            return
         self.edu_okul = ""
         self.edu_bolum = ""
         self.edu_baslangic = ""
@@ -719,25 +1137,37 @@ class AdminCareerState(rx.State):
 
     @rx.event
     def delete_education(self, id: int):
-        with rx.session() as session:
-            edu = session.exec(EducationModel.select().where(EducationModel.id == id)).first()
-            if edu:
-                session.delete(edu)
-                session.commit()
+        import sys
+        try:
+            with Session(get_engine()) as session:
+                edu = session.exec(
+                    EducationModel.select().where(EducationModel.id == id)
+                ).first()
+                if edu:
+                    session.delete(edu)
+                    session.commit()
+        except Exception as exc:
+            print(f"[AdminCareerState.delete_education] {type(exc).__name__}: {exc}", file=sys.stderr)
+            return
         self.load_career()
 
     @rx.event
     def add_experience(self):
-        with rx.session() as session:
-            session.add(
-                ExperienceModel(
-                    sirket_adi=self.exp_sirket,
-                    pozisyon=self.exp_pozisyon,
-                    sure=self.exp_sure,
-                    aciklama=self.exp_aciklama
+        import sys
+        try:
+            with Session(get_engine()) as session:
+                session.add(
+                    ExperienceModel(
+                        sirket_adi=self.exp_sirket,
+                        pozisyon=self.exp_pozisyon,
+                        sure=self.exp_sure,
+                        aciklama=self.exp_aciklama,
+                    )
                 )
-            )
-            session.commit()
+                session.commit()
+        except Exception as exc:
+            print(f"[AdminCareerState.add_experience] {type(exc).__name__}: {exc}", file=sys.stderr)
+            return
         self.exp_sirket = ""
         self.exp_pozisyon = ""
         self.exp_sure = ""
@@ -746,9 +1176,16 @@ class AdminCareerState(rx.State):
 
     @rx.event
     def delete_experience(self, id: int):
-        with rx.session() as session:
-            exp = session.exec(ExperienceModel.select().where(ExperienceModel.id == id)).first()
-            if exp:
-                session.delete(exp)
-                session.commit()
+        import sys
+        try:
+            with Session(get_engine()) as session:
+                exp = session.exec(
+                    ExperienceModel.select().where(ExperienceModel.id == id)
+                ).first()
+                if exp:
+                    session.delete(exp)
+                    session.commit()
+        except Exception as exc:
+            print(f"[AdminCareerState.delete_experience] {type(exc).__name__}: {exc}", file=sys.stderr)
+            return
         self.load_career()

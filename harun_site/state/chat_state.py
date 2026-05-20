@@ -1,27 +1,39 @@
 from __future__ import annotations
 
 import reflex as rx
+import sys
+from typing import TypedDict
 
-from harun_site.utils.groq_client import stream_chat
+
+class MessageDict(TypedDict):
+    """Typed chat message – content is always str so Reflex serialises it
+    as a JS string, never as [object Object]."""
+    role: str
+    content: str
+
+from harun_site.utils.groq_client import complete_chat, stream_chat
 from harun_site.utils.response_formatter import format_chat_response
 
 
 class ChatState(rx.State):
-	messages: list[dict] = []
+	messages: list[MessageDict] = []
 	current_input: str = ""
 	is_loading: bool = False
 	current_log_filename: str = ""
-	suggestions: list[str] = [
-		"Kendinden bahset",
-		"CebirX nedir?",
-		"Hangi teknolojileri kullanıyorsun?",
-		"Benimle çalışabilir misin?",
-		"Blog yazıların hakkında ne söylersin?",
-	]
+	suggestions: list[str] = []
 	show_suggestions: bool = True
 
 	@rx.event
+	def on_load(self):
+		from harun_site.utils.data_manager import load_suggestions
+
+		self.suggestions = load_suggestions()
+
+	@rx.event
 	def load_from_params(self):
+		from harun_site.utils.data_manager import load_suggestions
+
+		self.suggestions = load_suggestions()
 		log_filename = ""
 		q = ""
 		if "?" in self.router.url:
@@ -69,6 +81,7 @@ class ChatState(rx.State):
 		if not content:
 			return
 
+		history = [*self.messages, {"role": "user", "content": content}]
 		self.messages = [*self.messages, {"role": "user", "content": content}]
 		self.current_input = ""
 		self.is_loading = True
@@ -82,9 +95,21 @@ class ChatState(rx.State):
 
 		try:
 			raw_assistant_content = ""
-			async for chunk in stream_chat(self.messages):
+			streamed_any_chunk = False
+			async for chunk in stream_chat(history):
+				streamed_any_chunk = True
 				raw_assistant_content += chunk
-				self.messages[-1]["content"] = raw_assistant_content
+				self.messages = [
+					*self.messages[:-1],
+					{"role": "assistant", "content": raw_assistant_content},
+				]
+				yield
+			if not streamed_any_chunk and not raw_assistant_content:
+				raw_assistant_content = await complete_chat(history)
+				self.messages = [
+					*self.messages[:-1],
+					{"role": "assistant", "content": raw_assistant_content},
+				]
 				yield
 			self.messages[-1]["content"] = format_chat_response(raw_assistant_content)
 			yield
@@ -93,31 +118,53 @@ class ChatState(rx.State):
 			print(f"[GROQ ERROR] {type(exc).__name__}: {err}")
 			import traceback
 			traceback.print_exc()
+			# ── Telegram error alert ───────────────────────────────────────
+			try:
+				from harun_site.telegram_bot.notifier import notify_error
+				notify_error(err, context="chat/send_message")
+			except Exception:
+				pass
+			# ──────────────────────────────────────────────────────────────
 			if "api_key" in err.lower() or "authentication" in err.lower() or "invalid_api_key" in err.lower():
 				self.messages[-1]["content"] = (
 					"⚠️ Yapay zeka servisi şu an yapılandırılmamış. "
 					"Lütfen daha sonra tekrar deneyin."
 				)
 			else:
-				self.messages[-1]["content"] = (
-					f"⚠️ Bir hata oluştu, lütfen tekrar deneyin."
-				)
+				if raw_assistant_content:
+					self.messages[-1]["content"] = format_chat_response(raw_assistant_content)
+				else:
+					self.messages[-1]["content"] = "⚠️ Bir hata oluştu, lütfen tekrar deneyin."
 			yield
 
 		self.is_loading = False
-		
+
 		# Save chat log
 		from harun_site.utils import data_manager
 		self.current_log_filename = data_manager.save_chat_log(
 			self.messages,
 			self.current_log_filename or None,
 		)
-		
+
+		# ── Telegram notification hooks (never crash chat on failure) ──────
+		try:
+			from harun_site.telegram_bot.notifier import (
+				notify_hiring_if_warranted,
+				notify_watch_if_warranted,
+				notify_long_session,
+			)
+			notify_hiring_if_warranted(self.messages)
+			notify_watch_if_warranted(self.messages)
+			notify_long_session(self.messages)
+		except Exception as _notify_err:
+			print(f"[NOTIFY] Hook error (non-fatal): {_notify_err}", file=sys.stderr)
+		# ──────────────────────────────────────────────────────────────────
+
 		# Summarization logic
 		user_msg_count = sum(1 for m in self.messages if m["role"] == "user")
 		if user_msg_count >= 6 and user_msg_count % 6 == 0:
 			yield ChatState.summarize_and_save()
-		
+
 		yield
 
 	@rx.event

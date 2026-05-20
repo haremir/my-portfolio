@@ -43,8 +43,30 @@ class IndexState(rx.State):
             for p in posts[:2]
         ]
         projects = load_projects()
-        self.featured_projects = projects[:3]
-        self.experience_preview = load_experience()[:1]
+        # Strip each project to only the fields FeaturedProjectDict declares.
+        # load_projects() returns full dicts that include a nested case_study
+        # object — that nested dict must never reach the frontend state delta.
+        self.featured_projects = [
+            {
+                "name": p.get("name", ""),
+                "slug": p.get("slug", ""),
+                "desc": p.get("desc", ""),
+                "tags": [str(t) for t in (p.get("tags") or [])],
+            }
+            for p in projects[:3]
+        ]
+        # Strip experience_preview to only the three fields ExperiencePreviewDict
+        # declares.  load_experience() returns dicts with tags list and other
+        # extra keys — those must not be serialised into the state delta.
+        experiences = load_experience()
+        self.experience_preview = [
+            {
+                "company": e.get("company", ""),
+                "role": e.get("role", ""),
+                "description": e.get("description", ""),
+            }
+            for e in experiences[:1]
+        ]
 
     @rx.event
     def set_query(self, value: str):

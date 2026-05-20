@@ -45,11 +45,19 @@ def build_context() -> str:
     if projects:
         proj_text = "## Projeler\n"
         for proj in projects:
+            slug = proj.get('slug', '')
+            has_case_study = bool(proj.get("case_study"))
+            # Canonical case study URL — always /projects/<slug>
+            cs_url = f"/projects/{slug}" if slug and has_case_study else ""
             proj_text += f"""
 ### {proj.get('name', '')}
 - Açıklama: {proj.get('desc', '')}
 - Teknolojiler: {', '.join(proj.get('tags', []))}
+- Slug: {slug}
+- Case Study: {'var' if has_case_study else 'yok'}
 """
+            if cs_url:
+                proj_text += f"- Case Study URL: {cs_url}\n"
         sections.append(proj_text)
 
     # BLOG YAZILARI

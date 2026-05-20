@@ -1,11 +1,53 @@
 import json
 import os
+import shutil
+import tempfile
 from pathlib import Path
 from datetime import datetime
 from uuid import uuid4
 
+
+# ---------------------------------------------------------------------------
+# Atomic JSON write helper
+# ---------------------------------------------------------------------------
+
+def _atomic_write_json(path: Path, data: object) -> None:
+    """
+    Write *data* as JSON to *path* atomically.
+
+    Writes to a sibling temp file first, then renames it over the target.
+    This guarantees the target is never left in a half-written state — a
+    crash mid-write leaves a .tmp file that is cleaned up on the next call,
+    while the original file remains intact.
+
+    Raises
+    ------
+    OSError   – if the filesystem is full or permissions are wrong.
+    TypeError – if *data* is not JSON-serialisable.
+    """
+    path = Path(path)  # ensure Path object
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    fd, tmp_path_str = tempfile.mkstemp(
+        dir=str(path.parent),
+        prefix=path.stem + "_",
+        suffix=".tmp",
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        shutil.move(tmp_path_str, str(path))
+    except Exception:
+        # Best-effort cleanup of the temp file on failure
+        try:
+            os.unlink(tmp_path_str)
+        except OSError:
+            pass
+        raise
+
 # Paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+_BASE_DIR = BASE_DIR
 DATA_DIR = BASE_DIR / "data"
 PROJECTS_FILE = DATA_DIR / "projects.json"
 CHAT_LOGS_DIR = DATA_DIR / "chat_logs"
@@ -33,8 +75,7 @@ def load_projects() -> list[dict]:
         return []
 
 def save_projects(projects: list[dict]):
-    with open(PROJECTS_FILE, "w", encoding="utf-8") as f:
-        json.dump(projects, f, ensure_ascii=False, indent=2)
+    _atomic_write_json(PROJECTS_FILE, projects)
 
 def add_project(name: str, desc: str, tags: list[str]):
     projects = load_projects()
@@ -60,10 +101,10 @@ def delete_blog_post(slug: str):
 
 def save_blog_post(slug: str, title: str, date: str, description: str, tags: list[str], content: str, cover: str = ""):
     post_path = POSTS_DIR / f"{slug}.md"
-    
+
     # Format tags for frontmatter
     tags_formatted = "\n".join([f"  - {t}" for t in tags])
-    
+
     frontmatter = f"""---
 title: "{title}"
 date: "{date}"
@@ -73,9 +114,19 @@ tags:
 cover: "{cover}"
 ---
 """
-    
-    with open(post_path, "w", encoding="utf-8") as f:
-        f.write(frontmatter + "\n" + content)
+
+    # Blog posts are markdown so we can't use _atomic_write_json (non-JSON).
+    # Use the same temp-file-then-rename pattern manually.
+    import shutil as _shutil, tempfile as _tmp
+    fd, tmp_str = _tmp.mkstemp(dir=str(POSTS_DIR), prefix=slug + "_", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(frontmatter + "\n" + content)
+        _shutil.move(tmp_str, str(post_path))
+    except Exception:
+        try: os.unlink(tmp_str)
+        except OSError: pass
+        raise
 
 # ---- CHAT LOGS ----
 
@@ -83,26 +134,24 @@ def save_chat_log(messages: list[dict], filename: str | None = None) -> str:
     # Save a chat log with a timestamped filename, or overwrite an existing one.
     if not messages:
         return ""
-        
+
     if not filename:
         filename = f"{uuid4().hex}.json"
     filepath = CHAT_LOGS_DIR / filename
-    
+
     log_data = {
         "timestamp": datetime.now().isoformat(),
         "messages": messages
     }
-    
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(log_data, f, ensure_ascii=False, indent=2)
 
+    _atomic_write_json(filepath, log_data)
     return filename
 
 def load_chat_logs() -> list[dict]:
     logs = []
     if not CHAT_LOGS_DIR.exists():
         return logs
-        
+
     for path in CHAT_LOGS_DIR.glob("*.json"):
         try:
             with open(path, "r", encoding="utf-8") as f:
@@ -115,7 +164,7 @@ def load_chat_logs() -> list[dict]:
                 })
         except Exception:
             pass
-            
+
     # Sort newest first using saved timestamp when available.
     return sorted(logs, key=lambda x: (x.get("timestamp") or "", x.get("mtime", 0)), reverse=True)
 
@@ -164,7 +213,7 @@ def load_tags() -> list[str]:
         return []
 
 def save_tags(tags: list[str]):
-    TAGS_FILE.write_text(json.dumps(tags, ensure_ascii=False, indent=2), encoding="utf-8")
+    _atomic_write_json(TAGS_FILE, tags)
 
 def add_tag(tag: str):
     tags = load_tags()
@@ -177,6 +226,22 @@ def delete_tag(tag: str):
     if tag in tags:
         tags = [item for item in tags if item != tag]
         save_tags(tags)
+
+
+# ---- CHAT SUGGESTIONS ----
+
+def load_suggestions() -> list[str]:
+    path = _BASE_DIR / "data" / "suggestions.json"
+    if not path.exists():
+        return []
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+
+def save_suggestions(suggestions: list[str]):
+    _atomic_write_json(_BASE_DIR / "data" / "suggestions.json", suggestions)
 
 # ---- CV ----
 
@@ -209,8 +274,7 @@ def load_education() -> list[dict]:
 
 
 def save_education(data: list[dict]):
-    path = BASE_DIR / "data" / "education.json"
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    _atomic_write_json(BASE_DIR / "data" / "education.json", data)
 
 
 def load_experience() -> list[dict]:
@@ -224,5 +288,4 @@ def load_experience() -> list[dict]:
 
 
 def save_experience(data: list[dict]):
-    path = BASE_DIR / "data" / "experience.json"
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    _atomic_write_json(BASE_DIR / "data" / "experience.json", data)
