@@ -92,7 +92,11 @@ def blog_card(post: dict) -> rx.Component:
                 "transform": "translateY(-2px)",
             },
         ),
-        href=f"/blog/{post['slug']}",
+        # Use Var string concatenation — NOT an f-string.
+        # f"/blog/{post['slug']}" produces a static Python str with a
+        # <reflex.Var> tag that may not be processed correctly in all
+        # prop contexts; explicit concat is guaranteed reactive.
+        href="/blog/" + post["slug"],
         text_decoration="none",
         width="100%",
         display="block",

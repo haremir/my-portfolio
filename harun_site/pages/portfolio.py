@@ -26,29 +26,49 @@ class ProjectDict(TypedDict, total=False):
 
 class PortfolioState(rx.State):
     projects: list[ProjectDict] = []
-    selected_project: dict = {}
+    # ── Flat primitive vars for the detail modal ─────────────────────────────
+    # NEVER store the full project dict in state — it carries a nested
+    # case_study object that Reflex serialises to the frontend as a JS object
+    # and any .get() call on the Var evaluates on the JS side → [object Object].
+    # Extract only the four fields the modal actually renders.
+    modal_name: str = ""
+    modal_desc: str = ""
+    modal_tags: list[str] = []
+    modal_slug: str = ""
     is_modal_open: bool = False
 
     @rx.event
     def on_load(self):
         from harun_site.utils.data_manager import load_projects
-        self.projects = load_projects()
+        raw = load_projects()
+        # Strip each project to only the four fields ProjectDict declares so
+        # the nested case_study dict is never included in the state delta.
+        self.projects = [
+            {
+                "name": p.get("name", ""),
+                "slug": p.get("slug", ""),
+                "desc": p.get("desc", ""),
+                "tags": [str(t) for t in (p.get("tags") or [])],
+            }
+            for p in raw
+        ]
 
     @rx.event
     def open_project(self, project: ProjectDict):
-        self.selected_project = project
+        # Flatten into primitive state vars — never store the raw dict.
+        self.modal_name = str(project.get("name", ""))
+        self.modal_desc = str(project.get("desc", ""))
+        self.modal_tags = [str(t) for t in (project.get("tags") or [])]
+        self.modal_slug = str(project.get("slug", ""))
         self.is_modal_open = True
 
     @rx.event
     def close_modal(self):
-        self.selected_project = {}
+        self.modal_name = ""
+        self.modal_desc = ""
+        self.modal_tags = []
+        self.modal_slug = ""
         self.is_modal_open = False
-
-    @rx.var
-    def selected_project_tags(self) -> list[str]:
-        proj = self.selected_project or {}
-        tags = proj.get("tags") if isinstance(proj, dict) else []
-        return tags or []
 
 
 def project_card(project: ProjectDict) -> rx.Component:
@@ -97,7 +117,7 @@ def project_card(project: ProjectDict) -> rx.Component:
                 project.contains("slug") & (project["slug"] != ""),
                 rx.link(
                     "Case Study →",
-                    href="/portfolio/" + project["slug"],
+                    href="/projects/" + project["slug"],
                     font_family=FONT_MONO,
                     font_size="0.75em",
                     color=PRIMARY,
@@ -179,27 +199,77 @@ def portfolio_page() -> rx.Component:
                         PortfolioState.is_modal_open,
                         rx.box(
                             rx.box(
-                                rx.hstack(
-                                    rx.text(PortfolioState.selected_project.get("name", ""), font_family=FONT_SANS, font_weight="700", font_size="1.2em", color=TEXT),
-                                    rx.button("Kapat", on_click=PortfolioState.close_modal, margin_left="auto"),
+                            # ── Modal header ────────────────────────────────────────────
+                            rx.hstack(
+                                # Use flat primitive state vars — never .get() on a dict Var
+                                rx.text(PortfolioState.modal_name, font_family=FONT_SANS, font_weight="700", font_size="1.2em", color=TEXT),
+                                rx.button(
+                                    "×",
+                                    on_click=PortfolioState.close_modal,
+                                    margin_left="auto",
+                                    background="transparent",
+                                    color=TEXT_MUTED,
+                                    font_size="1.3em",
+                                    padding="0 0.3em",
+                                    cursor="pointer",
+                                    _hover={"color": PRIMARY},
+                                    border="none",
                                 ),
-                                rx.text(PortfolioState.selected_project.get("desc", ""), font_family=FONT_SANS, color=TEXT_MUTED, margin_top="0.8em"),
-                                rx.hstack(
-                                    rx.foreach(
-                                        PortfolioState.selected_project_tags,
-                                        lambda tag: rx.text(tag, font_family=FONT_MONO, font_size="0.72em", color=PRIMARY, border=f"1px solid {BORDER}", padding="0.2em 0.6em", border_radius="4px"),
-                                    ),
-                                    gap="0.4em",
-                                    margin_top="0.8em",
-                                ),
-                                padding="1.2em",
-                                background=BG_CARD,
-                                border=f"1px solid {BORDER}",
-                                border_radius="10px",
                                 width="100%",
-                                max_width="700px",
-                                box_shadow="0 24px 80px rgba(0,0,0,0.45)",
+                                align="center",
                             ),
+                            # ── Description ───────────────────────────────────────────
+                            rx.text(PortfolioState.modal_desc, font_family=FONT_SANS, color=TEXT_MUTED, margin_top="0.8em", font_size="0.9em", line_height="1.6"),
+                            # ── Tags ─────────────────────────────────────────────────
+                            rx.hstack(
+                                rx.foreach(
+                                    PortfolioState.modal_tags,
+                                    lambda tag: rx.text(tag, font_family=FONT_MONO, font_size="0.72em", color=PRIMARY, border=f"1px solid {BORDER}", padding="0.2em 0.6em", border_radius="4px"),
+                                ),
+                                gap="0.4em",
+                                margin_top="0.8em",
+                                wrap="wrap",
+                            ),
+                            # ── CTA: navigate to case study ────────────────────────
+                            rx.cond(
+                                PortfolioState.modal_slug != "",
+                                rx.box(
+                                    rx.link(
+                                        rx.hstack(
+                                            rx.text(
+                                                "Case Study'yi Görüntüle",
+                                                font_family=FONT_MONO,
+                                                font_size="0.82em",
+                                                font_weight="600",
+                                                color=BG,
+                                            ),
+                                            rx.text("→", font_family=FONT_MONO, color=BG, font_size="0.9em"),
+                                            gap="0.5em",
+                                            align="center",
+                                        ),
+                                        href="/projects/" + PortfolioState.modal_slug,
+                                        text_decoration="none",
+                                        on_click=PortfolioState.close_modal,
+                                    ),
+                                    background=PRIMARY,
+                                    padding="0.6em 1.2em",
+                                    border_radius="8px",
+                                    display="inline-block",
+                                    margin_top="1.2em",
+                                    transition="all 150ms",
+                                    _hover={"box_shadow": GLOW_PRIMARY, "opacity": "0.9"},
+                                    cursor="pointer",
+                                ),
+                                rx.fragment(),
+                            ),
+                            padding="1.5em",
+                            background=BG_CARD,
+                            border=f"1px solid {BORDER}",
+                            border_radius="12px",
+                            width="100%",
+                            max_width="700px",
+                            box_shadow="0 24px 80px rgba(0,0,0,0.55)",
+                        ),
                             position="fixed",
                             top="50%",
                             left="50%",
@@ -225,7 +295,6 @@ def portfolio_page() -> rx.Component:
         ),
         footer(),
         floating_chat(),
-        on_mount=PortfolioState.on_load,
         width="100%",
         min_height="100vh",
         bg=BG,

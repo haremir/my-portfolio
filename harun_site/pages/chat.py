@@ -3,7 +3,7 @@ import reflex as rx
 from harun_site.components.navbar import navbar
 from harun_site.components.footer import footer
 from harun_site.components.floating_chat import floating_chat
-from harun_site.state.chat_state import ChatState
+from harun_site.state.chat_state import ChatState, MessageDict
 from harun_site.theme import (
     BG,
     BG_CARD,
@@ -19,7 +19,12 @@ from harun_site.theme import (
 )
 
 
-def message_row(message) -> rx.Component:
+def message_row(message: MessageDict) -> rx.Component:
+    # Guard: only render rx.markdown when content is a non-empty string.
+    # ChatState.messages is now list[MessageDict] (TypedDict with content: str)
+    # so Reflex knows the field type, but we also guard with rx.cond so that
+    # the initial empty-string placeholder during streaming never reaches
+    # react-markdown as a JS object.
     return rx.cond(
         message["role"] == "user",
         rx.hstack(
@@ -42,7 +47,16 @@ def message_row(message) -> rx.Component:
         ),
         rx.hstack(
             rx.box(
-                rx.markdown(message["content"]),
+                rx.cond(
+                    message["content"] != "",
+                    rx.markdown(message["content"]),
+                    rx.text(
+                        "●●●",
+                        color=TEXT_MUTED,
+                        font_size="0.8em",
+                        letter_spacing="0.15em",
+                    ),
+                ),
                 background_color=BG_CARD,
                 color=TEXT,
                 style={
@@ -81,17 +95,17 @@ def chat_page() -> rx.Component:
                     ),
                     rx.spacer(),
                     rx.button(
-                        "+ Yeni Sohbet", 
-                        on_click=ChatState.new_conversation, 
-                        font_family=FONT_MONO, 
-                        font_size="0.75em", 
-                        background="transparent", 
-                        color=TEXT_MUTED, 
-                        border=f"1px solid {BORDER}", 
-                        padding="0.4em 0.9em", 
-                        border_radius="6px", 
-                        cursor="pointer", 
-                        _hover={"color": PRIMARY, "border_color": PRIMARY}, 
+                        "+ Yeni Sohbet",
+                        on_click=ChatState.new_conversation,
+                        font_family=FONT_MONO,
+                        font_size="0.75em",
+                        background="transparent",
+                        color=TEXT_MUTED,
+                        border=f"1px solid {BORDER}",
+                        padding="0.4em 0.9em",
+                        border_radius="6px",
+                        cursor="pointer",
+                        _hover={"color": PRIMARY, "border_color": PRIMARY},
                         transition="all 150ms"
                     ),
                     width="100%",
@@ -163,6 +177,9 @@ def chat_page() -> rx.Component:
                         rx.text("...", color=TEXT_MUTED),
                         rx.fragment(),
                     ),
+                    # id is picked up by chat_scroll.js to wire the
+                    # MutationObserver that drives streaming auto-scroll.
+                    id="chat-messages-main",
                     spacing="3",
                     height="50vh",
                     max_height="450px",

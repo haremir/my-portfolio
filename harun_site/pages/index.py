@@ -312,6 +312,8 @@ def about_preview() -> rx.Component:
 
 
 def project_preview_card(project: dict) -> rx.Component:
+    # Link directly to the case study when a slug is available.
+    # Falls back to the portfolio list for projects without a slug.
     return rx.link(
         rx.hstack(
             rx.text(
@@ -369,7 +371,11 @@ def project_preview_card(project: dict) -> rx.Component:
             transition="all 200ms",
             cursor="pointer",
         ),
-        href="/portfolio",
+        href=rx.cond(
+            project["slug"] != "",
+            "/projects/" + project["slug"],
+            "/portfolio",
+        ),
         text_decoration="none",
         width="100%",
     )
@@ -458,7 +464,7 @@ def blog_preview_card(post: dict) -> rx.Component:
             transition="all 200ms",
             cursor="pointer",
         ),
-        href=f"/blog/{post['slug']}",
+        href="/blog/" + post["slug"],
         text_decoration="none",
         width="100%",
     )

@@ -2,7 +2,7 @@ import reflex as rx
 
 from harun_site.components.navbar import navbar
 from harun_site.components.footer import footer
-from harun_site.state.admin_state import AdminAuthState, AdminBlogState, AdminProjectState, AdminChatLogState, AdminCVState, AdminState, AdminCareerState, AdminEduExpState
+from harun_site.state.admin_state import AdminAuthState, AdminBlogState, AdminProjectState, AdminChatLogState, AdminChatAssistantState, AdminSuggestionsState, AdminCVState, AdminState, AdminCareerState, AdminEduExpState
 from harun_site.theme import BG, BG_CARD, PRIMARY, TEXT, TEXT_MUTED, BORDER, ACCENT, FONT_SANS, FONT_MONO, GLOW_PRIMARY
 
 def login_form() -> rx.Component:
@@ -88,8 +88,8 @@ def tag_checkbox_grid(state_class) -> rx.Component:
         ),
         rx.hstack(
             rx.input(
-                placeholder="Yeni etiket...", 
-                value=state_class.new_tag_name, 
+                placeholder="Yeni etiket...",
+                value=state_class.new_tag_name,
                 on_change=state_class.set_new_tag_name,
                 background=BG,
                 size="1"
@@ -118,7 +118,7 @@ def blog_tab() -> rx.Component:
         ),
         tag_checkbox_grid(AdminBlogState),
         rx.text_area(placeholder="Kısa Açıklama", value=AdminBlogState.blog_description, on_change=AdminBlogState.set_blog_description, width="100%", background=BG),
-        
+
         rx.vstack(
             rx.text("Kapak Görseli Yükle", font_size="0.9em", color=TEXT_MUTED),
             rx.upload(
@@ -147,12 +147,12 @@ def blog_tab() -> rx.Component:
             width="100%",
             align_items="start"
         ),
-        
+
         rx.text_area(placeholder="Markdown İçerik...", value=AdminBlogState.blog_content, on_change=AdminBlogState.set_blog_content, width="100%", height="300px", background=BG),
         rx.button("Yazıyı Kaydet", on_click=AdminBlogState.save_post, background=PRIMARY, color=BG, width="100%"),
-        
+
         rx.divider(margin_y="2em", border_color=BORDER),
-        
+
         rx.heading("Mevcut Yazılar", size="4", color=TEXT),
         rx.vstack(
                 rx.foreach(
@@ -186,10 +186,16 @@ def project_tab() -> rx.Component:
         rx.input(placeholder="Proje İsmi", value=AdminProjectState.project_name, on_change=AdminProjectState.set_project_name, width="100%", background=BG),
         tag_checkbox_grid(AdminProjectState),
         rx.text_area(placeholder="Açıklama", value=AdminProjectState.project_desc, on_change=AdminProjectState.set_project_desc, width="100%", background=BG),
+        rx.text_area(placeholder="Problem (markdown destekli)", value=AdminProjectState.cs_problem, on_change=AdminProjectState.set_cs_problem, width="100%", height="120px", background=BG),
+        rx.text_area(placeholder="Mimari (markdown destekli)", value=AdminProjectState.cs_architecture, on_change=AdminProjectState.set_cs_architecture, width="100%", height="120px", background=BG),
+        rx.input(placeholder="Architecture Image (path veya url)", value=AdminProjectState.architecture_image, on_change=AdminProjectState.set_architecture_image, width="100%", background=BG),
+        rx.text_area(placeholder="Why This Stack? (markdown destekli)", value=AdminProjectState.cs_stack_reason, on_change=AdminProjectState.set_cs_stack_reason, width="100%", height="100px", background=BG),
+        rx.text_area(placeholder="Challenges (markdown destekli)", value=AdminProjectState.cs_challenges, on_change=AdminProjectState.set_cs_challenges, width="100%", height="100px", background=BG),
+        rx.text_area(placeholder="Lessons Learned (markdown destekli)", value=AdminProjectState.cs_learnings, on_change=AdminProjectState.set_cs_learnings, width="100%", height="100px", background=BG),
         rx.button("Projeyi Kaydet", on_click=AdminProjectState.save_project, background=PRIMARY, color=BG, width="100%"),
-        
+
         rx.divider(margin_y="2em", border_color=BORDER),
-        
+
         rx.heading("Mevcut Projeler", size="4", color=TEXT),
         rx.vstack(
                 rx.foreach(
@@ -376,10 +382,315 @@ def chat_log_tab() -> rx.Component:
             border_radius="12px",
             background=BG_CARD,
         ),
-        
+
         width="100%",
         spacing="4",
         align_items="start"
+    )
+
+
+def chat_suggestions_tab() -> rx.Component:
+    return rx.vstack(
+        rx.heading("Sohbet Önerileri", size="4", color=TEXT),
+        rx.cond(
+            AdminSuggestionsState.suggestions.length() >= 8,
+            rx.text(
+                "Maksimum 8 oneriniz olabilir. Yeni eklemek icin once bir oneriyi silin.",
+                color=ACCENT,
+                font_size="0.85em",
+                font_family=FONT_MONO,
+            ),
+            rx.fragment(),
+        ),
+        rx.vstack(
+            rx.foreach(
+                AdminSuggestionsState.suggestions,
+                lambda suggestion, index: rx.hstack(
+                    rx.text(
+                        suggestion,
+                        color=TEXT,
+                        font_size="0.9em",
+                        flex="1",
+                    ),
+                    rx.button(
+                        "Sil",
+                        on_click=AdminSuggestionsState.delete_suggestion(index),
+                        background="transparent",
+                        border=f"1px solid {ACCENT}",
+                        color=ACCENT,
+                        size="1",
+                    ),
+                    width="100%",
+                    padding="0.8em 1em",
+                    border=f"1px solid {BORDER}",
+                    border_radius="8px",
+                    background=BG,
+                    align_items="center",
+                ),
+            ),
+            width="100%",
+            spacing="2",
+            align_items="start",
+        ),
+        rx.hstack(
+            rx.input(
+                placeholder="Yeni sohbet onerisi...",
+                value=AdminSuggestionsState.new_suggestion,
+                on_change=AdminSuggestionsState.set_new_suggestion,
+                background=BG,
+                width="100%",
+            ),
+            rx.button(
+                "Ekle",
+                on_click=AdminSuggestionsState.add_suggestion,
+                background=PRIMARY,
+                color=BG,
+                is_disabled=AdminSuggestionsState.suggestions.length() >= 8,
+            ),
+            width="100%",
+            spacing="3",
+        ),
+        width="100%",
+        spacing="4",
+        padding="2em",
+        background=BG_CARD,
+        border_radius="12px",
+    )
+
+
+def admin_chat_bubble(message: dict) -> rx.Component:
+    # Guard: only render rx.markdown when content is a non-empty string.
+    # AdminChatAssistantState.messages is list[ChatMessageDict] (TypedDict)
+    # which gives Reflex type info, but an empty-string interim value
+    # during streaming could still cause react-markdown to receive an object.
+    return rx.cond(
+        message["role"] == "user",
+        rx.box(
+            message["content"],
+            align_self="flex-end",
+            background_color=PRIMARY,
+            color=BG,
+            padding="0.55em 0.9em",
+            border_radius="18px 18px 4px 18px",
+            font_family=FONT_SANS,
+            font_size="0.85em",
+            max_width="85%",
+        ),
+        rx.box(
+            rx.cond(
+                message["content"] != "",
+                rx.markdown(message["content"]),
+                rx.text(
+                    "●●●",
+                    color=TEXT_MUTED,
+                    font_family=FONT_MONO,
+                    font_size="0.75em",
+                    letter_spacing="0.15em",
+                ),
+            ),
+            align_self="flex-start",
+            background_color=BG,
+            color=TEXT,
+            padding="0.55em 0.9em",
+            border_radius="18px 18px 18px 4px",
+            font_family=FONT_SANS,
+            font_size="0.85em",
+            border=f"1px solid {BORDER}",
+            max_width="85%",
+        ),
+    )
+
+
+def _shortcut_btn(label: str, icon_name: str, on_click) -> rx.Component:
+    """Compact shortcut pill button for the analytics assistant."""
+    return rx.button(
+        rx.hstack(
+            rx.icon(icon_name, size=13, color=PRIMARY),
+            rx.text(label, font_family=FONT_MONO, font_size="0.72em", color=PRIMARY),
+            gap="0.3em",
+            align="center",
+        ),
+        on_click=on_click,
+        background="transparent",
+        border=f"1px solid {PRIMARY}44",
+        border_radius="20px",
+        padding="0.3em 0.75em",
+        cursor="pointer",
+        _hover={"background": f"{PRIMARY}12", "border_color": PRIMARY},
+        transition="all 150ms",
+        disabled=AdminChatAssistantState.is_loading,
+    )
+
+
+def admin_chat_tab() -> rx.Component:
+    return rx.vstack(
+        # ── header ─────────────────────────────────────────────────
+        rx.hstack(
+            rx.vstack(
+                rx.hstack(
+                    rx.icon("brain", color=PRIMARY, size=18),
+                    rx.heading(
+                        "Portfolio Intelligence",
+                        size="4",
+                        color=TEXT,
+                        font_family=FONT_MONO,
+                    ),
+                    gap="0.5em",
+                    align="center",
+                ),
+                rx.text(
+                    AdminChatAssistantState.status_text,
+                    color=TEXT_MUTED,
+                    font_size="0.80em",
+                    font_family=FONT_MONO,
+                ),
+                align_items="start",
+                spacing="1",
+            ),
+            rx.spacer(),
+            rx.button(
+                "Sıfırla",
+                on_click=AdminChatAssistantState.reset_chat,
+                background="transparent",
+                border=f"1px solid {ACCENT}55",
+                color=ACCENT,
+                font_family=FONT_MONO,
+                font_size="0.78em",
+                size="1",
+                _hover={"border_color": ACCENT, "background": f"{ACCENT}12"},
+            ),
+            width="100%",
+            align_items="start",
+        ),
+        # ── shortcut quick-queries ─────────────────────────────────
+        rx.flex(
+            _shortcut_btn(
+                "Intent Dağılımı",
+                "pie-chart",
+                AdminChatAssistantState.shortcut_intent_distribution,
+            ),
+            _shortcut_btn(
+                "En Çok İlgi Gören Proje",
+                "star",
+                AdminChatAssistantState.shortcut_top_project,
+            ),
+            _shortcut_btn(
+                "Ziyaretçi Patternleri",
+                "trending-up",
+                AdminChatAssistantState.shortcut_visitor_patterns,
+            ),
+            gap="0.5em",
+            wrap="wrap",
+            width="100%",
+        ),
+        # ── messages area ─────────────────────────────────────────────
+        rx.cond(
+            AdminChatAssistantState.messages.length() == 0,
+            # empty state placeholder
+            rx.box(
+                rx.vstack(
+                    rx.icon("message-square-dashed", color=TEXT_MUTED, size=28),
+                    rx.text(
+                        "Ziyaretçi davranışı, proje ilgisi veya intent dağılımı hakkında soru sor.",
+                        color=TEXT_MUTED,
+                        font_family=FONT_MONO,
+                        font_size="0.80em",
+                        text_align="center",
+                        max_width="340px",
+                    ),
+                    rx.text(
+                        "Ya da yukardaki kısayollardan birini kullan.",
+                        color=TEXT_MUTED,
+                        font_family=FONT_MONO,
+                        font_size="0.72em",
+                        text_align="center",
+                        opacity="0.6",
+                    ),
+                    gap="0.8em",
+                    align="center",
+                ),
+                display="flex",
+                align_items="center",
+                justify_content="center",
+                height="460px",
+                width="100%",
+                background=BG_CARD,
+                border=f"1px solid {BORDER}",
+                border_radius="12px",
+            ),
+            rx.box(
+                rx.vstack(
+                    rx.foreach(AdminChatAssistantState.messages, admin_chat_bubble),
+                    rx.cond(
+                        AdminChatAssistantState.is_loading,
+                        rx.hstack(
+                            rx.text(
+                                "●●●",
+                                color=TEXT_MUTED,
+                                font_size="0.75em",
+                                letter_spacing="0.15em",
+                            ),
+                            rx.text(
+                                "analiz ediliyor",
+                                color=TEXT_MUTED,
+                                font_family=FONT_MONO,
+                                font_size="0.72em",
+                            ),
+                            gap="0.4em",
+                            align="center",
+                        ),
+                        rx.fragment(),
+                    ),
+                    spacing="3",
+                    width="100%",
+                    align_items="stretch",
+                ),
+                # id watched by chat_scroll.js for streaming auto-scroll
+                id="chat-messages-admin",
+                height="460px",
+                overflow_y="auto",
+                width="100%",
+                padding="1.2em",
+                background=BG_CARD,
+                border=f"1px solid {BORDER}",
+                border_radius="12px",
+            ),
+        ),
+        # ── input bar ────────────────────────────────────────────────
+        rx.hstack(
+            rx.input(
+                placeholder="Ziyaretçi davranışı, proje ilgisi, intent analizi...",
+                value=AdminChatAssistantState.input_value,
+                on_change=AdminChatAssistantState.set_input_value,
+                on_key_down=AdminChatAssistantState.handle_keydown,
+                background=BG,
+                border=f"1px solid {BORDER}",
+                color=TEXT,
+                font_family=FONT_MONO,
+                font_size="0.85em",
+                focus_border_color=PRIMARY,
+                width="100%",
+                _placeholder={"color": TEXT_MUTED},
+            ),
+            rx.button(
+                "Analiz Et",
+                on_click=AdminChatAssistantState.send_message,
+                background=PRIMARY,
+                color=BG,
+                font_family=FONT_MONO,
+                font_weight="600",
+                font_size="0.85em",
+                _hover={"opacity": "0.85"},
+                disabled=AdminChatAssistantState.is_loading,
+            ),
+            width="100%",
+            spacing="3",
+        ),
+        width="100%",
+        spacing="4",
+        padding="2em",
+        background=BG_CARD,
+        border_radius="12px",
     )
 
 def cv_tab() -> rx.Component:
@@ -409,9 +720,9 @@ def cv_tab() -> rx.Component:
             ),
             rx.text("Henüz CV yüklenmemiş.", color=TEXT_MUTED)
         ),
-        
+
         rx.divider(margin_y="2em", border_color=BORDER),
-        
+
         rx.vstack(
             rx.text("Yeni CV Yükle (PDF)", font_size="0.9em", color=TEXT_MUTED),
             rx.upload(
@@ -429,9 +740,9 @@ def cv_tab() -> rx.Component:
                 }
             ),
             rx.button(
-                "Yükle", 
+                "Yükle",
                 on_click=AdminCVState.handle_cv_upload(rx.upload_files(upload_id="cv_upload")),
-                background=PRIMARY, 
+                background=PRIMARY,
                 color=BG,
                 width="100%"
             ),
@@ -483,46 +794,305 @@ def dashboard_card(title: str, count: rx.Var, icon: str, tab_value: str) -> rx.C
         _hover={"border_color": PRIMARY, "transform": "translateY(-5px)"},
     )
 
+
+def _intent_badge(label: rx.Var) -> rx.Component:
+    """Small pill showing the dominant visitor intent."""
+    return rx.cond(
+        label != "",
+        rx.hstack(
+            rx.text(
+                "●",
+                color=PRIMARY,
+                font_size="0.55em",
+            ),
+            rx.text(
+                label,
+                font_family=FONT_MONO,
+                font_size="0.70em",
+                color=PRIMARY,
+                white_space="nowrap",
+            ),
+            padding="0.2em 0.6em",
+            border=f"1px solid {PRIMARY}55",
+            border_radius="999px",
+            background=f"{PRIMARY}0d",
+            align="center",
+            gap="0.3em",
+        ),
+        rx.fragment(),
+    )
+
+
+def dashboard_summary_card() -> rx.Component:
+    """
+    AI-powered visitor intelligence card.
+
+    Layout
+    ------
+    row 1  icon + title
+    row 2  count badge  +  dominant intent pill
+    row 3  top-project callout       (hidden when empty)
+    row 4  executive summary paragraph
+    row 5  visitor expectation       (hidden when empty)
+    row 6  top-3 trend topic tags
+    row 7  action button
+    """
+    return rx.vstack(
+        # ── row 1: header ────────────────────────────────────────────
+        rx.hstack(
+            rx.icon("brain", color=PRIMARY, size=22),
+            rx.text(
+                "Ziyaretçi Analizi",
+                color=TEXT,
+                font_family=FONT_MONO,
+                font_size="1em",
+                white_space="nowrap",
+            ),
+            width="100%",
+            spacing="3",
+            align="center",
+        ),
+        # ── rows 2-6: content (loading spinner or real data) ────────────
+        rx.cond(
+            AdminState.chat_overview_loading,
+            rx.hstack(
+                rx.text(
+                    "Analiz yapılıyor...",
+                    color=TEXT_MUTED,
+                    font_family=FONT_MONO,
+                    font_size="0.82em",
+                ),
+                align="center",
+                gap="0.5em",
+            ),
+            rx.vstack(
+                # ─ row 2: count  +  dominant intent ───────────────────
+                rx.hstack(
+                    rx.text(
+                        rx.cond(
+                            AdminState.chat_overview_visitor_count > 0,
+                            f"{AdminState.chat_overview_visitor_count} kayıt  ·  {AdminState.chat_overview_message_count} mesaj",
+                            "Henüz veri yok",
+                        ),
+                        color=PRIMARY,
+                        font_family=FONT_MONO,
+                        font_size="0.80em",
+                        font_weight="700",
+                    ),
+                    _intent_badge(AdminState.chat_dominant_intent),
+                    wrap="wrap",
+                    gap="0.5em",
+                    align="center",
+                ),
+                # ─ row 3: top project callout ────────────────────────
+                rx.cond(
+                    AdminState.chat_top_project != "",
+                    rx.hstack(
+                        rx.text(
+                            "★",
+                            color=PRIMARY,
+                            font_size="0.65em",
+                        ),
+                        rx.text(
+                            "En çok ilgi: ",
+                            color=TEXT_MUTED,
+                            font_family=FONT_MONO,
+                            font_size="0.75em",
+                        ),
+                        rx.text(
+                            AdminState.chat_top_project,
+                            color=PRIMARY,
+                            font_family=FONT_MONO,
+                            font_size="0.75em",
+                            font_weight="700",
+                        ),
+                        gap="0.25em",
+                        align="center",
+                    ),
+                    rx.fragment(),
+                ),
+                # ─ row 4: executive summary ───────────────────────────
+                rx.text(
+                    AdminState.chat_overview,
+                    color=TEXT_MUTED,
+                    font_size="0.80em",
+                    line_height="1.65",
+                    width="100%",
+                    word_break="break-word",
+                ),
+                # ─ row 5: visitor expectation ─────────────────────────
+                rx.cond(
+                    AdminState.chat_visitor_expectation != "",
+                    rx.hstack(
+                        rx.text(
+                            "→",
+                            color=PRIMARY,
+                            font_family=FONT_MONO,
+                            font_size="0.75em",
+                        ),
+                        rx.text(
+                            AdminState.chat_visitor_expectation,
+                            color=TEXT,
+                            font_size="0.78em",
+                            font_style="italic",
+                            line_height="1.5",
+                        ),
+                        gap="0.4em",
+                        align="start",
+                        width="100%",
+                    ),
+                    rx.fragment(),
+                ),
+                # ─ row 6: trend topic tags ────────────────────────────
+                rx.cond(
+                    AdminState.chat_overview_topics.length() > 0,
+                    rx.flex(
+                        rx.foreach(
+                            AdminState.chat_overview_topics,
+                            lambda topic: rx.text(
+                                topic,
+                                font_family=FONT_MONO,
+                                font_size="0.68em",
+                                color=TEXT_MUTED,
+                                border=f"1px solid {BORDER}",
+                                padding="0.15em 0.55em",
+                                border_radius="999px",
+                                white_space="nowrap",
+                            ),
+                        ),
+                        wrap="wrap",
+                        gap="0.35em",
+                        width="100%",
+                    ),
+                    rx.fragment(),
+                ),
+                width="100%",
+                spacing="2",
+                align_items="start",
+            ),
+        ),
+        # ── row 7: action button ──────────────────────────────────
+        rx.button(
+            "Asistana Sor →",
+            on_click=lambda: AdminState.set_active_tab("chat-assistant"),
+            background="transparent",
+            border=f"1px solid {PRIMARY}33",
+            color=PRIMARY,
+            font_family=FONT_MONO,
+            font_size="0.82em",
+            _hover={"background": f"{PRIMARY}15", "border_color": PRIMARY},
+            width="100%",
+            size="2",
+        ),
+        padding="2em",
+        background=BG_CARD,
+        border=f"1px solid {BORDER}",
+        border_radius="16px",
+        spacing="4",
+        align="start",
+        flex="1",
+        transition="all 200ms",
+        _hover={"border_color": PRIMARY, "transform": "translateY(-5px)"},
+    )
+
 def dashboard_tab() -> rx.Component:
     return rx.vstack(
-        rx.grid(
+        # ── stat cards row ────────────────────────────────────────────────
+        # Use rx.box with display:grid so there is no conflict between the
+        # Radix `columns` prop and the style dict (they both write
+        # grid-template-columns, causing a race condition).
+        rx.box(
             dashboard_card("Toplam Proje", AdminState.total_projects, "layout-grid", "projects"),
             dashboard_card("Toplam Blog", AdminState.total_blogs, "file-text", "blog"),
             dashboard_card("Sohbet Kayıtları", AdminState.total_chats, "message-square", "chats"),
-            columns="3",
-            spacing="6",
+            dashboard_summary_card(),
+            display="grid",
+            style={
+                "grid_template_columns": "repeat(auto-fit, minmax(230px, 1fr))",
+                "gap": "1.5rem",
+                "align_items": "stretch",
+            },
             width="100%",
         ),
-        rx.divider(margin_y="3em", border_color=BORDER),
+        # ─────────────────────────────────────────────────────────────────
+        rx.divider(margin_y="2.5em", border_color=BORDER),
         rx.vstack(
-            rx.heading("Hızlı Erişim", size="4", color=TEXT_MUTED),
+            rx.text(
+                "Hızlı Erişim",
+                font_family=FONT_MONO,
+                font_size="0.72em",
+                letter_spacing="0.15em",
+                color=TEXT_MUTED,
+                text_transform="uppercase",
+            ),
             rx.flex(
                 rx.button(
-                    "Yeni Blog Yazısı", 
+                    "Yeni Blog Yazısı",
                     on_click=lambda: AdminState.set_active_tab("blog"),
-                    background=PRIMARY, color=BG
+                    background="transparent",
+                    border=f"1px solid {PRIMARY}55",
+                    color=PRIMARY,
+                    font_family=FONT_MONO,
+                    font_size="0.82em",
+                    _hover={"background": f"{PRIMARY}18", "border_color": PRIMARY},
                 ),
                 rx.button(
-                    "Yeni Proje Ekle", 
+                    "Yeni Proje Ekle",
                     on_click=lambda: AdminState.set_active_tab("projects"),
-                    background=PRIMARY, color=BG
+                    background="transparent",
+                    border=f"1px solid {PRIMARY}55",
+                    color=PRIMARY,
+                    font_family=FONT_MONO,
+                    font_size="0.82em",
+                    _hover={"background": f"{PRIMARY}18", "border_color": PRIMARY},
                 ),
                 rx.button(
-                    "CV Güncelle", 
+                    "CV Güncelle",
                     on_click=lambda: AdminState.set_active_tab("cv"),
-                    background=PRIMARY, color=BG
+                    background="transparent",
+                    border=f"1px solid {PRIMARY}55",
+                    color=PRIMARY,
+                    font_family=FONT_MONO,
+                    font_size="0.82em",
+                    _hover={"background": f"{PRIMARY}18", "border_color": PRIMARY},
                 ),
                 rx.button(
-                    "Egitim & Deneyim", 
-                    on_click=lambda: AdminState.set_active_tab("eduexp"),
-                    background=PRIMARY, color=BG
+                    "Sohbet Önerileri",
+                    on_click=lambda: AdminState.set_active_tab("chat-suggestions"),
+                    background="transparent",
+                    border=f"1px solid {PRIMARY}55",
+                    color=PRIMARY,
+                    font_family=FONT_MONO,
+                    font_size="0.82em",
+                    _hover={"background": f"{PRIMARY}18", "border_color": PRIMARY},
                 ),
-                spacing="4",
+                rx.button(
+                    "Chat Log Asistanı",
+                    on_click=lambda: AdminState.set_active_tab("chat-assistant"),
+                    background="transparent",
+                    border=f"1px solid {PRIMARY}55",
+                    color=PRIMARY,
+                    font_family=FONT_MONO,
+                    font_size="0.82em",
+                    _hover={"background": f"{PRIMARY}18", "border_color": PRIMARY},
+                ),
+                rx.button(
+                    "Eğitim & Deneyim",
+                    on_click=lambda: AdminState.set_active_tab("eduexp"),
+                    background="transparent",
+                    border=f"1px solid {PRIMARY}55",
+                    color=PRIMARY,
+                    font_family=FONT_MONO,
+                    font_size="0.82em",
+                    _hover={"background": f"{PRIMARY}18", "border_color": PRIMARY},
+                ),
+                gap="0.6em",
                 wrap="wrap",
+                width="100%",
             ),
             width="100%",
             align="start",
-            spacing="4",
+            spacing="3",
         ),
         width="100%",
         padding="1em",
@@ -531,7 +1101,7 @@ def dashboard_tab() -> rx.Component:
 def career_tab() -> rx.Component:
     return rx.vstack(
         rx.heading("CV / Geçmiş Yönetimi", size="4", color=TEXT),
-        
+
         # Education Form
         rx.vstack(
             rx.text("Eğitim Ekle", font_weight="bold", color=PRIMARY),
@@ -571,8 +1141,11 @@ def career_tab() -> rx.Component:
             rx.vstack(
                 rx.text("Mevcut Eğitimler", font_weight="bold"),
                 rx.foreach(AdminCareerState.educations, lambda edu: rx.hstack(
-                    rx.text(f"{edu.okul_adi} - {edu.bolum}", flex="1", font_size="0.9em"),
-                    rx.button(rx.icon("trash-2", size=14), on_click=lambda: AdminCareerState.delete_education(edu.id), color=ACCENT, variant="ghost"),
+                    # Use dict key access + Var string concat, NOT f-strings.
+                    # f"{edu.okul_adi}" would call __format__ on the Var object
+                    # at component-build time, producing a static repr string.
+                    rx.text(edu["okul_adi"] + " - " + edu["bolum"], flex="1", font_size="0.9em"),
+                    rx.button(rx.icon("trash-2", size=14), on_click=AdminCareerState.delete_education(edu["id"]), color=ACCENT, variant="ghost"),
                     width="100%", padding="0.5em", border_bottom=f"1px solid {BORDER}"
                 )),
                 width="100%"
@@ -580,8 +1153,8 @@ def career_tab() -> rx.Component:
             rx.vstack(
                 rx.text("Mevcut Deneyimler", font_weight="bold"),
                 rx.foreach(AdminCareerState.experiences, lambda exp: rx.hstack(
-                    rx.text(f"{exp.sirket_adi} - {exp.pozisyon}", flex="1", font_size="0.9em"),
-                    rx.button(rx.icon("trash-2", size=14), on_click=lambda: AdminCareerState.delete_experience(exp.id), color=ACCENT, variant="ghost"),
+                    rx.text(exp["sirket_adi"] + " - " + exp["pozisyon"], flex="1", font_size="0.9em"),
+                    rx.button(rx.icon("trash-2", size=14), on_click=AdminCareerState.delete_experience(exp["id"]), color=ACCENT, variant="ghost"),
                     width="100%", padding="0.5em", border_bottom=f"1px solid {BORDER}"
                 )),
                 width="100%"
@@ -807,13 +1380,23 @@ def admin_page() -> rx.Component:
             ),
             rx.tabs.root(
                 rx.tabs.list(
-                    rx.tabs.trigger("Dashboard", value="dashboard"),
-                    rx.tabs.trigger("Blog Yönetimi", value="blog"),
-                    rx.tabs.trigger("Proje Yönetimi", value="projects"),
-                    rx.tabs.trigger("Sohbet Kayıtları", value="chats"),
-                    rx.tabs.trigger("Eğitim & Deneyim", value="eduexp"),
-                    rx.tabs.trigger("CV Yönetimi", value="cv"),
-                    background=BG_CARD
+                        rx.tabs.trigger("Dashboard", value="dashboard", style={"white_space": "nowrap", "flex_shrink": "0"}),
+                        rx.tabs.trigger("Blog Yönetimi", value="blog", style={"white_space": "nowrap", "flex_shrink": "0"}),
+                        rx.tabs.trigger("Proje Yönetimi", value="projects", style={"white_space": "nowrap", "flex_shrink": "0"}),
+                        rx.tabs.trigger("Sohbet Kayıtları", value="chats", style={"white_space": "nowrap", "flex_shrink": "0"}),
+                        rx.tabs.trigger("Chat Suggestions", value="chat-suggestions", style={"white_space": "nowrap", "flex_shrink": "0"}),
+                        rx.tabs.trigger("Chat Log Asistanı", value="chat-assistant", style={"white_space": "nowrap", "flex_shrink": "0"}),
+                        rx.tabs.trigger("Eğitim & Deneyim", value="eduexp", style={"white_space": "nowrap", "flex_shrink": "0"}),
+                        rx.tabs.trigger("CV Yönetimi", value="cv", style={"white_space": "nowrap", "flex_shrink": "0"}),
+                        background=BG_CARD,
+                        style={
+                            "overflow_x": "auto",
+                            "overflow_y": "hidden",
+                            "max_width": "100%",
+                            "gap": "0.4rem",
+                            "padding_bottom": "0.35rem",
+                            "scrollbar_width": "thin",
+                        }
                 ),
                 rx.tabs.content(
                     dashboard_tab(),
@@ -836,6 +1419,16 @@ def admin_page() -> rx.Component:
                     padding_top="2em"
                 ),
                 rx.tabs.content(
+                    chat_suggestions_tab(),
+                    value="chat-suggestions",
+                    padding_top="2em"
+                ),
+                rx.tabs.content(
+                    admin_chat_tab(),
+                    value="chat-assistant",
+                    padding_top="2em"
+                ),
+                rx.tabs.content(
                     edu_exp_tab(),
                     value="eduexp",
                     padding_top="2em"
@@ -848,7 +1441,8 @@ def admin_page() -> rx.Component:
                 value=AdminState.active_tab,
                 on_change=AdminState.set_active_tab,
                 width="100%",
-                max_width="1000px"
+                max_width="1200px",
+                style={"padding_left": "1rem", "padding_right": "1rem"},
             ),
             width="100%",
             align_items="center",

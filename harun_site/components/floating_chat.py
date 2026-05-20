@@ -1,6 +1,14 @@
 from __future__ import annotations
 
 import reflex as rx
+from typing import TypedDict
+
+
+class MessageDict(TypedDict):
+    """Typed chat message – content is always str so Reflex serialises it
+    as a JS string and never passes [object Object] to rx.markdown()."""
+    role: str
+    content: str
 
 from harun_site.theme import (
     BG,
@@ -14,28 +22,30 @@ from harun_site.theme import (
     FONT_MONO,
     FONT_SANS,
 )
-from harun_site.utils.groq_client import stream_chat
+from harun_site.utils.groq_client import complete_chat, stream_chat
 
 
 class FloatingChatState(rx.State):
     is_open: bool = False
-    messages: list[dict] = []
+    messages: list[MessageDict] = []
     input_value: str = ""
     is_loading: bool = False
     show_redirect: bool = False
     current_log_filename: str = ""
-    suggestions: list[str] = [
-        "Kendinden bahset",
-        "CebirX nedir?",
-        "Hangi teknolojileri kullanıyorsun?",
-        "Benimle çalışabilir misin?",
-        "Blog yazıların hakkında ne söylersin?",
-    ]
+    suggestions: list[str] = []
     show_suggestions: bool = True
+
+    @rx.event
+    def on_load(self):
+        from harun_site.utils.data_manager import load_suggestions
+
+        self.suggestions = load_suggestions()
 
     @rx.event
     def toggle(self):
         self.is_open = not self.is_open
+        if self.is_open and not self.suggestions:
+            return FloatingChatState.on_load()
 
     @rx.event
     def set_input_value(self, value: str):
@@ -57,11 +67,12 @@ class FloatingChatState(rx.State):
         if not self.input_value.strip():
             return
 
+        user_input = self.input_value
+        history = [*self.messages, {"role": "user", "content": user_input}]
         self.messages = [
             *self.messages,
-            {"role": "user", "content": self.input_value},
+            {"role": "user", "content": user_input},
         ]
-        user_input = self.input_value
         self.input_value = ""
         self.is_loading = True
         yield
@@ -73,10 +84,23 @@ class FloatingChatState(rx.State):
         yield
 
         try:
-            async for chunk in stream_chat(
-                self.messages[:-1] + [{"role": "user", "content": user_input}]
-            ):
-                self.messages[-1]["content"] += chunk
+            raw_assistant_content = ""
+            streamed_any_chunk = False
+            async for chunk in stream_chat(history):
+                streamed_any_chunk = True
+                raw_assistant_content += chunk
+                self.messages = [
+                    *self.messages[:-1],
+                    {"role": "assistant", "content": raw_assistant_content},
+                ]
+                yield
+
+            if not streamed_any_chunk and not raw_assistant_content:
+                fallback_content = await complete_chat(history)
+                self.messages = [
+                    *self.messages[:-1],
+                    {"role": "assistant", "content": fallback_content},
+                ]
                 yield
         except Exception as exc:
             err = str(exc)
@@ -85,9 +109,10 @@ class FloatingChatState(rx.State):
                     "⚠️ Yapay zeka servisi şu an yapılandırılmamış."
                 )
             else:
-                self.messages[-1]["content"] = (
-                    "⚠️ Bir hata oluştu, lütfen tekrar deneyin."
-                )
+                if not self.messages[-1]["content"]:
+                    self.messages[-1]["content"] = (
+                        "⚠️ Bir hata oluştu, lütfen tekrar deneyin."
+                    )
             yield
 
         self.is_loading = False
@@ -124,7 +149,10 @@ class FloatingChatState(rx.State):
         return rx.redirect("/chat")
 
 
-def _message_bubble(message: dict) -> rx.Component:
+def _message_bubble(message: MessageDict) -> rx.Component:
+    # Guard: only render rx.markdown when content is a non-empty string.
+    # Without this, a temporarily-empty or mis-typed content value would
+    # reach react-markdown as [object Object] and crash the frontend.
     return rx.cond(
         message["role"] == "user",
         rx.box(
@@ -139,7 +167,16 @@ def _message_bubble(message: dict) -> rx.Component:
             font_family=FONT_SANS,
         ),
         rx.box(
-            rx.markdown(message["content"]),
+            rx.cond(
+                message["content"] != "",
+                rx.markdown(message["content"]),
+                rx.text(
+                    "●●●",
+                    color=TEXT_MUTED,
+                    font_size="0.75em",
+                    letter_spacing="0.15em",
+                ),
+            ),
             align_self="flex-start",
             background_color=BG,
             border=f"1px solid {BORDER}",
@@ -166,14 +203,14 @@ def floating_chat(show: bool = True) -> rx.Component:
                 style={"letter_spacing": "0.1em"},
             ),
             rx.button(
-                "↺", 
-                on_click=FloatingChatState.clear_chat, 
-                background="transparent", 
-                border="none", 
-                color=TEXT_MUTED, 
-                cursor="pointer", 
-                font_size="0.85em", 
-                padding="0 0.3em", 
+                "↺",
+                on_click=FloatingChatState.clear_chat,
+                background="transparent",
+                border="none",
+                color=TEXT_MUTED,
+                cursor="pointer",
+                font_size="0.85em",
+                padding="0 0.3em",
                 _hover={"color": PRIMARY}
             ),
             rx.spacer(),
@@ -210,37 +247,42 @@ def floating_chat(show: bool = True) -> rx.Component:
             rx.cond(
                 FloatingChatState.show_suggestions & (FloatingChatState.messages.length() == 0),
                 rx.vstack(
-                    rx.text("Başlamak için bir soru seç:", font_family=FONT_MONO,
-                            font_size="0.75em", color=TEXT_MUTED),
-                    rx.hstack(
+                    rx.text("Bir soru seç:", font_family=FONT_MONO,
+                            font_size="0.72em", color=TEXT_MUTED),
+                    rx.vstack(
                         rx.foreach(
                             FloatingChatState.suggestions,
                             lambda s: rx.button(
                                 s,
                                 on_click=FloatingChatState.use_suggestion(s),
                                 font_family=FONT_MONO,
-                                font_size="0.78em",
+                                font_size="0.75em",
                                 background="transparent",
                                 color=TEXT_MUTED,
                                 border=f"1px solid {BORDER}",
-                                padding="0.4em 0.9em",
-                                border_radius="20px",
+                                padding="0.3em 0.8em",
+                                border_radius="16px",
                                 cursor="pointer",
+                                width="100%",
+                                text_align="left",
                                 transition="all 150ms",
                                 _hover={"color": PRIMARY, "border_color": PRIMARY},
                             )
                         ),
-                        flex_wrap="wrap",
-                        gap="0.5em",
+                        gap="0.4em",
+                        width="100%",
                     ),
                     align_items="flex-start",
-                    gap="0.8em",
-                    padding="1em",
+                    gap="0.5em",
+                    padding="0.5em",
                 ),
                 rx.fragment(),
             ),
             spacing="2",
         ),
+        # id is picked up by chat_scroll.js to wire the
+        # MutationObserver that drives streaming auto-scroll.
+        id="chat-messages-floating",
         height="420px",
         overflow_y="auto",
         padding="1.2em",
