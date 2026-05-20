@@ -114,13 +114,77 @@ class AdminBlogState(rx.State):
     available_tags: list[str] = []
     selected_tags: list[str] = []
     new_tag_name: str = ""
+    @rx.event
+    def set_new_tag_name(self, value: str):
+        self.new_tag_name = value
 
+    @rx.event
+    def set_project_name(self, value: str):
+        self.project_name = value
+
+    @rx.event
+    def set_project_desc(self, value: str):
+        self.project_desc = value
+
+    @rx.event
+    def set_cs_problem(self, value: str):
+        self.cs_problem = value
+
+    @rx.event
+    def set_cs_architecture(self, value: str):
+        self.cs_architecture = value
+
+    @rx.event
+    def set_architecture_image(self, value: str):
+        self.architecture_image = value
+
+    @rx.event
+    def set_cs_stack_reason(self, value: str):
+        self.cs_stack_reason = value
+
+    @rx.event
+    def set_cs_challenges(self, value: str):
+        self.cs_challenges = value
+
+    @rx.event
+    def set_cs_learnings(self, value: str):
+        self.cs_learnings = value
     is_uploading: bool = False
     editing_blog_slug: str = ""
 
     # Reflex auto-generates set_<var_name> event handlers for every state var.
     # The manual one-liner setters that were here are identical to the
     # auto-generated versions and were missing @rx.event — removed.
+
+    # Explicit setters (frontend relies on set_<var> handlers when
+    # automatic generation is not available).
+    @rx.event
+    def set_blog_title(self, value: str):
+        self.blog_title = value
+
+    @rx.event
+    def set_blog_slug(self, value: str):
+        self.blog_slug = value
+
+    @rx.event
+    def set_blog_date(self, value: str):
+        self.blog_date = value
+
+    @rx.event
+    def set_blog_description(self, value: str):
+        self.blog_description = value
+
+    @rx.event
+    def set_blog_tags_str(self, value: str):
+        self.blog_tags_str = value
+
+    @rx.event
+    def set_blog_content(self, value: str):
+        self.blog_content = value
+
+    @rx.event
+    def set_new_tag_name(self, value: str):
+        self.new_tag_name = value
 
     @rx.event
     def toggle_tag(self, tag: str):
@@ -262,7 +326,41 @@ class AdminProjectState(rx.State):
     selected_tags: list[str] = []
     new_tag_name: str = ""
 
-    # Reflex auto-generates set_<var_name> handlers. Manual setters removed.
+    @rx.event
+    def set_project_name(self, value: str):
+        self.project_name = value
+
+    @rx.event
+    def set_project_desc(self, value: str):
+        self.project_desc = value
+
+    @rx.event
+    def set_cs_problem(self, value: str):
+        self.cs_problem = value
+
+    @rx.event
+    def set_cs_architecture(self, value: str):
+        self.cs_architecture = value
+
+    @rx.event
+    def set_cs_stack_reason(self, value: str):
+        self.cs_stack_reason = value
+
+    @rx.event
+    def set_cs_challenges(self, value: str):
+        self.cs_challenges = value
+
+    @rx.event
+    def set_cs_learnings(self, value: str):
+        self.cs_learnings = value
+
+    @rx.event
+    def set_architecture_image(self, value: str):
+        self.architecture_image = value
+
+    @rx.event
+    def set_new_tag_name(self, value: str):
+        self.new_tag_name = value
 
     @rx.event
     def toggle_tag(self, tag: str):
@@ -750,7 +848,85 @@ class AdminEduExpState(rx.State):
     highlighted_exp_index: int = -1
     highlighted_edu_index: int = -1
 
-    # Reflex auto-generates set_<var_name> handlers. Manual setters removed.
+    @rx.event
+    def set_exp_company(self, value: str):
+        self.exp_company = value
+
+    @rx.event
+    def set_exp_role(self, value: str):
+        self.exp_role = value
+
+    @rx.event
+    def set_exp_start(self, value: str):
+        self.exp_start = value
+
+    @rx.event
+    def set_exp_end(self, value: str):
+        self.exp_end = value
+
+    @rx.event
+    def set_exp_desc(self, value: str):
+        self.exp_desc = value
+
+    @rx.event
+    def set_edu_school(self, value: str):
+        self.edu_school = value
+
+    @rx.event
+    def set_edu_dept(self, value: str):
+        self.edu_dept = value
+
+    @rx.event
+    def set_edu_degree(self, value: str):
+        self.edu_degree = value
+
+    @rx.event
+    def set_edu_start(self, value: str):
+        self.edu_start = value
+
+    @rx.event
+    def set_edu_end(self, value: str):
+        self.edu_end = value
+
+    @rx.event
+    def set_edu_desc(self, value: str):
+        self.edu_desc = value
+
+    @rx.event
+    def set_project_name(self, value: str):
+        self.project_name = value
+
+    @rx.event
+    def set_project_desc(self, value: str):
+        self.project_desc = value
+
+    @rx.event
+    def set_cs_problem(self, value: str):
+        self.cs_problem = value
+
+    @rx.event
+    def set_cs_architecture(self, value: str):
+        self.cs_architecture = value
+
+    @rx.event
+    def set_cs_stack_reason(self, value: str):
+        self.cs_stack_reason = value
+
+    @rx.event
+    def set_cs_challenges(self, value: str):
+        self.cs_challenges = value
+
+    @rx.event
+    def set_cs_learnings(self, value: str):
+        self.cs_learnings = value
+
+    @rx.event
+    def set_architecture_image(self, value: str):
+        self.architecture_image = value
+
+    @rx.event
+    def set_new_tag_name(self, value: str):
+        self.new_tag_name = value
 
     @rx.event
     def start_edit_experience(self, index: int):
@@ -1062,7 +1238,41 @@ class AdminCareerState(rx.State):
     exp_sure: str = ""
     exp_aciklama: str = ""
 
-    # Reflex auto-generates set_<var_name> handlers. Manual setters removed.
+    @rx.event
+    def set_project_name(self, value: str):
+        self.project_name = value
+
+    @rx.event
+    def set_project_desc(self, value: str):
+        self.project_desc = value
+
+    @rx.event
+    def set_cs_problem(self, value: str):
+        self.cs_problem = value
+
+    @rx.event
+    def set_cs_architecture(self, value: str):
+        self.cs_architecture = value
+
+    @rx.event
+    def set_cs_stack_reason(self, value: str):
+        self.cs_stack_reason = value
+
+    @rx.event
+    def set_cs_challenges(self, value: str):
+        self.cs_challenges = value
+
+    @rx.event
+    def set_cs_learnings(self, value: str):
+        self.cs_learnings = value
+
+    @rx.event
+    def set_architecture_image(self, value: str):
+        self.architecture_image = value
+
+    @rx.event
+    def set_new_tag_name(self, value: str):
+        self.new_tag_name = value
 
     @rx.event
     def load_career(self):
