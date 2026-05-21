@@ -18,5 +18,6 @@ COPY harun_site/__init__.py harun_site/__init__.py
 COPY data/ data/
 COPY posts/ posts/
 COPY run_telegram_bot.py .
+COPY prod_start.py .
 
-CMD ["uv", "run", "python", "run_telegram_bot.py"]
+CMD ["uv", "run", "python", "prod_start.py"]

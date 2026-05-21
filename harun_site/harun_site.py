@@ -22,6 +22,7 @@ from harun_site.theme import APP_THEME
 
 app = rx.App(
     stylesheets=[
+        "/styles.css",
         "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
     ],
     head_components=[

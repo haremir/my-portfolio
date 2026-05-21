@@ -17,5 +17,4 @@ alembic.ini
 assets/
 frontend/
 backend/
-prod_start.py
 rxconfig.py

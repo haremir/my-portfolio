@@ -1,0 +1,4 @@
+/* Hide Reflex branding badge */
+a[href="https://reflex.dev"] {
+    display: none !important;
+}

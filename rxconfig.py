@@ -30,6 +30,7 @@ config = rx.Config(
     db_url="sqlite:///reflex.db",
     api_url=api_url,
     backend_port=backend_port,
+    show_built_with_reflex=False,
     plugins=[
         rx.plugins.SitemapPlugin(),
         rx.plugins.RadixThemesPlugin(theme=APP_THEME),
