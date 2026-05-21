@@ -13,6 +13,7 @@ from harun_site.utils.data_manager import (
     load_education,
     load_experience,
     load_projects,
+    load_skills,
 )
 from harun_site.utils.markdown_parser import get_all_posts
 
@@ -27,6 +28,10 @@ _CAREER_KEYWORDS = (
     "iş", "kariyer", "deneyim", "cv", "özgeçmiş", "eğitim", "mezun",
     "proudsec", "staj", "freelance", "işbirliği", "iş birliği", "iletişim",
     "linkedin", "mail", "github", "recruiter", "işe alım",
+)
+_TECH_KEYWORDS = (
+    "teknoloji", "tech", "stack", "beceri", "skill", "araç", "tool",
+    "ne kullanıyor", "hangi dil", "programlama", "framework",
 )
 _DEEP_TECH_IN_QUERY = re.compile(
     r"(mimari|architecture|trade.?off|multi.?tenant|case\s*study|implementasyon|"
@@ -184,6 +189,19 @@ def _blog_section(posts: list, *, matched: list | None = None) -> str:
     return "\n".join(lines)
 
 
+def _skills_section() -> str:
+    skills = load_skills()
+    if not skills:
+        return ""
+    lines = ["## Beceriler (kategorili)"]
+    for cat in skills:
+        category = cat.get("category", "")
+        items = cat.get("skills", [])
+        if category and items:
+            lines.append(f"- **{category}**: {', '.join(items)}")
+    return "\n".join(lines)
+
+
 def match_projects_for_query(query: str) -> list[dict]:
     """Projeleri kullanıcı metnine göre eşleştir (context routing ile aynı)."""
     fp = _data_fingerprint()
@@ -219,6 +237,10 @@ def build_context_for_query(query: str) -> str:
     matched_projects = _match_projects(query, projects)
     matched_posts = _match_posts(query, posts) if posts else []
 
+    # Always include categorized skills for tech/skill queries
+    skills_ctx = _skills_section()
+    is_tech_query = any(k in q for k in _TECH_KEYWORDS)
+
     if matched_projects:
         detailed = bool(_DEEP_TECH_IN_QUERY.search(query))
         sections.append("## İlgili proje(ler)")
@@ -226,6 +248,11 @@ def build_context_for_query(query: str) -> str:
             sections.append(_project_block(proj, detailed=detailed))
         exclude = {p.get("slug", "") for p in matched_projects}
         sections.append(_projects_index(projects, exclude_slugs=exclude))
+
+    elif is_tech_query:
+        if skills_ctx:
+            sections.append(skills_ctx)
+        sections.append(_projects_index(projects))
 
     elif any(k in q for k in _BLOG_KEYWORDS) or matched_posts:
         sections.append(_blog_section(posts, matched=matched_posts or None))
@@ -237,9 +264,13 @@ def build_context_for_query(query: str) -> str:
             sections.append(exp)
         if edu:
             sections.append(edu)
+        if skills_ctx:
+            sections.append(skills_ctx)
         sections.append(_projects_index(projects))
 
     else:
+        if skills_ctx:
+            sections.append(skills_ctx)
         sections.append(_projects_index(projects))
         experiences = load_experience()
         if experiences:
