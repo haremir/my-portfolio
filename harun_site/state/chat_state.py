@@ -11,7 +11,13 @@ class MessageDict(TypedDict):
     role: str
     content: str
 
-from harun_site.utils.groq_client import complete_chat, stream_chat
+from harun_site.utils.groq_client import (
+	complete_chat,
+	is_rate_limit_error,
+	stream_chat,
+	user_message_for_groq_error,
+)
+from harun_site.utils.chat_enrich import ensure_case_study_links
 from harun_site.utils.response_formatter import format_chat_response
 
 
@@ -25,9 +31,13 @@ class ChatState(rx.State):
 
 	@rx.event
 	def on_load(self):
-		from harun_site.utils.data_manager import load_suggestions
+		from harun_site.utils.data_manager import load_suggestions, load_chat_log_messages
 
 		self.suggestions = load_suggestions()
+		if not self.messages and self.current_log_filename:
+			restored = load_chat_log_messages(self.current_log_filename)
+			if restored:
+				self.messages = restored
 
 	@rx.event
 	def load_from_params(self):
@@ -111,30 +121,27 @@ class ChatState(rx.State):
 					{"role": "assistant", "content": raw_assistant_content},
 				]
 				yield
-			self.messages[-1]["content"] = format_chat_response(raw_assistant_content)
+			formatted = format_chat_response(raw_assistant_content)
+			self.messages[-1]["content"] = ensure_case_study_links(formatted, content)
 			yield
 		except Exception as exc:
 			err = str(exc)
-			print(f"[GROQ ERROR] {type(exc).__name__}: {err}")
-			import traceback
-			traceback.print_exc()
-			# ── Telegram error alert ───────────────────────────────────────
-			try:
-				from harun_site.telegram_bot.notifier import notify_error
-				notify_error(err, context="chat/send_message")
-			except Exception:
-				pass
-			# ──────────────────────────────────────────────────────────────
-			if "api_key" in err.lower() or "authentication" in err.lower() or "invalid_api_key" in err.lower():
-				self.messages[-1]["content"] = (
-					"⚠️ Yapay zeka servisi şu an yapılandırılmamış. "
-					"Lütfen daha sonra tekrar deneyin."
-				)
+			if is_rate_limit_error(exc):
+				print(f"[GROQ] Rate limit (429): daily token quota exceeded.", file=sys.stderr)
 			else:
-				if raw_assistant_content:
-					self.messages[-1]["content"] = format_chat_response(raw_assistant_content)
-				else:
-					self.messages[-1]["content"] = "⚠️ Bir hata oluştu, lütfen tekrar deneyin."
+				print(f"[GROQ ERROR] {type(exc).__name__}: {err}")
+				import traceback
+				traceback.print_exc()
+			if not is_rate_limit_error(exc):
+				try:
+					from harun_site.telegram_bot.notifier import notify_error
+					notify_error(err, context="chat/send_message")
+				except Exception:
+					pass
+			if raw_assistant_content and not is_rate_limit_error(exc):
+				self.messages[-1]["content"] = format_chat_response(raw_assistant_content)
+			else:
+				self.messages[-1]["content"] = user_message_for_groq_error(exc)
 			yield
 
 		self.is_loading = False
@@ -169,26 +176,13 @@ class ChatState(rx.State):
 
 	@rx.event
 	async def summarize_and_save(self):
-		from harun_site.utils.groq_client import stream_chat
+		from harun_site.utils.groq_client import summarize_conversation
 		from harun_site.utils.data_manager import save_chat_summary
-		import json, re, sys
 
-		summary_prompt = f"""Aşağıdaki portfolyo sitesi ziyaretçi konuşmasını analiz et.
-SADECE şu JSON formatında yanıt ver, başka hiçbir şey yazma:
-{{"summary": "2-3 cümle Türkçe özet", "top_topics": ["konu1", "konu2"], "message_count": {len(self.messages)}}}
-
-Konuşma:
-{chr(10).join(f'{m["role"]}: {m["content"][:200]}' for m in self.messages)}"""
-
-		result = ""
 		try:
-			async for chunk in stream_chat([{"role": "user", "content": summary_prompt}]):
-				result += chunk
-
-			# Remove markdown code blocks if present
-			clean = re.sub(r"```json|```", "", result).strip()
-			data = json.loads(clean)
-			save_chat_summary(data)
+			data = await summarize_conversation(self.messages)
+			if data:
+				save_chat_summary(data)
 		except Exception as e:
 			print(f"[SUMMARY] Failed: {e}", file=sys.stderr)
 

@@ -22,7 +22,13 @@ from harun_site.theme import (
     FONT_MONO,
     FONT_SANS,
 )
-from harun_site.utils.groq_client import complete_chat, stream_chat
+from harun_site.utils.chat_enrich import ensure_case_study_links
+from harun_site.utils.groq_client import (
+    complete_chat,
+    is_rate_limit_error,
+    stream_chat,
+    user_message_for_groq_error,
+)
 
 
 class FloatingChatState(rx.State):
@@ -37,9 +43,13 @@ class FloatingChatState(rx.State):
 
     @rx.event
     def on_load(self):
-        from harun_site.utils.data_manager import load_suggestions
+        from harun_site.utils.data_manager import load_suggestions, load_chat_log_messages
 
         self.suggestions = load_suggestions()
+        if not self.messages and self.current_log_filename:
+            restored = load_chat_log_messages(self.current_log_filename)
+            if restored:
+                self.messages = restored
 
     @rx.event
     def toggle(self):
@@ -97,22 +107,21 @@ class FloatingChatState(rx.State):
 
             if not streamed_any_chunk and not raw_assistant_content:
                 fallback_content = await complete_chat(history)
+                raw_assistant_content = fallback_content
+
+            if raw_assistant_content:
+                final_content = ensure_case_study_links(raw_assistant_content, user_input)
                 self.messages = [
                     *self.messages[:-1],
-                    {"role": "assistant", "content": fallback_content},
+                    {"role": "assistant", "content": final_content},
                 ]
                 yield
         except Exception as exc:
-            err = str(exc)
-            if "api_key" in err.lower() or "authentication" in err.lower():
-                self.messages[-1]["content"] = (
-                    "⚠️ Yapay zeka servisi şu an yapılandırılmamış."
-                )
-            else:
-                if not self.messages[-1]["content"]:
-                    self.messages[-1]["content"] = (
-                        "⚠️ Bir hata oluştu, lütfen tekrar deneyin."
-                    )
+            if is_rate_limit_error(exc):
+                import sys
+                print("[GROQ] Rate limit (429): daily token quota exceeded.", file=sys.stderr)
+            if not self.messages[-1]["content"] or is_rate_limit_error(exc):
+                self.messages[-1]["content"] = user_message_for_groq_error(exc)
             yield
 
         self.is_loading = False

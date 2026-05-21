@@ -11,9 +11,9 @@ Alias:      /portfolio/[slug]  ← registered separately; on_load fires
                                   does an instant client-side redirect to
                                   /projects/[slug].  No HTML content is shown.
 
-rx.markdown() safety contract
+Case study content safety contract
 -------------------------------
-Every value passed to rx.markdown() in this file must be one of:
+Every value passed into the case study content renderer in this file must be one of:
   • CaseStudyState.cs_problem
   • CaseStudyState.cs_architecture
   • CaseStudyState.cs_stack_reason
@@ -23,6 +23,9 @@ Every value passed to rx.markdown() in this file must be one of:
 All five are plain ``str`` state vars (type-annotated and zero-defaulted).
 They are populated exclusively by CaseStudyState.load_project(), which
 passes every value through _safe_str() before assignment.
+
+The page renders backend-generated HTML strings instead of using
+rx.markdown() directly, which avoids React-side children assertions.
 
 NO .get() chains, NO dict fields, NO raw project keys are used anywhere
 in this file.
@@ -266,16 +269,14 @@ def cs_empty_content() -> rx.Component:
 # Shared section renderer
 # ---------------------------------------------------------------------------
 
-def cs_section(title: str, content: rx.Var) -> rx.Component:
+def cs_section(title: str, content_html: rx.Var) -> rx.Component:
     """
     Render a titled markdown section.
 
     Parameters
     ----------
     title:   plain Python str — section heading (e.g. "Problem")
-    content: a CaseStudyState.cs_* Var[str] — NEVER a dict or None.
-             The caller guards with rx.cond(content != "") so this
-             component is never rendered with an empty value.
+    content_html: a CaseStudyState.cs_*_html Var[str] — already safe HTML.
     """
     return rx.vstack(
         rx.text(
@@ -289,9 +290,9 @@ def cs_section(title: str, content: rx.Var) -> rx.Component:
         ),
         rx.box(height="1px", background=BORDER, width="100%"),
         rx.cond(
-            content != "",
-            rx.markdown(
-                content,
+            content_html != "",
+            rx.box(
+                rx.html(content_html),
                 color=TEXT_MUTED,
                 font_family=FONT_SANS,
                 font_size="0.9em",
@@ -349,13 +350,13 @@ def cs_content() -> rx.Component:
             CaseStudyState.has_case_study_content,
             rx.vstack(
                 rx.cond(
-                    CaseStudyState.cs_problem != "",
-                    cs_section("Problem", CaseStudyState.cs_problem),
+                    CaseStudyState.cs_problem_html != "",
+                    cs_section("Problem", CaseStudyState.cs_problem_html),
                     rx.fragment(),
                 ),
                 rx.cond(
-                    CaseStudyState.cs_architecture != "",
-                    cs_section("Mimari", CaseStudyState.cs_architecture),
+                    CaseStudyState.cs_architecture_html != "",
+                    cs_section("Mimari", CaseStudyState.cs_architecture_html),
                     rx.fragment(),
                 ),
                 rx.cond(
@@ -372,18 +373,18 @@ def cs_content() -> rx.Component:
                     rx.fragment(),
                 ),
                 rx.cond(
-                    CaseStudyState.cs_stack_reason != "",
-                    cs_section("Neden Bu Stack?", CaseStudyState.cs_stack_reason),
+                    CaseStudyState.cs_stack_reason_html != "",
+                    cs_section("Neden Bu Stack?", CaseStudyState.cs_stack_reason_html),
                     rx.fragment(),
                 ),
                 rx.cond(
-                    CaseStudyState.cs_challenges != "",
-                    cs_section("Zorluklar", CaseStudyState.cs_challenges),
+                    CaseStudyState.cs_challenges_html != "",
+                    cs_section("Zorluklar", CaseStudyState.cs_challenges_html),
                     rx.fragment(),
                 ),
                 rx.cond(
-                    CaseStudyState.cs_learnings != "",
-                    cs_section("Öğrendiklerim", CaseStudyState.cs_learnings),
+                    CaseStudyState.cs_learnings_html != "",
+                    cs_section("Öğrendiklerim", CaseStudyState.cs_learnings_html),
                     rx.fragment(),
                 ),
                 width="100%",

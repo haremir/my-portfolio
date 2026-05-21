@@ -9,7 +9,7 @@ Design rules (hard constraints)
     In Reflex 0.9.x the var-expression compiler evaluates chained .get()
     calls on a generic `dict` state var on the *frontend*, not Python.
     The JS result of an unresolved dict access is the raw object, which
-    becomes `[object Object]` as rx.markdown()'s children → crash.
+    becomes `[object Object]` when fed into a render tree → crash.
 
 2.  NO `project: dict` state var.
     Every state var is serialised to the frontend on every state delta.
@@ -28,6 +28,10 @@ Legacy alias:   /portfolio/[slug]  ← redirect → /projects/[slug]
 """
 from __future__ import annotations
 
+import json
+import markdown as md
+import sys
+
 import reflex as rx
 
 
@@ -38,14 +42,15 @@ import reflex as rx
 def _safe_str(value: object, field_name: str = "unknown") -> str:
     """
     Convert *any* value to a plain Python ``str`` that is safe to pass to
-    ``rx.markdown()``.
+    the frontend.
 
     Rules
     -----
     * ``None``    → ``""``
     * ``str``     → returned as-is
-    * ``dict``    → tries common content keys; falls back to joining values
-    * ``list``    → joins all items as strings
+    * ``dict``    → JSON stringified with ``ensure_ascii=False``
+    * ``list``    → joined into a newline-separated string
+    * ``int``/``float``/``bool`` → converted with ``str``
     * anything else → ``str(value)`` or ``""`` if falsy
 
     Non-str inputs are logged as warnings to stderr.
@@ -64,19 +69,17 @@ def _safe_str(value: object, field_name: str = "unknown") -> str:
             f"expected str. keys={list(value.keys())}",
             file=sys.stderr,
         )
-        for key in ("content", "text", "value", "body", "description", "summary"):
-            candidate = value.get(key)
-            if isinstance(candidate, str) and candidate:
-                return candidate
-        parts = [str(v) for v in value.values() if v is not None]
-        return " ".join(parts)
+        return json.dumps(value, ensure_ascii=False)
 
     if isinstance(value, list):
         print(
             f"[CASE_STUDY] WARNING: field {field_name!r} is a list — expected str.",
             file=sys.stderr,
         )
-        return " ".join(str(item) for item in value if item is not None)
+        return "\n".join(str(item) for item in value if item is not None)
+
+    if isinstance(value, (int, float, bool)):
+        return str(value)
 
     print(
         f"[CASE_STUDY] WARNING: field {field_name!r} has unexpected type "
@@ -105,34 +108,25 @@ class CaseStudyState(rx.State):
     # ── primitive state vars (serialised safely to the frontend) ──────────
     not_found:       bool      = False
     is_loading:      bool      = False   # True while load_project is running
+    has_case_study_content: bool = False
     project_name:    str       = ""
     project_tags:    list[str] = []
     cs_problem:      str       = ""
+    cs_problem_html: str       = ""
     cs_architecture: str       = ""
+    cs_architecture_html: str   = ""
     cs_stack_reason: str       = ""
+    cs_stack_reason_html: str   = ""
     cs_challenges:   str       = ""
+    cs_challenges_html: str    = ""
     cs_learnings:    str       = ""
+    cs_learnings_html: str     = ""
     cs_arch_image:   str       = ""
 
-    # ── computed vars ─────────────────────────────────────────────────────
-
-    @rx.var
-    def has_case_study_content(self) -> bool:
-        """
-        True when at least one case-study section has real content.
-
-        Safe to use as @rx.var: reads only flat str state vars — never
-        a dict, never a computed chain on self.project.
-        """
-        return any([
-            self.cs_problem,
-            self.cs_architecture,
-            self.cs_stack_reason,
-            self.cs_challenges,
-            self.cs_learnings,
-        ])
-
     # ── event handlers ────────────────────────────────────────────────────
+
+    def _markdown_to_html(self, value: str) -> str:
+        return md.markdown(value or "", extensions=["fenced_code", "tables", "nl2br"])
 
     @rx.event
     def redirect_legacy_route(self):
@@ -140,7 +134,7 @@ class CaseStudyState(rx.State):
         Called by the /portfolio/[slug] alias page.
         Immediately 301-equivalent client-side redirect to /projects/[slug].
         """
-        slug = self.router.page.params.get("slug", "")
+        slug = self.router.url.path.rsplit("/", 1)[-1]
         target = f"/projects/{slug}" if slug else "/portfolio"
         print(f"[CASE_STUDY] legacy /portfolio/{slug} → {target}")
         return rx.redirect(target)
@@ -157,15 +151,20 @@ class CaseStudyState(rx.State):
         self.project_name    = ""
         self.project_tags    = []
         self.cs_problem      = ""
+        self.cs_problem_html = ""
         self.cs_architecture = ""
+        self.cs_architecture_html = ""
         self.cs_stack_reason = ""
+        self.cs_stack_reason_html = ""
         self.cs_challenges   = ""
+        self.cs_challenges_html = ""
         self.cs_learnings    = ""
+        self.cs_learnings_html = ""
         self.cs_arch_image   = ""
+        self.has_case_study_content = False
         yield  # ← sends is_loading=True + cleared state to frontend NOW
 
-        slug = self.router.page.params.get("slug", "")
-        import sys
+        slug = self.router.url.path.rsplit("/", 1)[-1]
         print(f"[CASE_STUDY] load_project slug={slug!r}", file=sys.stderr)
 
         from harun_site.utils.data_manager import get_project_by_slug
@@ -197,7 +196,7 @@ class CaseStudyState(rx.State):
         raw_tags = p.get("tags")
         if isinstance(raw_tags, list):
             self.project_tags = [
-                str(t) for t in raw_tags if t is not None
+                _safe_str(t, "tags[]") for t in raw_tags if t is not None
             ]
         else:
             print(
@@ -209,19 +208,23 @@ class CaseStudyState(rx.State):
         self.cs_problem = _safe_str(
             cs_raw.get("problem"), "problem"
         )
+        self.cs_problem_html = self._markdown_to_html(self.cs_problem)
         self.cs_architecture = _safe_str(
             cs_raw.get("architecture"), "architecture"
         )
+        self.cs_architecture_html = self._markdown_to_html(self.cs_architecture)
 
         # Support both legacy key 'stack_reason' and new key 'why_this_stack'
         stack_raw = cs_raw.get("why_this_stack") or cs_raw.get("stack_reason")
         self.cs_stack_reason = _safe_str(
             stack_raw, "why_this_stack / stack_reason"
         )
+        self.cs_stack_reason_html = self._markdown_to_html(self.cs_stack_reason)
 
         self.cs_challenges = _safe_str(
             cs_raw.get("challenges"), "challenges"
         )
+        self.cs_challenges_html = self._markdown_to_html(self.cs_challenges)
 
         # Support both legacy key 'learnings' and new key 'lessons_learned'
         learnings_raw = (
@@ -230,11 +233,19 @@ class CaseStudyState(rx.State):
         self.cs_learnings = _safe_str(
             learnings_raw, "lessons_learned / learnings"
         )
+        self.cs_learnings_html = self._markdown_to_html(self.cs_learnings)
 
         self.cs_arch_image = _safe_str(
             cs_raw.get("architecture_image"), "architecture_image"
         )
 
+        self.has_case_study_content = any([
+            self.cs_problem,
+            self.cs_architecture,
+            self.cs_stack_reason,
+            self.cs_challenges,
+            self.cs_learnings,
+        ])
         # ── loading complete ────────────────────────────────────────────────────
         self.is_loading = False
         print(

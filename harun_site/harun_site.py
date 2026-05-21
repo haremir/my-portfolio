@@ -25,12 +25,6 @@ app = rx.App(
         "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
     ],
     head_components=[
-        rx.script(
-            src=(
-                "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700"
-                "&family=JetBrains+Mono:wght@400;600&display=swap"
-            )
-        ),
         # Auto-scroll chat containers to bottom during streaming.
         # Watches #chat-messages-main and #chat-messages-floating via
         # MutationObserver.  Loaded on every page so the floating chat
