@@ -3,6 +3,6 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-healthcheckPath = "/"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 5
+healthcheckPath = "/ping"
