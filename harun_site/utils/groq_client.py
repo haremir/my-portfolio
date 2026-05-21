@@ -22,12 +22,22 @@ CHAT_MAX_TOKENS = int(os.environ.get("GROQ_CHAT_MAX_TOKENS", "512"))
 CHAT_MAX_HISTORY = int(os.environ.get("GROQ_CHAT_MAX_HISTORY", "12"))
 ADMIN_AI_ON_LOAD = os.environ.get("ADMIN_AI_ON_LOAD", "true").lower() in ("1", "true", "yes")
 
-_DEEP_ROUTING_KEYWORDS = (
+_DEFAULT_DEEP_ROUTING_KEYWORDS = (
     "mimari", "architecture", "trade-off", "trade off", "multi-tenant", "multi tenant",
     "case study", "implementasyon", "production", "ölçek", "neden seç",
     "karşılaştır", "detaylı", "recruiter", "işe alım", "backend mimar",
     "rag ", " pipeline", "tenant", "postgresql", "fastapi",
 )
+_DEEP_ROUTING_KEYWORDS = tuple(
+    keyword
+    for keyword in (
+        item.strip()
+        for item in os.environ.get("GROQ_CHAT_ROUTING_DEEP_KEYWORDS", "").split(",")
+    )
+    if keyword
+) or _DEFAULT_DEEP_ROUTING_KEYWORDS
+_ROUTING_SHORT_MAX_CHARS = int(os.environ.get("GROQ_CHAT_ROUTING_PROJECT_SHORT_MAX_CHARS", "140"))
+_ROUTING_DEEP_MIN_CHARS = int(os.environ.get("GROQ_CHAT_ROUTING_DEEP_MIN_CHARS", "140"))
 
 
 def validate_groq_key() -> bool:
@@ -129,10 +139,10 @@ def select_visitor_chat_model(last_user_message: str, *, project_matched: bool =
     if override:
         return override
     msg = last_user_message.lower()
-    # Proje sorusu: 8B + zorunlu link (70B gecikmesi yok); derin teknikte 70B
-    if project_matched and not any(k in msg for k in _DEEP_ROUTING_KEYWORDS) and len(msg) <= 140:
+    # Proje sorusu: kısa istekler için hızlı model; derin teknik sorgular için deep model.
+    if project_matched and not any(k in msg for k in _DEEP_ROUTING_KEYWORDS) and len(msg) <= _ROUTING_SHORT_MAX_CHARS:
         return MODEL_FAST
-    if len(msg) > 140 or any(k in msg for k in _DEEP_ROUTING_KEYWORDS):
+    if len(msg) > _ROUTING_DEEP_MIN_CHARS or any(k in msg for k in _DEEP_ROUTING_KEYWORDS):
         return MODEL_DEEP
     return MODEL_FAST
 

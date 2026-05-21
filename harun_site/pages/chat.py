@@ -4,6 +4,7 @@ from harun_site.components.navbar import navbar
 from harun_site.components.footer import footer
 from harun_site.components.floating_chat import floating_chat
 from harun_site.state.chat_state import ChatState, MessageDict
+from harun_site.utils.groq_client import MODEL_FAST
 from harun_site.theme import (
     BG,
     BG_CARD,
@@ -124,7 +125,7 @@ def chat_page() -> rx.Component:
                         rx.text("Nasıl çalışır?", font_family=FONT_MONO,
                                 font_size="0.75em", color=PRIMARY, font_weight="600"),
                         rx.text("·", color=BORDER),
-                        rx.text("Groq API · llama-3.3-70b-versatile · Dinamik context · Streaming",
+                        rx.text(f"Groq API · {MODEL_FAST} · Dinamik context · Streaming",
                                 font_family=FONT_MONO, font_size="0.72em", color=TEXT_MUTED),
                         gap="0.5em",
                         align="center",
