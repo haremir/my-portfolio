@@ -1,3 +1,5 @@
+.web
+.states
 *.py[cod]
 __pycache__/
 assets/external/
@@ -9,3 +11,5 @@ assets/external/
 data/chat_logs/
 data/backups/
 data/summaries/
+backend.zip
+frontend.zip
