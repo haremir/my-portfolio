@@ -17,6 +17,7 @@ from harun_site.state.case_study_state import CaseStudyState
 from harun_site.components.floating_chat import FloatingChatState
 from harun_site import models
 from harun_site.theme import APP_THEME
+from harun_site.utils.routes import CASE_STUDY_ROUTE, LEGACY_CASE_STUDY_ROUTE, PORTFOLIO_ROUTE
 # models.ensure_tables() is called at the bottom of this file, after
 # rx.App() is fully constructed, so rxconfig is guaranteed to be loaded.
 
@@ -31,16 +32,18 @@ app = rx.App(
         # MutationObserver.  Loaded on every page so the floating chat
         # popup (which appears on all pages) is always covered.
         rx.script(src="/chat_scroll.js"),
+        # Favicon
+        rx.el.link(rel="icon", href="/favicon.png", type="image/png"),
     ]
 )
 
 app.add_page(index, route="/", on_load=[IndexState.on_load, FloatingChatState.on_load])
 app.add_page(about, route="/about", on_load=[AboutState.on_load, FloatingChatState.on_load])
-app.add_page(portfolio, route="/portfolio", on_load=[PortfolioState.on_load, FloatingChatState.on_load])
-# /projects/[slug]  — canonical route, used in all internal links
-app.add_page(case_study, route="/projects/[slug]", on_load=[CaseStudyState.load_project, FloatingChatState.on_load])
-# /portfolio/[slug] — legacy alias: immediately redirects to /projects/[slug]
-app.add_page(portfolio_slug_redirect, route="/portfolio/[slug]", on_load=CaseStudyState.redirect_legacy_route)
+app.add_page(portfolio, route=PORTFOLIO_ROUTE, on_load=[PortfolioState.on_load, FloatingChatState.on_load])
+# /portfolio/[slug]  — canonical route, used in all internal links
+app.add_page(case_study, route=CASE_STUDY_ROUTE, on_load=[CaseStudyState.load_project, FloatingChatState.on_load])
+# /projects/[slug] — legacy alias: immediately redirects to /portfolio/[slug]
+app.add_page(portfolio_slug_redirect, route=LEGACY_CASE_STUDY_ROUTE, on_load=CaseStudyState.redirect_legacy_route)
 app.add_page(blog, route="/blog", on_load=[BlogState.on_load, FloatingChatState.on_load])
 app.add_page(blog_post, route="/blog/[slug]", on_load=[BlogPostState.load_post, FloatingChatState.on_load])
 app.add_page(chat, route="/chat", on_load=[ChatState.on_load, ChatState.load_from_params])
