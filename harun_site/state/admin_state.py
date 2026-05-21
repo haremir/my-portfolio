@@ -2,6 +2,7 @@ import os
 import sys
 import reflex as rx
 from harun_site.utils import data_manager
+from harun_site.utils.project_registry import project_url_from_slug
 from harun_site.utils.markdown_parser import get_all_posts, get_post_by_slug
 from typing import TypedDict
 from sqlmodel import Session, select
@@ -22,6 +23,11 @@ class AdminPostDict(TypedDict):
     date: str
 
 class AdminProjectDict(TypedDict):
+    id: str
+    title: str
+    slug: str
+    url: str
+    aliases: list[str]
     name: str
     desc: str
     tags: list[str]
@@ -313,6 +319,8 @@ class AdminProjectState(rx.State):
     all_admin_projects: list[AdminProjectDict] = []
 
     project_name: str = ""
+    project_slug: str = ""
+    project_aliases_str: str = ""
     project_desc: str = ""
     editing_project_index: int = -1
     # Case study fields
@@ -330,6 +338,14 @@ class AdminProjectState(rx.State):
     @rx.event
     def set_project_name(self, value: str):
         self.project_name = value
+
+    @rx.event
+    def set_project_slug(self, value: str):
+        self.project_slug = value
+
+    @rx.event
+    def set_project_aliases_str(self, value: str):
+        self.project_aliases_str = value
 
     @rx.event
     def set_project_desc(self, value: str):
@@ -393,10 +409,16 @@ class AdminProjectState(rx.State):
     def load_projects(self):
         self.load_tags()
         # Strip every project to only the fields AdminProjectDict declares.
-        # load_projects() returns full dicts that include a nested case_study
-        # object — that nested dict must never reach the frontend state delta.
+        # load_projects() returns canonical dicts that include a nested
+        # case_study object — that nested dict must never reach the frontend
+        # state delta.
         self.all_admin_projects = [
             {
+                "id": p.get("id", ""),
+                "title": p.get("title", p.get("name", "")),
+                "slug": p.get("slug", ""),
+                "url": p.get("url", ""),
+                "aliases": [str(a) for a in (p.get("aliases") or [])],
                 "name": p.get("name", ""),
                 "desc": p.get("desc", ""),
                 "tags": [str(t) for t in (p.get("tags") or [])],
@@ -406,10 +428,14 @@ class AdminProjectState(rx.State):
 
     @rx.event
     def save_project(self):
-        if not self.project_name:
-            return rx.window_alert("Proje ismi zorunludur.")
+        if not self.project_name.strip():
+            return rx.window_alert("Proje başlığı zorunludur.")
+        slug = self.project_slug.strip()
+        if not slug:
+            return rx.window_alert("Slug zorunludur.")
         # If editing an existing project, replace it
         projects = data_manager.load_projects()
+        aliases = [alias.strip().lower() for alias in self.project_aliases_str.split(",") if alias.strip()]
         # Build case_study dict with both legacy and new keys for compatibility
         case_study = {
             "problem": self.cs_problem or "",
@@ -423,18 +449,18 @@ class AdminProjectState(rx.State):
         }
 
         project_dict = {
-            "name": self.project_name,
+            "id": slug,
+            "title": self.project_name.strip(),
+            "name": self.project_name.strip(),
+            "slug": slug,
+            "url": project_url_from_slug(slug),
+            "aliases": aliases,
             "desc": self.project_desc,
             "tags": self.selected_tags,
-            "slug": (self.project_name.lower().replace(" ", "-") if "slug" not in projects and isinstance(projects, list) else self.project_name.lower().replace(" ", "-")),
             "case_study": case_study,
         }
 
         if self.editing_project_index is not None and self.editing_project_index >= 0 and self.editing_project_index < len(projects):
-            # preserve existing slug if present
-            existing = projects[self.editing_project_index]
-            if existing.get("slug"):
-                project_dict["slug"] = existing.get("slug")
             projects[self.editing_project_index] = project_dict
             data_manager.save_projects(projects)
         else:
@@ -442,6 +468,8 @@ class AdminProjectState(rx.State):
             data_manager.save_projects(projects)
 
         self.project_name = ""
+        self.project_slug = ""
+        self.project_aliases_str = ""
         self.project_desc = ""
         self.selected_tags = []
         self.editing_project_index = -1
@@ -470,7 +498,9 @@ class AdminProjectState(rx.State):
 
         if 0 <= idx < len(projects):
             p = projects[idx]
-            self.project_name = p.get("name", "")
+            self.project_name = p.get("title", p.get("name", ""))
+            self.project_slug = p.get("slug", "")
+            self.project_aliases_str = ", ".join(p.get("aliases") or [])
             self.project_desc = p.get("desc", "")
             self.selected_tags = p.get("tags", []) or []
             cs = p.get("case_study", {}) or {}
@@ -486,6 +516,8 @@ class AdminProjectState(rx.State):
     @rx.event
     def cancel_edit_project(self):
         self.project_name = ""
+        self.project_slug = ""
+        self.project_aliases_str = ""
         self.project_desc = ""
         self.selected_tags = []
         self.editing_project_index = -1

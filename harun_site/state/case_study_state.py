@@ -23,8 +23,8 @@ Design rules (hard constraints)
 
 Routing
 -------
-Canonical URL:  /projects/[slug]   ← primary, used in all links
-Legacy alias:   /portfolio/[slug]  ← redirect → /projects/[slug]
+Canonical URL:  /portfolio/[slug]  ← primary, used in all links
+Legacy alias:   /projects/[slug]   ← redirect → /portfolio/[slug]
 """
 from __future__ import annotations
 
@@ -131,12 +131,15 @@ class CaseStudyState(rx.State):
     @rx.event
     def redirect_legacy_route(self):
         """
-        Called by the /portfolio/[slug] alias page.
-        Immediately 301-equivalent client-side redirect to /projects/[slug].
+        Called by the /projects/[slug] alias page.
+        Immediately 301-equivalent client-side redirect to /portfolio/[slug].
         """
         slug = self.router.url.path.rsplit("/", 1)[-1]
-        target = f"/projects/{slug}" if slug else "/portfolio"
-        print(f"[CASE_STUDY] legacy /portfolio/{slug} → {target}")
+        from harun_site.utils.data_manager import get_project_by_slug
+
+        project = get_project_by_slug(slug) if slug else None
+        target = project.get("url") if project and project.get("url") else "/portfolio"
+        print(f"[CASE_STUDY] legacy /projects/{slug} → {target}")
         return rx.redirect(target)
 
     @rx.event
@@ -190,7 +193,7 @@ class CaseStudyState(rx.State):
             cs_raw = {}
 
         # ── normalise and assign every field ─────────────────────────────
-        self.project_name = _safe_str(p.get("name"), "name")
+        self.project_name = _safe_str(p.get("title") or p.get("name"), "title")
 
         # tags must be list[str]; validate each item
         raw_tags = p.get("tags")

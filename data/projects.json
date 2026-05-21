@@ -1,7 +1,11 @@
 [
   {
+    "id": "cebirx",
+    "title": "CebirX",
     "name": "CebirX",
     "slug": "cebirx",
+    "url": "/portfolio/cebirx",
+    "aliases": ["cebir x", "cebir-x", "cebr x", "cebrix", "cebix"],
     "desc": "Multi-tenant AI Gateway & runtime engine — FastAPI, PostgreSQL, Redis, metering & credit-guard mechanisms.",
     "tags": ["API Gateway", "FastAPI", "PostgreSQL", "Redis", "Multi-tenant", "Production"],
     "case_study": {
@@ -13,8 +17,12 @@
     }
   },
   {
+    "id": "dentbot",
+    "title": "DentBot",
     "name": "DentBot",
     "slug": "dentbot",
+    "url": "/portfolio/dentbot",
+    "aliases": [],
     "desc": "Multi-channel clinic management ecosystem; LangChain + LangGraph orchestration and deterministic state-machine integration.",
     "tags": ["LangChain", "LangGraph", "State Machine", "Healthcare", "Tooling"],
     "case_study": {
@@ -26,8 +34,12 @@
     }
   },
   {
+    "id": "mergenx",
+    "title": "MergenX",
     "name": "MergenX",
     "slug": "mergenx",
+    "url": "/portfolio/mergenx",
+    "aliases": [],
     "desc": "NLP-driven dynamic travel package search widget (in collaboration with biTur).",
     "tags": ["NLP", "Search", "Recommendation", "Python"],
     "case_study": {
@@ -39,8 +51,12 @@
     }
   },
   {
+    "id": "gamegain",
+    "title": "GameGain",
     "name": "GameGain",
     "slug": "gamegain",
+    "url": "/portfolio/gamegain",
+    "aliases": [],
     "desc": "User behavior analysis and revenue forecasting using time-series models and RFM segmentation.",
     "tags": ["Big Data", "Time-Series", "Forecasting", "Pandas"],
     "case_study": {
@@ -52,8 +68,12 @@
     }
   },
   {
+    "id": "fraudeye",
+    "title": "FraudEye",
     "name": "FraudEye",
     "slug": "fraudeye",
+    "url": "/portfolio/fraudeye",
+    "aliases": [],
     "desc": "Credit card fraud detection system using SMOTE, Random Forest and XGBoost for high-accuracy anomaly detection.",
     "tags": ["ML", "Anomaly Detection", "XGBoost", "SMOTE"],
     "case_study": {
@@ -65,8 +85,12 @@
     }
   },
   {
+    "id": "scoutmaster",
+    "title": "ScoutMaster",
     "name": "ScoutMaster",
     "slug": "scoutmaster",
+    "url": "/portfolio/scoutmaster",
+    "aliases": [],
     "desc": "Player performance analytics and market value prediction (Coderspace Summer School 2024).",
     "tags": ["Analytics", "Regression", "Sports Analytics"],
     "case_study": {
@@ -78,8 +102,12 @@
     }
   },
   {
+    "id": "lazyeda",
+    "title": "LazyEda",
     "name": "LazyEda",
     "slug": "lazyeda",
+    "url": "/portfolio/lazyeda",
+    "aliases": [],
     "desc": "Open-source library automating common exploratory data analysis steps with optional LLM integration.",
     "tags": ["EDA", "Python", "Open Source"],
     "case_study": {

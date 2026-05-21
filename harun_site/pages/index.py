@@ -326,7 +326,7 @@ def project_preview_card(project: dict) -> rx.Component:
             ),
             rx.vstack(
                 rx.text(
-                    project["name"],
+                    project["title"],
                     font_family=FONT_SANS,
                     font_weight="600",
                     color=TEXT,
@@ -371,11 +371,7 @@ def project_preview_card(project: dict) -> rx.Component:
             transition="all 200ms",
             cursor="pointer",
         ),
-        href=rx.cond(
-            project["slug"] != "",
-            "/projects/" + project["slug"],
-            "/portfolio",
-        ),
+        href=rx.cond(project["url"] != "", project["url"], "/portfolio"),
         text_decoration="none",
     )
 

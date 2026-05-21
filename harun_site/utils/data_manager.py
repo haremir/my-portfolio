@@ -6,6 +6,8 @@ from pathlib import Path
 from datetime import datetime
 from uuid import uuid4
 
+from harun_site.utils.project_registry import canonicalize_project_record, resolve_project
+
 
 # ---------------------------------------------------------------------------
 # Atomic JSON write helper
@@ -87,21 +89,23 @@ def load_projects() -> list[dict]:
         return []
     try:
         with open(PROJECTS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+            raw_projects = json.load(f)
+        if not isinstance(raw_projects, list):
+            return []
+        return [canonicalize_project_record(project) for project in raw_projects if isinstance(project, dict)]
     except Exception:
         return []
 
 def save_projects(projects: list[dict]):
-    _atomic_write_json(PROJECTS_FILE, projects)
+    canonical_projects = [canonicalize_project_record(project) for project in projects if isinstance(project, dict)]
+    _atomic_write_json(PROJECTS_FILE, canonical_projects)
 
 def add_project(name: str, desc: str, tags: list[str]):
-    projects = load_projects()
-    projects.append({"name": name, "desc": desc, "tags": tags})
-    save_projects(projects)
+    raise NotImplementedError("Use explicit canonical project data with id/title/slug/url/aliases.")
 
 def get_project_by_slug(slug: str) -> dict | None:
     projects = load_projects()
-    return next((p for p in projects if p.get("slug") == slug), None)
+    return resolve_project(slug, projects)
 
 def delete_project(index: int):
     projects = load_projects()

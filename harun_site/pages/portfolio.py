@@ -14,13 +14,15 @@ from harun_site.theme import (
     FONT_SANS,
     FONT_MONO,
 )
-
-
 from typing import TypedDict
 
 class ProjectDict(TypedDict, total=False):
+    id: str
+    title: str
     name: str
     slug: str
+    url: str
+    aliases: list[str]
     desc: str
     tags: list[str]
 
@@ -36,6 +38,7 @@ class PortfolioState(rx.State):
     modal_desc: str = ""
     modal_tags: list[str] = []
     modal_slug: str = ""
+    modal_url: str = ""
     is_modal_open: bool = False
 
     @rx.event
@@ -46,8 +49,12 @@ class PortfolioState(rx.State):
         # the nested case_study dict is never included in the state delta.
         self.projects = [
             {
+                "id": p.get("id", ""),
+                "title": p.get("title", p.get("name", "")),
                 "name": p.get("name", ""),
                 "slug": p.get("slug", ""),
+                "url": p.get("url", ""),
+                "aliases": [str(a) for a in (p.get("aliases") or [])],
                 "desc": p.get("desc", ""),
                 "tags": [str(t) for t in (p.get("tags") or [])],
             }
@@ -61,6 +68,7 @@ class PortfolioState(rx.State):
         self.modal_desc = str(project.get("desc", ""))
         self.modal_tags = [str(t) for t in (project.get("tags") or [])]
         self.modal_slug = str(project.get("slug", ""))
+        self.modal_url = str(project.get("url", ""))
         self.is_modal_open = True
 
     @rx.event
@@ -69,6 +77,7 @@ class PortfolioState(rx.State):
         self.modal_desc = ""
         self.modal_tags = []
         self.modal_slug = ""
+        self.modal_url = ""
         self.is_modal_open = False
 
     @rx.event
@@ -123,7 +132,7 @@ def project_card(project: ProjectDict) -> rx.Component:
         ),
         rx.vstack(
             rx.text(
-                project["name"],
+                project["title"],
                 font_family=FONT_SANS,
                 font_weight="700",
                 color=TEXT,
@@ -153,10 +162,10 @@ def project_card(project: ProjectDict) -> rx.Component:
                 style={"gap": "0.4em"},
             ),
             rx.cond(
-                project.contains("slug") & (project["slug"] != ""),
+                project.contains("url") & (project["url"] != ""),
                 rx.link(
                     "Case Study →",
-                    href="/projects/" + project["slug"],
+                    href=project["url"],
                     font_family=FONT_MONO,
                     font_size="0.75em",
                     color=PRIMARY,
@@ -323,7 +332,7 @@ def portfolio_page() -> rx.Component:
                                 ),
                                 # ── CTA: navigate to case study ────────────────────────
                                 rx.cond(
-                                    PortfolioState.modal_slug != "",
+                                    PortfolioState.modal_url != "",
                                     rx.box(
                                         rx.link(
                                             rx.hstack(
@@ -338,7 +347,7 @@ def portfolio_page() -> rx.Component:
                                                 gap="0.5em",
                                                 align="center",
                                             ),
-                                            href="/projects/" + PortfolioState.modal_slug,
+                                                href=PortfolioState.modal_url,
                                             text_decoration="none",
                                             on_click=PortfolioState.close_modal,
                                         ),

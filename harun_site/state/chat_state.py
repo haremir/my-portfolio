@@ -17,7 +17,7 @@ from harun_site.utils.groq_client import (
 	stream_chat,
 	user_message_for_groq_error,
 )
-from harun_site.utils.chat_enrich import ensure_case_study_links
+from harun_site.utils.chat_enrich import finalize_streamed_project_references
 from harun_site.utils.response_formatter import format_chat_response
 
 
@@ -109,20 +109,10 @@ class ChatState(rx.State):
 			async for chunk in stream_chat(history):
 				streamed_any_chunk = True
 				raw_assistant_content += chunk
-				self.messages = [
-					*self.messages[:-1],
-					{"role": "assistant", "content": raw_assistant_content},
-				]
-				yield
 			if not streamed_any_chunk and not raw_assistant_content:
 				raw_assistant_content = await complete_chat(history)
-				self.messages = [
-					*self.messages[:-1],
-					{"role": "assistant", "content": raw_assistant_content},
-				]
-				yield
 			formatted = format_chat_response(raw_assistant_content)
-			self.messages[-1]["content"] = ensure_case_study_links(formatted, content)
+			self.messages[-1]["content"] = finalize_streamed_project_references([formatted], content)
 			yield
 		except Exception as exc:
 			err = str(exc)
@@ -138,10 +128,7 @@ class ChatState(rx.State):
 					notify_error(err, context="chat/send_message")
 				except Exception:
 					pass
-			if raw_assistant_content and not is_rate_limit_error(exc):
-				self.messages[-1]["content"] = format_chat_response(raw_assistant_content)
-			else:
-				self.messages[-1]["content"] = user_message_for_groq_error(exc)
+			self.messages[-1]["content"] = user_message_for_groq_error(exc)
 			yield
 
 		self.is_loading = False

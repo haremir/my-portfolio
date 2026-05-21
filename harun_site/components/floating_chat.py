@@ -22,7 +22,7 @@ from harun_site.theme import (
     FONT_MONO,
     FONT_SANS,
 )
-from harun_site.utils.chat_enrich import ensure_case_study_links
+from harun_site.utils.chat_enrich import finalize_streamed_project_references
 from harun_site.utils.groq_client import (
     complete_chat,
     is_rate_limit_error,
@@ -99,18 +99,13 @@ class FloatingChatState(rx.State):
             async for chunk in stream_chat(history):
                 streamed_any_chunk = True
                 raw_assistant_content += chunk
-                self.messages = [
-                    *self.messages[:-1],
-                    {"role": "assistant", "content": raw_assistant_content},
-                ]
-                yield
 
             if not streamed_any_chunk and not raw_assistant_content:
                 fallback_content = await complete_chat(history)
                 raw_assistant_content = fallback_content
 
             if raw_assistant_content:
-                final_content = ensure_case_study_links(raw_assistant_content, user_input)
+                final_content = finalize_streamed_project_references([raw_assistant_content], user_input)
                 self.messages = [
                     *self.messages[:-1],
                     {"role": "assistant", "content": final_content},
@@ -120,8 +115,7 @@ class FloatingChatState(rx.State):
             if is_rate_limit_error(exc):
                 import sys
                 print("[GROQ] Rate limit (429): daily token quota exceeded.", file=sys.stderr)
-            if not self.messages[-1]["content"] or is_rate_limit_error(exc):
-                self.messages[-1]["content"] = user_message_for_groq_error(exc)
+            self.messages[-1]["content"] = user_message_for_groq_error(exc)
             yield
 
         self.is_loading = False

@@ -10,7 +10,11 @@ class RecentPostDict(TypedDict):
 
 
 class FeaturedProjectDict(TypedDict):
+    id: str
+    title: str
     slug: str
+    url: str
+    aliases: list[str]
     name: str
     desc: str
     tags: list[str]
@@ -53,8 +57,12 @@ class IndexState(rx.State):
         projects = load_projects()
         self.featured_projects = [
             {
-                "name": p.get("name", ""),
+                "id": p.get("id", ""),
+                "title": p.get("title", p.get("name", "")),
                 "slug": p.get("slug", ""),
+                "url": p.get("url", ""),
+                "aliases": [str(a) for a in (p.get("aliases") or [])],
+                "name": p.get("title", p.get("name", "")),
                 "desc": p.get("desc", ""),
                 "tags": [str(t) for t in (p.get("tags") or [])],
             }

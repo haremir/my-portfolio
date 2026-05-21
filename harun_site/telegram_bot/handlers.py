@@ -281,10 +281,10 @@ async def cmd_sor(update, context) -> None:
     if msg:
         await msg.reply_text("💬 Portfolyo yanıtı hazırlanıyor…")
     try:
-        from harun_site.utils.chat_enrich import ensure_case_study_links
+        from harun_site.utils.chat_enrich import finalize_project_references
 
         answer = await _run_portfolio_query(question)
-        answer = ensure_case_study_links(answer, question)
+        answer = finalize_project_references(answer, question)
         formatted_answer = format_markdown_to_tg_html(answer)
         await _reply(update, formatted_answer, parse_html=True)
     except Exception as exc:

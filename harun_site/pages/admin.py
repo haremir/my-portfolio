@@ -183,7 +183,9 @@ def blog_tab() -> rx.Component:
 def project_tab() -> rx.Component:
     return rx.vstack(
         rx.heading("Yeni Proje Ekle", size="4", color=TEXT),
-        rx.input(placeholder="Proje İsmi", value=AdminProjectState.project_name, on_change=AdminProjectState.set_project_name, width="100%", background=BG),
+        rx.input(placeholder="Proje Başlığı", value=AdminProjectState.project_name, on_change=AdminProjectState.set_project_name, width="100%", background=BG),
+        rx.input(placeholder="Slug (örn: cebirx)", value=AdminProjectState.project_slug, on_change=AdminProjectState.set_project_slug, width="100%", background=BG),
+        rx.input(placeholder="Aliaslar (virgülle, opsiyonel)", value=AdminProjectState.project_aliases_str, on_change=AdminProjectState.set_project_aliases_str, width="100%", background=BG),
         tag_checkbox_grid(AdminProjectState),
         rx.text_area(placeholder="Açıklama", value=AdminProjectState.project_desc, on_change=AdminProjectState.set_project_desc, width="100%", background=BG),
         rx.text_area(placeholder="Problem (markdown destekli)", value=AdminProjectState.cs_problem, on_change=AdminProjectState.set_cs_problem, width="100%", height="120px", background=BG),
@@ -201,7 +203,7 @@ def project_tab() -> rx.Component:
                 rx.foreach(
                 AdminProjectState.all_admin_projects,
                 lambda proj, index: rx.hstack(
-                    rx.text(proj["name"], color=TEXT, flex="1"),
+                    rx.text(proj["title"], color=TEXT, flex="1"),
                     rx.button("Düzenle", on_click=AdminProjectState.start_edit_project(index), background=PRIMARY, color=BG, size="1"),
                     rx.button("Sil", on_click=AdminProjectState.delete_project(index), background=ACCENT, color=BG, size="1"),
                     width="100%",

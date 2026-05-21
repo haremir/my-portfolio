@@ -5,11 +5,11 @@ Case-study page and the legacy-route redirect shim.
 
 URL conventions
 ---------------
-Canonical:  /projects/[slug]   ← primary route for all new links
-Alias:      /portfolio/[slug]  ← registered separately; on_load fires
+Canonical:  /portfolio/[slug]  ← primary route for all new links
+Alias:      /projects/[slug]   ← registered separately; on_load fires
                                   CaseStudyState.redirect_legacy_route which
                                   does an instant client-side redirect to
-                                  /projects/[slug].  No HTML content is shown.
+                                  /portfolio/[slug].  No HTML content is shown.
 
 Case study content safety contract
 -------------------------------
@@ -422,7 +422,7 @@ def cs_content() -> rx.Component:
 
 def case_study() -> rx.Component:
     """
-    /projects/[slug]  — canonical case-study page.
+    /portfolio/[slug]  — canonical case-study page.
 
     Renders one of four mutually-exclusive states based on CaseStudyState:
       1. is_loading=True          → cs_loading_state() skeleton
@@ -466,10 +466,10 @@ def case_study() -> rx.Component:
 
 def portfolio_slug_redirect() -> rx.Component:
     """
-    Minimal page rendered for /portfolio/[slug].
+    Minimal page rendered for /projects/[slug].
 
     The real work is done by CaseStudyState.redirect_legacy_route which is
-    fired as on_load and immediately calls rx.redirect("/projects/[slug]").
+    fired as on_load and immediately calls rx.redirect("/portfolio/[slug]").
     This component is shown for the brief instant before the redirect fires;
     it intentionally has no navbar/footer to avoid a flash of unstyled content.
     """

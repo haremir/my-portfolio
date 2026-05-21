@@ -6,6 +6,7 @@ import re
 import sys
 from functools import lru_cache
 from pathlib import Path
+import json
 
 from harun_site.utils.data_manager import (
     DATA_DIR,
@@ -16,6 +17,11 @@ from harun_site.utils.data_manager import (
     load_skills,
 )
 from harun_site.utils.markdown_parser import get_all_posts
+from harun_site.utils.project_registry import (
+    match_projects,
+    project_ref_token,
+    project_reference_payload,
+)
 
 POSTS_DIR = DATA_DIR.parent / "posts"
 
@@ -82,20 +88,6 @@ def _normalize(s: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", s.lower())
 
 
-def _match_projects(query: str, projects: list[dict]) -> list[dict]:
-    q = query.lower()
-    q_norm = _normalize(query)
-    matched: list[dict] = []
-    for proj in projects:
-        name = proj.get("name", "")
-        slug = proj.get("slug", "")
-        tags = proj.get("tags") or []
-        keys = [name, slug, *tags]
-        if any(k and (k.lower() in q or _normalize(k) in q_norm) for k in keys):
-            matched.append(proj)
-    return matched
-
-
 def _match_posts(query: str, posts: list) -> list:
     q = query.lower()
     return [
@@ -107,16 +99,21 @@ def _match_posts(query: str, posts: list) -> list:
 
 
 def _project_block(proj: dict, *, detailed: bool) -> str:
-    slug = proj.get("slug", "")
+    title = proj.get("title", proj.get("name", ""))
+    url = proj.get("url", "")
+    payload = project_reference_payload(proj)
     has_cs = bool(proj.get("case_study"))
     lines = [
-        f"### {proj.get('name', '')}",
+        f"### {title}",
+        project_ref_token(payload.get("project_id", "")),
+        json.dumps(payload, ensure_ascii=False),
         f"- Özet: {proj.get('desc', '')}",
         f"- Teknolojiler: {', '.join(proj.get('tags') or [])}",
-        f"- Slug: {slug}",
+        f"- ID: {proj.get('id', '')}",
+        f"- URL: {url}",
     ]
-    if has_cs and slug:
-        lines.append(f"- Case Study: /projects/{slug}")
+    if has_cs and url:
+        lines.append(f"- Case Study: {url}")
     if detailed and has_cs:
         cs = proj.get("case_study") or {}
         for key, label in (
@@ -143,7 +140,7 @@ def _projects_index(projects: list[dict], *, exclude_slugs: set[str] | None = No
             continue
         cs = " [CS]" if proj.get("case_study") else ""
         lines.append(
-            f"- {proj.get('name', '')}: {proj.get('desc', '')[:100]} "
+            f"- {proj.get('title', proj.get('name', ''))}: {proj.get('desc', '')[:100]} "
             f"({', '.join((proj.get('tags') or [])[:4])}){cs}"
         )
     return "\n".join(lines)
@@ -205,7 +202,7 @@ def _skills_section() -> str:
 def match_projects_for_query(query: str) -> list[dict]:
     """Projeleri kullanıcı metnine göre eşleştir (context routing ile aynı)."""
     fp = _data_fingerprint()
-    return _match_projects(query, _cached_projects(fp))
+    return match_projects(query, _cached_projects(fp))
 
 
 def build_case_study_directive(query: str) -> str:
@@ -213,13 +210,17 @@ def build_case_study_directive(query: str) -> str:
     matched = match_projects_for_query(query)
     lines: list[str] = []
     for proj in matched[:2]:
-        slug = proj.get("slug", "")
-        if not slug or not proj.get("case_study"):
+        payload = project_reference_payload(proj)
+        if not payload.get("url") or not proj.get("case_study"):
             continue
-        name = proj.get("name", slug)
         lines.append(
-            f"- {name}: yanıtın sonuna mutlaka ekle → "
-            f"[→ Case Study'yi Gör](/projects/{slug})"
+            f"- {payload['title']}: yanıtın sonuna mutlaka ekle → "
+            f"{project_ref_token(payload['project_id'])}"
+        )
+        lines.append(json.dumps(payload, ensure_ascii=False))
+        lines.append(
+            "- Project names and URLs are immutable registry-controlled identifiers. "
+            "Never invent, rewrite, pluralize, abbreviate, or autocorrect them."
         )
     if not lines:
         return ""
@@ -234,7 +235,7 @@ def build_context_for_query(query: str) -> str:
     q = query.lower()
 
     sections = [_PERSONAL]
-    matched_projects = _match_projects(query, projects)
+    matched_projects = match_projects(query, projects)
     matched_posts = _match_posts(query, posts) if posts else []
 
     # Always include categorized skills for tech/skill queries
