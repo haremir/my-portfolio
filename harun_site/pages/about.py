@@ -187,6 +187,30 @@ def education_card(edu: dict) -> rx.Component:
         _hover={"border_color": PRIMARY},
         transition="all 200ms",
     )
+def skill_category_view(cat: rx.Var) -> rx.Component:
+    return rx.vstack(
+        rx.text(
+            cat["category"],
+            font_family=FONT_MONO,
+            font_size="0.8em",
+            font_weight="bold",
+            color=PRIMARY,
+            text_transform="uppercase",
+            margin_bottom="0.5em",
+        ),
+        rx.hstack(
+            rx.foreach(
+                cat["skills"],
+                skill_tag,
+            ),
+            spacing="2",
+            wrap="wrap",
+            width="100%",
+        ),
+        align_items="start",
+        width="100%",
+        margin_bottom="1.5em",
+    )
 
 
 def about_page() -> rx.Component:
@@ -194,7 +218,7 @@ def about_page() -> rx.Component:
         navbar(),
         rx.box(
             rx.vstack(
-                rx.hstack(
+                rx.flex(
                     rx.image(
                         src="/avatar.jpg",
                         width="120px",
@@ -208,13 +232,14 @@ def about_page() -> rx.Component:
                             "HARUN EMİRHAN BOSTANCI",
                             color=TEXT,
                             font_family=FONT_SANS,
-                            style={"font_size": "2em", "font_weight": "700"},
+                            font_size=rx.breakpoints(initial="1.6em", md="2em"),
+                            font_weight="700",
                         ),
                         rx.text(
                             "── AI & BACKEND ENGINEER ──",
                             color=PRIMARY,
                             font_family=FONT_MONO,
-                            style={"font_size": "0.85em"},
+                            font_size="0.85em",
                         ),
                         rx.text(
                             "Erzurum Teknik Üniversitesi mezunu bir bilgisayar mühendisi olarak yapay zeka, makine öğrenmesi ve veri mühendisliği alanlarında çalışıyorum. Özellikle RAG mimarileri, büyük dil modelleri (LLM), veri işleme sistemleri ve üretim odaklı AI uygulamaları üzerine yoğunlaşıyorum. Python tabanlı ölçeklenebilir yapay zeka çözümleri, veri pipeline’ları ve uçtan uca AI sistemleri geliştiriyor; siber güvenlik alanında faaliyet gösteren bir girişimde yapay zeka ürünlerinin geliştirme süreçlerinde aktif rol alıyorum.",
@@ -224,57 +249,18 @@ def about_page() -> rx.Component:
                         ),
                         align="start",
                     ),
+                    direction=rx.breakpoints(initial="column", md="row"),
                     align="center",
-                    style={"gap": "3em", "margin_bottom": "3em"},
+                    gap="2em",
+                    margin_bottom="3em",
+                    width="100%",
                 ),
                 section_title("Beceriler"),
-                rx.hstack(
-                    *[
-                        skill_tag(skill)
-                        for skill in [
-                            "Machine Learning",
-                            "Deep Learning",
-                            "NLP",
-                            "Predictive Modeling",
-                            "Feature Engineering",
-                            "Time-Series Forecasting",
-                            "Anomaly Detection",
-                            "Python",
-                            "SQL",
-                            "Scikit-learn",
-                            "TensorFlow",
-                            "PyTorch",
-                            "Hugging Face",
-                            "LangChain",
-                            "LangGraph",
-                            "FastAPI",
-                            "PostgreSQL",
-                            "Redis",
-                            "Docker",
-                            "FAISS",
-                            "Plotly",
-                            "Reflex",
-                            "YOLOv8",
-                            "CLIP",
-                            "Whisper",
-                            "RAG",
-                            "Pipeline",
-                            "Classification",
-                            "Embeddings",
-                            "Retrieval",
-                            "Data Labeling",
-                            "Annotation",
-                            "Quality Assurance",
-                            "Project Management",
-                            "Strategy",
-                            "KVKK",
-                            "Teaching",
-                            "Robotics",
-                            "Arduino",
-                        ]
-                    ],
-                    spacing="2",
-                    wrap="wrap",
+                rx.vstack(
+                    rx.foreach(AboutState.skills, skill_category_view),
+                    width="100%",
+                    spacing="3",
+                    align_items="start",
                 ),
                 section_title("DENEYİM"),
                 rx.vstack(
@@ -349,12 +335,10 @@ def about_page() -> rx.Component:
                 align="start",
                 width="100%",
             ),
-            style={
-                "max_width": "800px",
-                "margin": "0 auto",
-                "padding": "8em 2em 3em 2em",
-                "background_color": BG,
-            },
+            max_width="800px",
+            margin="0 auto",
+            padding=rx.breakpoints(initial="6em 1.2em 3em 1.2em", md="8em 2em 3em 2em"),
+            background_color=BG,
             width="100%",
             flex="1",
         ),

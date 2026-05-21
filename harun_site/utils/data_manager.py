@@ -28,8 +28,10 @@ def _atomic_write_json(path: Path, data: object) -> None:
     path = Path(path)  # ensure Path object
     path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Write temp file in the OS temp dir — NOT next to the target path.
+    # Reflex dev hot-reload watches project dirs; a .tmp under data/ triggers
+    # a full backend restart and wipes in-memory chat state.
     fd, tmp_path_str = tempfile.mkstemp(
-        dir=str(path.parent),
         prefix=path.stem + "_",
         suffix=".tmp",
     )
@@ -55,6 +57,7 @@ POSTS_DIR = BASE_DIR / "posts"
 SUMMARIES_DIR = DATA_DIR / "summaries"
 TAGS_FILE = DATA_DIR / "tags.json"
 CV_DIR = BASE_DIR / "assets" / "cv"
+SKILLS_FILE = DATA_DIR / "skills.json"
 
 # Ensure directories exist
 DATA_DIR.mkdir(exist_ok=True)
@@ -62,6 +65,20 @@ CHAT_LOGS_DIR.mkdir(exist_ok=True)
 POSTS_DIR.mkdir(exist_ok=True)
 SUMMARIES_DIR.mkdir(exist_ok=True)
 CV_DIR.mkdir(parents=True, exist_ok=True)
+
+# ---- SKILLS ----
+
+def load_skills() -> list[dict]:
+    if not SKILLS_FILE.exists():
+        return []
+    try:
+        with open(SKILLS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+def save_skills(skills: list[dict]):
+    _atomic_write_json(SKILLS_FILE, skills)
 
 # ---- PROJECTS ----
 
@@ -118,7 +135,7 @@ cover: "{cover}"
     # Blog posts are markdown so we can't use _atomic_write_json (non-JSON).
     # Use the same temp-file-then-rename pattern manually.
     import shutil as _shutil, tempfile as _tmp
-    fd, tmp_str = _tmp.mkstemp(dir=str(POSTS_DIR), prefix=slug + "_", suffix=".tmp")
+    fd, tmp_str = _tmp.mkstemp(prefix=slug + "_", suffix=".tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(frontmatter + "\n" + content)
@@ -175,7 +192,23 @@ def load_chat_log_messages(filename: str) -> list[dict]:
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             data = json.load(f)
-            return data.get("messages", [])
+            messages = data.get("messages", [])
+            normalized_messages: list[dict] = []
+            for message in messages:
+                if not isinstance(message, dict):
+                    continue
+                role = message.get("role", "")
+                content = message.get("content", "")
+                if content is None:
+                    content = ""
+                elif isinstance(content, dict):
+                    content = json.dumps(content, ensure_ascii=False)
+                elif isinstance(content, list):
+                    content = "\n".join(str(item) for item in content if item is not None)
+                elif not isinstance(content, str):
+                    content = str(content)
+                normalized_messages.append({"role": str(role), "content": content})
+            return normalized_messages
     except Exception:
         return []
 
@@ -190,6 +223,37 @@ def clear_all_chat_logs():
         f.unlink()
     for f in SUMMARIES_DIR.glob("*.json"):
         f.unlink()
+    clear_dashboard_overview_cache()
+
+# ---- ADMIN DASHBOARD OVERVIEW CACHE ----
+
+DASHBOARD_OVERVIEW_CACHE = SUMMARIES_DIR / "dashboard_overview_cache.json"
+
+
+def load_dashboard_overview_cache(fingerprint: str) -> dict | None:
+    if not DASHBOARD_OVERVIEW_CACHE.exists():
+        return None
+    try:
+        data = json.loads(DASHBOARD_OVERVIEW_CACHE.read_text(encoding="utf-8"))
+        if data.get("fingerprint") == fingerprint:
+            return data.get("overview")
+    except Exception:
+        pass
+    return None
+
+
+def save_dashboard_overview_cache(fingerprint: str, overview: dict) -> None:
+    SUMMARIES_DIR.mkdir(parents=True, exist_ok=True)
+    _atomic_write_json(
+        DASHBOARD_OVERVIEW_CACHE,
+        {"fingerprint": fingerprint, "overview": overview},
+    )
+
+
+def clear_dashboard_overview_cache() -> None:
+    if DASHBOARD_OVERVIEW_CACHE.exists():
+        DASHBOARD_OVERVIEW_CACHE.unlink()
+
 
 # ---- CHAT SUMMARIES ----
 

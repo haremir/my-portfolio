@@ -10,6 +10,7 @@ class RecentPostDict(TypedDict):
 
 
 class FeaturedProjectDict(TypedDict):
+    slug: str
     name: str
     desc: str
     tags: list[str]
@@ -21,16 +22,22 @@ class ExperiencePreviewDict(TypedDict):
     description: str
 
 
+class SkillCategoryDict(TypedDict):
+    category: str
+    skills: list[str]
+
+
 class IndexState(rx.State):
     recent_posts: list[RecentPostDict] = []
     featured_projects: list[FeaturedProjectDict] = []
     experience_preview: list[ExperiencePreviewDict] = []
+    skills_list: list[SkillCategoryDict] = []
     query: str = ""
 
     @rx.event
     def on_load(self):
         from harun_site.utils.markdown_parser import get_all_posts
-        from harun_site.utils.data_manager import load_projects, load_experience
+        from harun_site.utils.data_manager import load_projects, load_experience, load_skills
 
         posts = get_all_posts()
         self.recent_posts = [
@@ -42,10 +49,8 @@ class IndexState(rx.State):
             }
             for p in posts[:2]
         ]
+        
         projects = load_projects()
-        # Strip each project to only the fields FeaturedProjectDict declares.
-        # load_projects() returns full dicts that include a nested case_study
-        # object — that nested dict must never reach the frontend state delta.
         self.featured_projects = [
             {
                 "name": p.get("name", ""),
@@ -55,9 +60,7 @@ class IndexState(rx.State):
             }
             for p in projects[:3]
         ]
-        # Strip experience_preview to only the three fields ExperiencePreviewDict
-        # declares.  load_experience() returns dicts with tags list and other
-        # extra keys — those must not be serialised into the state delta.
+        
         experiences = load_experience()
         self.experience_preview = [
             {
@@ -67,6 +70,8 @@ class IndexState(rx.State):
             }
             for e in experiences[:1]
         ]
+        
+        self.skills_list = load_skills()
 
     @rx.event
     def set_query(self, value: str):

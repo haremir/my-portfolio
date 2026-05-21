@@ -2,7 +2,7 @@ import reflex as rx
 
 from harun_site.components.navbar import navbar
 from harun_site.components.footer import footer
-from harun_site.state.admin_state import AdminAuthState, AdminBlogState, AdminProjectState, AdminChatLogState, AdminChatAssistantState, AdminSuggestionsState, AdminCVState, AdminState, AdminCareerState, AdminEduExpState
+from harun_site.state.admin_state import AdminAuthState, AdminBlogState, AdminProjectState, AdminChatLogState, AdminChatAssistantState, AdminSuggestionsState, AdminCVState, AdminState, AdminCareerState, AdminEduExpState, AdminSkillsState
 from harun_site.theme import BG, BG_CARD, PRIMARY, TEXT, TEXT_MUTED, BORDER, ACCENT, FONT_SANS, FONT_MONO, GLOW_PRIMARY
 
 def login_form() -> rx.Component:
@@ -757,6 +757,178 @@ def cv_tab() -> rx.Component:
     )
 
 
+def admin_skill_category_card(cat: rx.Var, idx: rx.Var) -> rx.Component:
+    return rx.hstack(
+        rx.vstack(
+            rx.text(
+                cat["category"],
+                font_family=FONT_MONO,
+                font_size="1em",
+                font_weight="bold",
+                color=PRIMARY,
+            ),
+            rx.hstack(
+                rx.foreach(
+                    cat["skills"],
+                    lambda tag: rx.text(
+                        tag,
+                        font_family=FONT_MONO,
+                        font_size="0.75em",
+                        color=TEXT,
+                        border=f"1px solid {BORDER}",
+                        background=BG,
+                        padding="0.15em 0.55em",
+                        border_radius="3px",
+                    ),
+                ),
+                spacing="2",
+                wrap="wrap",
+                margin_top="0.4em",
+            ),
+            align_items="start",
+        ),
+        rx.spacer(),
+        rx.hstack(
+            rx.button(
+                "Düzenle",
+                on_click=lambda: AdminSkillsState.start_edit(idx),
+                background=PRIMARY,
+                color=BG,
+                size="1",
+                _hover={"opacity": 0.8},
+            ),
+            rx.button(
+                "Sil",
+                on_click=lambda: AdminSkillsState.delete_category(idx),
+                background=ACCENT,
+                color=BG,
+                size="1",
+                _hover={"opacity": 0.8},
+            ),
+            spacing="2",
+        ),
+        width="100%",
+        padding="1.2em",
+        background=BG,
+        border=f"1px solid {BORDER}",
+        border_radius="8px",
+        margin_bottom="0.8em",
+        align_items="center",
+    )
+
+
+def skills_tab() -> rx.Component:
+    return rx.vstack(
+        rx.heading("Beceriler Yönetimi", size="4", color=TEXT),
+        rx.text(
+            "Yetenek ve becerileri kategorize gruplar halinde burada düzenleyebilirsiniz.",
+            font_size="0.85em",
+            color=TEXT_MUTED,
+            margin_bottom="1.5em",
+        ),
+        
+        rx.vstack(
+            rx.text(
+                rx.cond(
+                    AdminSkillsState.editing_index >= 0,
+                    "Kategoriyi Düzenle",
+                    "Yeni Kategori Ekle"
+                ),
+                font_weight="bold",
+                color=TEXT,
+                font_family=FONT_MONO,
+                font_size="0.95em",
+            ),
+            rx.vstack(
+                rx.text("Kategori Adı", font_size="0.8em", color=TEXT_MUTED),
+                rx.input(
+                    placeholder="Örn: AI & ML",
+                    value=AdminSkillsState.category,
+                    on_change=AdminSkillsState.set_category,
+                    background=BG,
+                    border=f"1px solid {BORDER}",
+                    color=TEXT,
+                    width="100%",
+                ),
+                align_items="start",
+                width="100%",
+            ),
+            rx.vstack(
+                rx.text("Beceriler (virgülle ayrılmış)", font_size="0.8em", color=TEXT_MUTED),
+                rx.input(
+                    placeholder="Örn: LLM, RAG, PyTorch",
+                    value=AdminSkillsState.skills_str,
+                    on_change=AdminSkillsState.set_skills_str,
+                    background=BG,
+                    border=f"1px solid {BORDER}",
+                    color=TEXT,
+                    width="100%",
+                ),
+                align_items="start",
+                width="100%",
+            ),
+            rx.hstack(
+                rx.button(
+                    rx.cond(
+                        AdminSkillsState.editing_index >= 0,
+                        "Güncelle",
+                        "Ekle"
+                    ),
+                    on_click=AdminSkillsState.save_category,
+                    background=PRIMARY,
+                    color=BG,
+                    size="2",
+                    font_weight="600",
+                ),
+                rx.cond(
+                    AdminSkillsState.editing_index >= 0,
+                    rx.button(
+                        "İptal",
+                        on_click=AdminSkillsState.cancel_edit,
+                        background="transparent",
+                        border=f"1px solid {BORDER}",
+                        color=TEXT_MUTED,
+                        size="2",
+                    ),
+                    rx.fragment()
+                ),
+                spacing="3",
+                margin_top="0.5em",
+            ),
+            spacing="3",
+            width="100%",
+            padding="1.5em",
+            background=BG_CARD,
+            border=f"1px solid {BORDER}",
+            border_radius="10px",
+            align_items="start",
+            margin_bottom="2em",
+        ),
+
+        rx.vstack(
+            rx.text("Kategoriler", font_weight="bold", color=TEXT, font_family=FONT_MONO, font_size="0.95em", margin_bottom="0.8em"),
+            rx.cond(
+                AdminSkillsState.skills_list.length() > 0,
+                rx.vstack(
+                    rx.foreach(
+                        AdminSkillsState.skills_list,
+                        lambda cat, idx: admin_skill_category_card(cat, idx)
+                    ),
+                    width="100%",
+                ),
+                rx.text("Kayıtlı kategori bulunamadı.", color=TEXT_MUTED, font_size="0.9em"),
+            ),
+            width="100%",
+            align_items="start",
+        ),
+        width="100%",
+        spacing="4",
+        padding="2em",
+        background=BG_CARD,
+        border_radius="12px",
+    )
+
+
 def dashboard_card(title: str, count: rx.Var, icon: str, tab_value: str) -> rx.Component:
     return rx.vstack(
         rx.hstack(
@@ -971,18 +1143,34 @@ def dashboard_summary_card() -> rx.Component:
                 align_items="start",
             ),
         ),
-        # ── row 7: action button ──────────────────────────────────
-        rx.button(
-            "Asistana Sor →",
-            on_click=lambda: AdminState.set_active_tab("chat-assistant"),
-            background="transparent",
-            border=f"1px solid {PRIMARY}33",
-            color=PRIMARY,
-            font_family=FONT_MONO,
-            font_size="0.82em",
-            _hover={"background": f"{PRIMARY}15", "border_color": PRIMARY},
+        # ── row 7: actions ────────────────────────────────────────
+        rx.hstack(
+            rx.button(
+                "Özeti yenile",
+                on_click=AdminState.refresh_chat_overview,
+                background="transparent",
+                border=f"1px solid {BORDER}",
+                color=TEXT_MUTED,
+                font_family=FONT_MONO,
+                font_size="0.78em",
+                _hover={"color": PRIMARY, "border_color": PRIMARY},
+                flex="1",
+                size="2",
+            ),
+            rx.button(
+                "Asistana Sor →",
+                on_click=lambda: AdminState.set_active_tab("chat-assistant"),
+                background="transparent",
+                border=f"1px solid {PRIMARY}33",
+                color=PRIMARY,
+                font_family=FONT_MONO,
+                font_size="0.82em",
+                _hover={"background": f"{PRIMARY}15", "border_color": PRIMARY},
+                flex="1",
+                size="2",
+            ),
             width="100%",
-            size="2",
+            spacing="2",
         ),
         padding="2em",
         background=BG_CARD,
@@ -1388,6 +1576,7 @@ def admin_page() -> rx.Component:
                         rx.tabs.trigger("Chat Log Asistanı", value="chat-assistant", style={"white_space": "nowrap", "flex_shrink": "0"}),
                         rx.tabs.trigger("Eğitim & Deneyim", value="eduexp", style={"white_space": "nowrap", "flex_shrink": "0"}),
                         rx.tabs.trigger("CV Yönetimi", value="cv", style={"white_space": "nowrap", "flex_shrink": "0"}),
+                        rx.tabs.trigger("Beceriler", value="skills", style={"white_space": "nowrap", "flex_shrink": "0"}),
                         background=BG_CARD,
                         style={
                             "overflow_x": "auto",
@@ -1436,6 +1625,11 @@ def admin_page() -> rx.Component:
                 rx.tabs.content(
                     cv_tab(),
                     value="cv",
+                    padding_top="2em"
+                ),
+                rx.tabs.content(
+                    skills_tab(),
+                    value="skills",
                     padding_top="2em"
                 ),
                 value=AdminState.active_tab,

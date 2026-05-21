@@ -1,0 +1,5 @@
+[
+  {"category": "AI & ML", "skills": ["LLM", "RAG", "LangChain", "LangGraph", "YOLOv8", "CLIP", "Whisper"]},
+  {"category": "Backend", "skills": ["Python", "FastAPI", "PostgreSQL", "Redis", "Docker"]},
+  {"category": "Araçlar", "skills": ["Git", "Groq", "Reflex", "uv"]}
+]

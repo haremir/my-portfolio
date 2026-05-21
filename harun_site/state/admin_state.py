@@ -1,9 +1,10 @@
 import os
+import sys
 import reflex as rx
 from harun_site.utils import data_manager
 from harun_site.utils.markdown_parser import get_all_posts, get_post_by_slug
 from typing import TypedDict
-from sqlmodel import Session
+from sqlmodel import Session, select
 from harun_site.models import EducationModel, ExperienceModel, get_engine
 
 class ChatMessageDict(TypedDict):
@@ -674,8 +675,10 @@ class AdminChatAssistantState(rx.State):
 
             question = (
                 "Ziyaretçi intent dağılımını analiz et: teknik sorular, kariyer/işe alım, "
-                "proje soruları, kişisel sorular, çalışma isteği, AI/tech stack — her kategoride "
-                "yaklaşık kaç kayıt var? Yüzde veya sıklıkla belirt. Dominant intent nedir?"
+                "proje soruları, kişisel sorular, çalışma isteği, AI/tech stack. "
+                "Recruiter intent, hiring signals, conversion intent ve technical depth expectations "
+                "özellikle görünüyorsa belirt. Her kategoride yaklaşık kaç kayıt var? "
+                "Yüzde veya sıklıkla ver. Dominant intent nedir?"
             )
             self.messages = [*self.messages, {"role": "user", "content": question}]
             answer = await answer_admin_chat_about_logs(self.messages, payload)
@@ -706,7 +709,8 @@ class AdminChatAssistantState(rx.State):
 
             question = (
                 "Hangi proje ziyaretçilerden en fazla soru ve ilgi alıyor? "
-                "Proje bazlı karşılaştırma yap. Teknik derinlik soruları hangi projeye yoğunlaşıyor?"
+                "Proje bazlı karşılaştırma yap. Teknik derinlik beklentisi, trust signals, "
+                "recruiter-grade ilgi ve conversion intent hangi projelerde yoğunlaşıyor?"
             )
             self.messages = [*self.messages, {"role": "user", "content": question}]
             answer = await answer_admin_chat_about_logs(self.messages, payload)
@@ -745,7 +749,8 @@ class AdminChatAssistantState(rx.State):
                 "Ziyaretçi davranış patternlerini analiz et: "
                 "En çok hangi soru tipleri tekrar ediyor? "
                 "Konuşmalar nasıl başlıyor ve nasıl devam ediyor? "
-                "İşe alım niyetli ziyaretçiler hangi sinyalleri veriyor?"
+                "İşe alım niyetli ziyaretçiler hangi sinyalleri veriyor? "
+                "Missing content, project trust signals ve repeated visitor patterns var mı?"
             )
             self.messages = [*self.messages, {"role": "user", "content": question}]
             answer = await answer_admin_chat_about_logs(self.messages, payload)
@@ -1099,6 +1104,8 @@ class AdminState(rx.State):
     chat_dominant_intent: str = ""       # e.g. "teknik merak"
     chat_top_project: str = ""           # e.g. "CebirX"
     chat_visitor_expectation: str = ""   # one-sentence visitor want
+    _overview_loaded: bool = False
+    _overview_force_refresh: bool = False
 
     active_tab: str = "dashboard"
 
@@ -1129,12 +1136,33 @@ class AdminState(rx.State):
             AdminSuggestionsState.on_load,
             AdminCVState.load_cv,
             AdminCareerState.load_career,
+            AdminSkillsState.on_load,
         ]
 
     @rx.event
+    def refresh_chat_overview(self):
+        self._overview_loaded = False
+        self._overview_force_refresh = True
+        return AdminState.load_chat_overview
+
+    @rx.event
     async def load_chat_overview(self):
-        from harun_site.utils.data_manager import load_chat_log_messages, load_chat_logs
-        from harun_site.utils.groq_client import summarize_chat_logs
+        force = self._overview_force_refresh
+        self._overview_force_refresh = False
+        from harun_site.utils.data_manager import (
+            load_chat_log_messages,
+            load_chat_logs,
+            load_dashboard_overview_cache,
+            save_dashboard_overview_cache,
+        )
+        from harun_site.utils.groq_client import (
+            ADMIN_AI_ON_LOAD,
+            chat_logs_fingerprint,
+            summarize_chat_logs,
+        )
+
+        if self._overview_loaded and not force:
+            return
 
         self.chat_overview_loading = True
         yield
@@ -1159,6 +1187,26 @@ class AdminState(rx.State):
             self.chat_visitor_expectation = ""
             self.chat_overview_loading = False
             print("[ADMIN_ANALYTICS] no logs — skipping AI summarisation")
+            self._overview_loaded = True
+            yield
+            return
+
+        fingerprint = chat_logs_fingerprint(logs)
+        if not force:
+            cached = load_dashboard_overview_cache(fingerprint)
+            if cached:
+                self._apply_overview(cached)
+                self.chat_overview_loading = False
+                self._overview_loaded = True
+                print("[ADMIN_ANALYTICS] overview from cache", file=sys.stderr)
+                yield
+                return
+
+        if not ADMIN_AI_ON_LOAD and not force:
+            self._apply_overview_fallback()
+            self.chat_overview_loading = False
+            self._overview_loaded = True
+            print("[ADMIN_ANALYTICS] AI skipped (ADMIN_AI_ON_LOAD=false)", file=sys.stderr)
             yield
             return
 
@@ -1189,36 +1237,42 @@ class AdminState(rx.State):
 
         try:
             overview = await summarize_chat_logs(payload)
-
-            self.chat_overview = overview.get("summary", self.chat_overview)
-            self.chat_overview_topics = overview.get("top_topics", []) or []
-            self.chat_dominant_intent = overview.get("dominant_intent", "")
-            self.chat_top_project = overview.get("top_project", "")
-            self.chat_visitor_expectation = overview.get("visitor_expectation", "")
-
-            print(
-                f"[ADMIN_ANALYTICS] summary ready  "
-                f"dominant_intent={self.chat_dominant_intent!r}  "
-                f"top_project={self.chat_top_project!r}  "
-                f"top_topics={self.chat_overview_topics}  "
-                f"visitor_expectation={self.chat_visitor_expectation[:80]!r}"
-            )
-
+            if overview:
+                save_dashboard_overview_cache(fingerprint, overview)
+                self._apply_overview(overview)
+                print(
+                    f"[ADMIN_ANALYTICS] summary ready  "
+                    f"dominant_intent={self.chat_dominant_intent!r}  "
+                    f"top_project={self.chat_top_project!r}",
+                    file=sys.stderr,
+                )
+            else:
+                self._apply_overview_fallback()
         except Exception as exc:
-            print(f"[ADMIN_ANALYTICS] AI summarisation failed: {exc}")
-            self.chat_overview = (
-                f"Henüz yeterli veri yok ama ilk sinyaller şunları gösteriyor: "
-                f"{self.chat_overview_visitor_count} sohbet kaydı ve "
-                f"{self.chat_overview_message_count} mesaj mevcut. "
-                "Konuşmalar ağırlıklı olarak portfolyo, projeler ve teknoloji seçimleri etrafında şekilleniyor."
-            )
-            self.chat_overview_topics = ["teknik sorular", "proje analizi", "kariyer"]
-            self.chat_dominant_intent = "teknik merak"
-            self.chat_top_project = ""
-            self.chat_visitor_expectation = ""
+            print(f"[ADMIN_ANALYTICS] AI summarisation failed: {exc}", file=sys.stderr)
+            self._apply_overview_fallback()
 
         self.chat_overview_loading = False
+        self._overview_loaded = True
         yield
+
+    def _apply_overview(self, overview: dict):
+        self.chat_overview = overview.get("summary", self.chat_overview)
+        self.chat_overview_topics = overview.get("top_topics", []) or []
+        self.chat_dominant_intent = overview.get("dominant_intent", "")
+        self.chat_top_project = overview.get("top_project", "")
+        self.chat_visitor_expectation = overview.get("visitor_expectation", "")
+
+    def _apply_overview_fallback(self):
+        self.chat_overview = (
+            f"{self.chat_overview_visitor_count} sohbet kaydı · "
+            f"{self.chat_overview_message_count} mesaj. "
+            "Özet için dashboard kartında yenile veya AI kotası dolunca bekleyin."
+        )
+        self.chat_overview_topics = ["teknik sorular", "proje analizi", "kariyer"]
+        self.chat_dominant_intent = "teknik merak"
+        self.chat_top_project = ""
+        self.chat_visitor_expectation = ""
 
 class AdminCareerState(rx.State):
 
@@ -1238,41 +1292,6 @@ class AdminCareerState(rx.State):
     exp_sure: str = ""
     exp_aciklama: str = ""
 
-    @rx.event
-    def set_project_name(self, value: str):
-        self.project_name = value
-
-    @rx.event
-    def set_project_desc(self, value: str):
-        self.project_desc = value
-
-    @rx.event
-    def set_cs_problem(self, value: str):
-        self.cs_problem = value
-
-    @rx.event
-    def set_cs_architecture(self, value: str):
-        self.cs_architecture = value
-
-    @rx.event
-    def set_cs_stack_reason(self, value: str):
-        self.cs_stack_reason = value
-
-    @rx.event
-    def set_cs_challenges(self, value: str):
-        self.cs_challenges = value
-
-    @rx.event
-    def set_cs_learnings(self, value: str):
-        self.cs_learnings = value
-
-    @rx.event
-    def set_architecture_image(self, value: str):
-        self.architecture_image = value
-
-    @rx.event
-    def set_new_tag_name(self, value: str):
-        self.new_tag_name = value
 
     @rx.event
     def load_career(self):
@@ -1286,8 +1305,8 @@ class AdminCareerState(rx.State):
         import sys
         try:
             with Session(get_engine()) as session:
-                edu_models = session.exec(EducationModel.select()).all()
-                exp_models = session.exec(ExperienceModel.select()).all()
+                edu_models = session.exec(select(EducationModel)).all()
+                exp_models = session.exec(select(ExperienceModel)).all()
             # Flatten ORM instances to plain TypedDicts — Optional[int] id
             # is coerced to int (0 if None) so the frontend never sees null.
             self.educations = [
@@ -1351,7 +1370,7 @@ class AdminCareerState(rx.State):
         try:
             with Session(get_engine()) as session:
                 edu = session.exec(
-                    EducationModel.select().where(EducationModel.id == id)
+                    select(EducationModel).where(EducationModel.id == id)
                 ).first()
                 if edu:
                     session.delete(edu)
@@ -1390,7 +1409,7 @@ class AdminCareerState(rx.State):
         try:
             with Session(get_engine()) as session:
                 exp = session.exec(
-                    ExperienceModel.select().where(ExperienceModel.id == id)
+                    select(ExperienceModel).where(ExperienceModel.id == id)
                 ).first()
                 if exp:
                     session.delete(exp)
@@ -1399,3 +1418,80 @@ class AdminCareerState(rx.State):
             print(f"[AdminCareerState.delete_experience] {type(exc).__name__}: {exc}", file=sys.stderr)
             return
         self.load_career()
+
+
+class SkillCategoryDict(TypedDict):
+    category: str
+    skills: list[str]
+
+
+class AdminSkillsState(rx.State):
+    skills_list: list[SkillCategoryDict] = []
+    category: str = ""
+    skills_str: str = ""
+    editing_index: int = -1
+
+    @rx.event
+    def set_category(self, value: str):
+        self.category = value
+
+    @rx.event
+    def set_skills_str(self, value: str):
+        self.skills_str = value
+
+    @rx.event
+    def on_load(self):
+        from harun_site.utils.data_manager import load_skills
+        self.skills_list = load_skills()
+
+    @rx.event
+    def save_category(self):
+        if not self.category.strip():
+            return rx.window_alert("Kategori adı zorunludur.")
+        
+        # parse skills_str by comma
+        skills_parsed = [s.strip() for s in self.skills_str.split(",") if s.strip()]
+        
+        new_cat = {
+            "category": self.category.strip(),
+            "skills": skills_parsed
+        }
+        
+        from harun_site.utils.data_manager import save_skills
+        
+        current_list = list(self.skills_list)
+        if 0 <= self.editing_index < len(current_list):
+            current_list[self.editing_index] = new_cat
+        else:
+            current_list.append(new_cat)
+            
+        self.skills_list = current_list
+        save_skills(self.skills_list)
+        
+        # reset
+        self.category = ""
+        self.skills_str = ""
+        self.editing_index = -1
+        
+    @rx.event
+    def start_edit(self, index: int):
+        if 0 <= index < len(self.skills_list):
+            cat = self.skills_list[index]
+            self.category = cat.get("category", "")
+            self.skills_str = ", ".join(cat.get("skills", []))
+            self.editing_index = index
+
+    @rx.event
+    def cancel_edit(self):
+        self.category = ""
+        self.skills_str = ""
+        self.editing_index = -1
+
+    @rx.event
+    def delete_category(self, index: int):
+        if 0 <= index < len(self.skills_list):
+            self.skills_list = [c for i, c in enumerate(self.skills_list) if i != index]
+            from harun_site.utils.data_manager import save_skills
+            save_skills(self.skills_list)
+            if self.editing_index == index:
+                self.cancel_edit()

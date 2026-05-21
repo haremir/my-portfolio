@@ -377,7 +377,71 @@ def project_preview_card(project: dict) -> rx.Component:
             "/portfolio",
         ),
         text_decoration="none",
+    )
+
+
+def skills_preview() -> rx.Component:
+    return rx.box(
+        rx.box(
+            rx.hstack(
+                rx.text(
+                    "BECERİLER",
+                    font_family=FONT_MONO,
+                    font_size="0.75em",
+                    letter_spacing="0.2em",
+                    color=PRIMARY,
+                    text_shadow=GLOW_PRIMARY,
+                ),
+                justify="between",
+                align="center",
+                margin_bottom="1.5em",
+                width="100%",
+            ),
+            rx.flex(
+                rx.foreach(
+                    IndexState.skills_list,
+                    lambda cat: rx.vstack(
+                        rx.text(
+                            cat["category"],
+                            font_family=FONT_MONO,
+                            color=PRIMARY,
+                            font_size="0.85em",
+                            margin_bottom="0.5em",
+                        ),
+                        rx.flex(
+                            rx.foreach(
+                                cat["skills"],
+                                lambda skill: rx.text(
+                                    skill,
+                                    font_family=FONT_SANS,
+                                    font_size="0.85em",
+                                    color=TEXT,
+                                    background=BG_CARD,
+                                    border=f"1px solid {BORDER}",
+                                    padding="0.3em 0.8em",
+                                    border_radius="15px",
+                                )
+                            ),
+                            wrap="wrap",
+                            gap="0.5em",
+                        ),
+                        align_items="start",
+                        width="100%",
+                        margin_bottom="1em"
+                    )
+                ),
+                direction="column",
+                gap="1.5em",
+                width="100%",
+            ),
+            max_width="860px",
+            margin="0 auto",
+            padding="0 2em",
+            width="100%",
+        ),
+        background=BG,
         width="100%",
+        padding="3em 0",
     )
 
 
@@ -517,6 +581,8 @@ def index() -> rx.Component:
         hero_section(),
         section_divider(),
         about_preview(),
+        section_divider(),
+        skills_preview(),
         section_divider(),
         portfolio_preview(),
         section_divider(),

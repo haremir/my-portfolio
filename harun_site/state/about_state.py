@@ -20,9 +20,15 @@ class ExperienceDict(TypedDict):
     tags: list[str]
 
 
+class SkillCategoryDict(TypedDict):
+    category: str
+    skills: list[str]
+
+
 class AboutState(rx.State):
     education: list[EducationDict] = []
     experience: list[ExperienceDict] = []
+    skills: list[SkillCategoryDict] = []
     cv_path: str = ""
 
     @rx.event
@@ -31,8 +37,10 @@ class AboutState(rx.State):
             load_education,
             load_experience,
             get_cv_path,
+            load_skills,
         )
 
         self.education = load_education()
         self.experience = load_experience()
+        self.skills = load_skills()
         self.cv_path = get_cv_path()
