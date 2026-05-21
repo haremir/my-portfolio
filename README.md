@@ -1,5 +1,8 @@
 # Harun Emirhan Bostancı - Portfolio & AI Assistant
 
+> **AI-powered personal operating system built entirely in Python.**
+> Portfolio · Blog · Admin Dashboard · Telegram Ops · RAG Chatbot
+
 A modern, full-stack personal portfolio and blog built entirely in Python using [Reflex](https://reflex.dev/). This project goes beyond a static site by integrating an AI-powered assistant (RAG), a comprehensive admin dashboard, and Telegram Ops for real-time visitor analytics.
 
 ## ✨ Features
@@ -65,7 +68,14 @@ This will launch:
 - **Backend**: `http://0.0.0.0:8004`
 - **Telegram Bot**: Polling in the background
 
-*(Note: The custom `uv run site` runner handles graceful shutdown and recursively cleans up all orphaned processes on both Linux and Windows).*
+### How it works
+
+`uv run site` starts three concurrent processes:
+- Reflex frontend (React/Python)  
+- Reflex backend (FastAPI under the hood)
+- Telegram bot (polling mode)
+
+Graceful shutdown on Ctrl+C kills all child processes cleanly.
 
 ## 📁 Project Structure
 
