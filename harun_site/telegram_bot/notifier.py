@@ -161,6 +161,14 @@ async def _send_raw(token: str, chat_id: int, text: str) -> bool:
         "parse_mode": "HTML",
         "disable_web_page_preview": True,
     }
+    
+    # Attach command keyboard to notifications so admin can act on them directly
+    try:
+        from harun_site.telegram_bot.keyboards import command_keyboard
+        payload["reply_markup"] = command_keyboard().to_dict()
+    except Exception as e:
+        print(f"[NOTIFY] Failed to attach keyboard: {e}", file=sys.stderr)
+
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(url, json=payload)

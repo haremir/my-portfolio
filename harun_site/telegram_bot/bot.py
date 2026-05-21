@@ -26,6 +26,7 @@ import sys
 from telegram import Update
 from telegram.ext import (
     Application,
+    CallbackQueryHandler,
     CommandHandler,
     MessageHandler,
     filters,
@@ -36,12 +37,16 @@ from harun_site.telegram_bot.handlers import (
     cmd_help,
     cmd_hot,
     cmd_panic,
+    cmd_ping,
+    cmd_sor,
     cmd_start,
     cmd_stats,
     cmd_summary,
     cmd_unwatch,
     cmd_watch,
     cmd_watchlist,
+    cmd_whoami,
+    handle_callback,
     handle_message,
 )
 from harun_site.telegram_bot.notifier import send_notification_async
@@ -89,6 +94,13 @@ async def _post_init(application: Application) -> None:
     admin_id_str = os.environ.get("TELEGRAM_ADMIN_ID", "")
     token        = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 
+    # Webhook aktifse polling mesaj alamaz — sıfırla
+    try:
+        await application.bot.delete_webhook(drop_pending_updates=False)
+        print("[TELEGRAM] Webhook cleared (polling mode).", file=sys.stderr)
+    except Exception as exc:
+        print(f"[TELEGRAM] delete_webhook warning: {exc}", file=sys.stderr)
+
     # Announce online status to owner
     if admin_id_str and token:
         try:
@@ -119,9 +131,12 @@ def build_application(token: str) -> Application:
         .build()
     )
 
-    # Commands
+    # Commands (whoami/ping: kurulum ve sağlık kontrolü)
+    app.add_handler(CommandHandler("whoami",    cmd_whoami))
+    app.add_handler(CommandHandler("ping",      cmd_ping))
     app.add_handler(CommandHandler("start",     cmd_start))
     app.add_handler(CommandHandler("help",      cmd_help))
+    app.add_handler(CommandHandler("sor",       cmd_sor))
     app.add_handler(CommandHandler("summary",   cmd_summary))
     app.add_handler(CommandHandler("stats",     cmd_stats))
     app.add_handler(CommandHandler("hot",       cmd_hot))
@@ -130,6 +145,9 @@ def build_application(token: str) -> Application:
     app.add_handler(CommandHandler("unwatch",   cmd_unwatch))
     app.add_handler(CommandHandler("watchlist", cmd_watchlist))
     app.add_handler(CommandHandler("clear",     cmd_clear))
+
+    # Inline keyboard → komutlar
+    app.add_handler(CallbackQueryHandler(handle_callback))
 
     # Free-text messages (non-command)
     app.add_handler(

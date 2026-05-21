@@ -1,23 +1,36 @@
-import os
-import sys
+import hashlib
 import json
+import os
 import re
+import sys
 
 from dotenv import load_dotenv
 from groq import AsyncGroq
 
-from harun_site.utils.context_builder import build_context
+from harun_site.utils.context_builder import (
+    build_case_study_directive,
+    build_context_for_messages,
+    match_projects_for_query,
+)
 
 load_dotenv()
 
+MODEL_FAST = os.environ.get("GROQ_CHAT_MODEL_FAST", "llama-3.1-8b-instant")
+MODEL_DEEP = os.environ.get("GROQ_CHAT_MODEL_DEEP", "llama-3.3-70b-versatile")
+MODEL_ADMIN = os.environ.get("GROQ_ADMIN_MODEL", MODEL_FAST)
+CHAT_MAX_TOKENS = int(os.environ.get("GROQ_CHAT_MAX_TOKENS", "512"))
+CHAT_MAX_HISTORY = int(os.environ.get("GROQ_CHAT_MAX_HISTORY", "12"))
+ADMIN_AI_ON_LOAD = os.environ.get("ADMIN_AI_ON_LOAD", "true").lower() in ("1", "true", "yes")
+
+_DEEP_ROUTING_KEYWORDS = (
+    "mimari", "architecture", "trade-off", "trade off", "multi-tenant", "multi tenant",
+    "case study", "implementasyon", "production", "ölçek", "neden seç",
+    "karşılaştır", "detaylı", "recruiter", "işe alım", "backend mimar",
+    "rag ", " pipeline", "tenant", "postgresql", "fastapi",
+)
+
 
 def validate_groq_key() -> bool:
-    """
-    Return True if GROQ_API_KEY is set and non-empty.
-
-    Call this at app startup to surface a clear error instead of a
-    cryptic AuthenticationError on the first chat message.
-    """
     key = os.environ.get("GROQ_API_KEY", "")
     if not key:
         print(
@@ -27,231 +40,259 @@ def validate_groq_key() -> bool:
             file=sys.stderr,
         )
         return False
-    print(
-        f"[GROQ] GROQ_API_KEY present (length={len(key)}).",
-        file=sys.stderr,
-    )
+    print(f"[GROQ] GROQ_API_KEY present (length={len(key)}).", file=sys.stderr)
     return True
 
 
-_SYSTEM_PROMPT_TEMPLATE = """Sen Harun Emirhan Bostancı'sın. Bu bir portfolyo sitesi — ziyaretçiler seninle tanışmak, projelerini öğrenmek ve iş birliği olasılığını değerlendirmek için geliyor.
+def is_rate_limit_error(exc: BaseException) -> bool:
+    err = str(exc).lower()
+    return "rate_limit" in err or "rate limit" in err or "429" in err
 
-KİMLİĞİN:
-Sen gerçek bir insansın, AI asistan değilsin. "Ben bir AI olarak..." veya "size yardımcı olmak istiyorum" gibi ifadeler kullanma. Harun olarak konuş.
 
-KAPSAMIN — SADECE BUNLAR:
-- Kendi projelerini, deneyimini, eğitimini anlat
-- Kişinin beceri seviyesi, ne kadar bildiği, nasıl öğrendiği, hangi dilleri bildiği soruları bu kapsamın içindedir
-- Blog yazılarını özetle
-- İş birliği veya freelance sorusunda iletişim bilgilerini ver
-- Proje fikri gelirse kendi deneyiminle değerlendir, yapıp yapamayacağını dürüstçe söyle
+def user_message_for_groq_error(exc: BaseException) -> str:
+    if is_rate_limit_error(exc):
+        wait_hint = ""
+        match = re.search(r"try again in (\d+m[\d.]*s)", str(exc), re.IGNORECASE)
+        if match:
+            wait_hint = f" Yaklaşık {match.group(1)} sonra tekrar dene."
+        return (
+            "⚠️ Groq günlük token limitine ulaşıldı (ücretsiz kotanın dolmuş olabilir)."
+            + wait_hint
+            + " Bir süre bekleyebilir veya console.groq.com üzerinden kotayı kontrol edebilirsin."
+        )
+    err = str(exc).lower()
+    if "api_key" in err or "authentication" in err or "invalid_api_key" in err:
+        return "⚠️ Yapay zeka servisi şu an yapılandırılmamış. Lütfen daha sonra tekrar deneyin."
+    return "⚠️ Bir hata oluştu, lütfen tekrar deneyin."
 
-KAPSAM DIŞI — BUNLARI YAPMA:
-- Kod yazma veya genel teknik soru cevaplama
-- Genel teknik sorular (nasıl kod yazılır, algoritma nedir) kapsam dışıdır
-- Kapsam dışı sorularda kısaca şunu söyle: "Bunu bilemem ama portfolyom hakkında soru sorabilirsin."
-TEKNİK KAVRAM İSTİSNASI:
-Portfolyoda geçen bir teknolojiyle (RAG, YOLOv8, LangChain, multi-tenant, PostgreSQL,
-Docker, Groq API, CLIP, Whisper vs.) ilgili kısa kavramsal soru gelirse, bunu reddetme.
-Kendi deneyiminden bağlayarak, kısa ve özgün bir yanıt ver.
 
-İyi örnek: "RAG'da chunking stratejisi çok kritik — ben fixed-size ile başladım ama
-boundary sorunlarından dolayı semantic chunking'e geçmeyi düşünüyorum."
-Kötü örnek: "RAG chunking genel bir kavramdır, bunu bilemem."
+_SYSTEM_PROMPT_TEMPLATE = """Sen Harun Emirhan Bostancı'sın — portfolyo sitesinde ziyaretçilerle konuşuyorsun.
+Gerçek kişi gibi konuş; "AI asistanım" deme. Sadece aşağıdaki bilgilere dayan, uydurma.
 
-Sınır: Kod yaz, hata ayıkla, algoritma öğret → bunları yapma.
-Tamamen alakasız konular (tarih, matematik, haber) → kısaca yönlendir ama sert reddetme.
-Yumuşak geçiş: "Bunu portföyümle bağdaştırmak zor ama [konuya bağlı bir şey] hakkında
-konuşabiliriz — mesela projelerimdeki yaklaşım..."
+Kapsam: projeler, deneyim, eğitim, blog, iş birliği. Genel kod öğretme / algoritma yok.
+Portfolyodaki teknolojilerle (RAG, YOLO, LangChain, PostgreSQL, Docker…) kısa kavramsal soru → deneyiminden yanıtla.
+Kapsam dışı → kibarca portföye yönlendir; "kapsam dışı" deme.
 
-REDDETME KURALI:
-"Bu kapsam dışı" ifadesini KULLANMA.
-Bunun yerine: "Bunu tam olarak yanıtlayamam ama projelerimle ilgili şunu söyleyebilirim..."
-ya da doğrudan konuyu portföye bağla.
-
-TON VE KİŞİLİK:
-- Teknik kararlarını savunabilecek kadar güvenli konuş — ama kibirli değil
-- "Tabii ki!", "Harika bir fikir!", "Mükemmel!" gibi yapay coşku kullanma
-- Robotik ve kurumsal ses verme — doğal, düşünceli, net ol
-- Aynı fikri farklı kelimelerle tekrar etme
-- Gereksiz disclaimer koyma: "Ben sadece bir AI olarak..." türü
-- Max 3-4 cümle veya 4-5 madde — daha fazlası çoğunlukla gereksiz
-
-FORMAT — KRİTİK:
-- Markdown kullan: **kalın** önemli kelimeler için, - madde listesi için
-- Kısa sorular → 2-3 cümle düz metin
-- Proje soruları → proje adı **kalın**, kısa açıklama, teknolojiler liste
-- İletişim soruları → bir paragraf, altında iletişim listesi
-- Liste yazarken numara değil noktalı madde kullan
-- Asla 5 maddeden fazla liste yapma
-
-ZİYARETÇİ YÖNLENDİRME:
-- Derin teknik soru soran → case study sayfasına doğal bağla
-- "Ne yapabilirsin?" türü genel soru → en güçlü 2 projeyi öne çıkar
-- "Benzer şey yapabilir misin?" → deneyimle bağla, iletişim bilgisi ver
-- Recruiter davranışı sezersen → somut teknik karar örnekleri ver (güven inşa et)
-
-İLETİŞİM BİLGİLERİM:
-- LinkedIn: https://www.linkedin.com/in/haremir826/
-- GitHub: https://github.com/haremir
-- Mail: harunemirhan826@gmail.com
-
-CASE STUDY LİNKLERİ:
-Eğer kullanıcı bir proje hakkında detay, mimari veya teknik kararlar sorarsa ve
-o projenin case study sayfası varsa, cevabının sonuna doğal bir markdown link ekle.
-Türkçe: [→ Case Study'yi Gör](/projects/<proje-slug>)
-İngilizce: [→ View Case Study](/projects/<proje-slug>)
-Sadece case study olan projeler için link ver. Alakasız cevaplara ekleme.
-
-Freelance/iş birliği teklifinde:
-- Teşekkür et, ilgilenebileceğini belirt
-- "Detayları doğrudan görüşmek daha sağlıklı" de
-- İletişim bilgilerini ver — tek mesajda bitir, soru sorma
-
-KRİTİK KURAL: Aşağıdaki bilgilerde ne varsa onu söyle. Dışına çıkma, uydurma.
-
-SADECE aşağıdaki bilgilere dayan:
+Ton: doğal, özgüvenli, abartısız coşku yok. En fazla 3-4 cümle veya 4-5 madde.
+Markdown: **kalın**, - madde. Proje sorularında **proje adı** + teknoloji listesi.
+Belirli bir proje sorulduğunda ve context'te Case Study URL varsa, İLK yanıtında bile
+sonuna mutlaka ekle: [→ Case Study'yi Gör](/projects/<slug>) — kullanıcı tekrar sormasın.
+İletişim: LinkedIn https://www.linkedin.com/in/haremir826/ · GitHub https://github.com/haremir · harunemirhan826@gmail.com
 
 ====== BİLGİLERİM ======
 {context}
 ====== BİLGİLERİM SONU ======"""
 
 
-# ── Admin analytics consultant prompt ──────────────────────────────────────
-# Injected as the system message for every admin-assistant conversation.
-# Log data is embedded at render time so all turns share the same context.
-
 _ADMIN_ANALYTICS_PROMPT = """\
-Sen Harun Emirhan Bostancı'nın portfolyo sitesi için bir ziyaretçi analitik danışmanısın.
-
-GÖREVİN
-Portföy ziyaretçilerinin sohbet kayıtlarını analiz ederek site sahibine (Harun) somut,
-stratejik içgörüler sunmak. Yüzeysel özetler değil — "neden olduğunu" ve "ne yapmalı"yı
-açıkla.
-
-ZİYARETÇİ NİYET KATEGORİLERİ — her analizde bu sınıflandırmayı kullan:
-  • teknik sorular       → mimari, implementasyon, sistem tasarımı, kod kalitesi
-  • kariyer / işe alım   → iş teklifi, pozisyon uygunluğu, profesyonel background
-  • proje soruları       → belirli projeler, teknik detaylar, proje sonuçları
-  • kişisel sorular      → kim olduğu, öğrenme yolculuğu, genel background
-  • çalışma / iş birliği → freelance, proje ortaklığı, danışmanlık teklifi
-  • AI / tech stack      → araç tercihleri, framework seçimleri, opinionlar
-
-ANALİZ STANDARTLARI
-  • İçgörüsel cümleler kur  → "Ziyaretçiler ağırlıklı olarak backend mimarini merak ediyor."
-  • Pattern vurgula         → "İşe alım soruları genellikle tech stack sorusuyla başlıyor."
-  • Sıklık / oran belirt    → "Kayıtların ~%60'ı teknik sorularla açılıyor."
-  • Recruiter-grade dil     → "ziyaretçiler teknik derinliğe önem veriyor" tarzında konuş.
-  • Proje bazlı karşılaştır → "CebirX diğer projelere kıyasla 3x daha fazla teknik soru çekiyor."
-  • Türkçe yanıt ver; teknik terimleri İngilizce bırakabilirsin.
-
-YANIT FORMATI
-  • Odaklı ve kısa: 3-6 cümle veya madde listesi.
-  • Önemli bulguları **kalın** yaz.
-  • Analitik tonun dışına çıkma. "Yardımcı olmak istiyorum" gibi ifade kullanma.
+Portfolyo ziyaretçi analitik danışmanısın. Sohbet kayıtlarından stratejik içgörü ver.
+Niyetler: teknik / işe alım / proje / kişisel / iş birliği / tech stack.
+3-6 cümle veya kısa madde; **kalın** vurgu; son satırda 1-3 aksiyon. Türkçe.
 
 {log_section}
 """
 
+
+def _log_usage(label: str, model: str, usage, *, context_chars: int, history_turns: int) -> None:
+    if usage is None:
+        print(
+            f"[GROQ] {label} model={model} context_chars={context_chars} "
+            f"history_turns={history_turns}",
+            file=sys.stderr,
+        )
+        return
+    print(
+        f"[GROQ] {label} model={model} "
+        f"in={getattr(usage, 'prompt_tokens', '?')} "
+        f"out={getattr(usage, 'completion_tokens', '?')} "
+        f"context_chars={context_chars} history_turns={history_turns}",
+        file=sys.stderr,
+    )
+
+
+def trim_chat_history(messages: list[dict], max_messages: int | None = None) -> list[dict]:
+    limit = max_messages if max_messages is not None else CHAT_MAX_HISTORY
+    if len(messages) <= limit:
+        return messages
+    return messages[-limit:]
+
+
+def _last_user_message(messages: list[dict]) -> str:
+    for msg in reversed(messages):
+        if msg.get("role") == "user":
+            return str(msg.get("content", ""))
+    return ""
+
+
+def select_visitor_chat_model(last_user_message: str, *, project_matched: bool = False) -> str:
+    override = os.environ.get("GROQ_CHAT_MODEL", "").strip()
+    if override:
+        return override
+    msg = last_user_message.lower()
+    # Proje sorusu: 8B + zorunlu link (70B gecikmesi yok); derin teknikte 70B
+    if project_matched and not any(k in msg for k in _DEEP_ROUTING_KEYWORDS) and len(msg) <= 140:
+        return MODEL_FAST
+    if len(msg) > 140 or any(k in msg for k in _DEEP_ROUTING_KEYWORDS):
+        return MODEL_DEEP
+    return MODEL_FAST
+
+
+def _build_visitor_system_prompt(messages: list[dict]) -> tuple[str, str]:
+    """Return (system_prompt, last_user_message)."""
+    trimmed = trim_chat_history(messages)
+    last_user = _last_user_message(trimmed)
+    context = build_context_for_messages(trimmed)
+    directive = build_case_study_directive(last_user)
+    if directive:
+        context = f"{context}\n\n{directive}"
+    system_prompt = _SYSTEM_PROMPT_TEMPLATE.format(context=context)
+    return system_prompt, last_user
+
+
 def _build_analytics_log_section(chat_logs: list[dict]) -> str:
-    """
-    Format chat log payload into a readable context block for the system prompt.
-    Keeps the context concise to avoid exceeding token limits.
-    """
     if not chat_logs:
         return "SOHBET KAYIT VERİSİ: Henüz kayıt yok."
 
-    lines = [f"SOHBET KAYIT VERİSİ ({len(chat_logs)} kayıt analiz için hazır):"]
+    lines = [f"SOHBET KAYIT VERİSİ ({len(chat_logs)} kayıt):"]
     for i, log in enumerate(chat_logs, 1):
-        lines.append(f"\n[Kayıt {i}] — {log.get('timestamp', 'tarih yok')} | {log.get('message_count', 0)} mesaj")
+        lines.append(
+            f"\n[{i}] {log.get('timestamp', '')} · {log.get('message_count', 0)} mesaj"
+        )
         for j, q in enumerate(log.get("user_samples", []), 1):
-            lines.append(f"  Kullanıcı {j}: {q}")
+            lines.append(f"  K{j}: {q[:160]}")
         for j, a in enumerate(log.get("assistant_samples", []), 1):
-            lines.append(f"  Asistan {j}: {a}")
+            lines.append(f"  A{j}: {a[:100]}")
     return "\n".join(lines)
 
 
 async def stream_chat(messages: list[dict]):
-    # Her sohbette context'i taze oluştur
-    context = build_context()
-    system_prompt = _SYSTEM_PROMPT_TEMPLATE.format(context=context)
-
-    print(f"[GROQ] Context built: {len(context)} chars", file=sys.stderr)
+    trimmed = trim_chat_history(messages)
+    system_prompt, last_user = _build_visitor_system_prompt(messages)
+    project_matched = bool(match_projects_for_query(last_user))
+    model = select_visitor_chat_model(last_user, project_matched=project_matched)
 
     client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY"))
     stream = await client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "system", "content": system_prompt}] + messages,
+        model=model,
+        messages=[{"role": "system", "content": system_prompt}] + trimmed,
         stream=True,
-        max_tokens=1024,
+        max_tokens=CHAT_MAX_TOKENS,
         temperature=0.2,
     )
     async for chunk in stream:
         delta = chunk.choices[0].delta.content
         if delta:
             yield delta
+    if hasattr(stream, "usage") and stream.usage:
+        _log_usage(
+            "chat/stream",
+            model,
+            stream.usage,
+            context_chars=len(system_prompt),
+            history_turns=len(trimmed),
+        )
 
 
 async def complete_chat(messages: list[dict]) -> str:
-    context = build_context()
-    system_prompt = _SYSTEM_PROMPT_TEMPLATE.format(context=context)
+    trimmed = trim_chat_history(messages)
+    system_prompt, last_user = _build_visitor_system_prompt(messages)
+    project_matched = bool(match_projects_for_query(last_user))
+    model = select_visitor_chat_model(last_user, project_matched=project_matched)
 
     client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY"))
     response = await client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "system", "content": system_prompt}] + messages,
+        model=model,
+        messages=[{"role": "system", "content": system_prompt}] + trimmed,
         stream=False,
-        max_tokens=1024,
+        max_tokens=CHAT_MAX_TOKENS,
         temperature=0.2,
+    )
+    _log_usage(
+        "chat/complete",
+        model,
+        response.usage,
+        context_chars=len(system_prompt),
+        history_turns=len(trimmed),
     )
     return response.choices[0].message.content or ""
 
 
-async def summarize_chat_logs(chat_logs: list[dict]) -> dict:
-    """
-    Produce a rich analytics summary for the admin dashboard card.
+async def summarize_conversation(messages: list[dict]) -> dict:
+    """Lightweight session summary — no portfolio context."""
+    lines = [
+        f'{m["role"]}: {str(m.get("content", ""))[:200]}'
+        for m in messages[-CHAT_MAX_HISTORY:]
+    ]
+    prompt = (
+        "Portfolyo ziyaretçi konuşmasını özetle. SADECE geçerli JSON:\n"
+        '{"summary":"2-3 cümle Türkçe","top_topics":["konu1","konu2"],'
+        f'"message_count":{len(messages)}}}\n\n'
+        + "\n".join(lines)
+    )
 
-    Returns a dict with keys:
-      summary            – 2-3 sentence executive summary (Turkish)
-      top_topics         – list of 3 short topic labels
-      dominant_intent    – single label for the primary visitor intent
-      top_project        – name of the most-discussed project (or "")
-      visitor_expectation – one sentence on what visitors want from Harun
-    """
     client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY"))
-
-    prompt = f"""Aşağıdaki portfolyo sohbet kayıtlarını analitik bir dashboard özeti için analiz et.
-SADECE geçerli JSON döndür, başka hiçbir şey yazma.
-
-Şu formata kesinlikle uy:
-{{
-  "summary": "2-3 cümle executive summary — öne çıkan pattern ve insight, Türkçe",
-  "top_topics": ["kısa etiket 1", "kısa etiket 2", "kısa etiket 3"],
-  "dominant_intent": "en baskın ziyaretçi niyeti (ör: teknik merak / işe alım / proje sorgusu)",
-  "top_project": "en çok konuşulan proje adı ya da boş string",
-  "visitor_expectation": "ziyaretçilerin Harun'dan tek cümleyle ne beklediği"
-}}
-
-Kayıtlar:
-{json.dumps(chat_logs, ensure_ascii=False, indent=2)}"""
-
     response = await client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=MODEL_FAST,
         messages=[
             {
                 "role": "system",
-                "content": (
-                    "Sen bir portfolio analytics danışmanısın. "
-                    "Ziyaretçi sohbet kayıtlarını analiz ederek stratejik içgörüler üretirsin. "
-                    "Sadece istenen JSON formatında yanıt ver."
-                ),
+                "content": "Kısa Türkçe özet üret. Yalnızca istenen JSON.",
             },
             {"role": "user", "content": prompt},
         ],
         stream=False,
-        max_tokens=600,
+        max_tokens=220,
+        temperature=0.1,
+    )
+    _log_usage("chat/summary", MODEL_FAST, response.usage, context_chars=0, history_turns=len(lines))
+    content = response.choices[0].message.content or ""
+    cleaned = re.sub(r"```json|```", "", content).strip()
+    try:
+        return json.loads(cleaned)
+    except (json.JSONDecodeError, ValueError):
+        return {}
+
+
+def chat_logs_fingerprint(logs: list[dict]) -> str:
+    parts = sorted(
+        f"{log.get('filename', '')}:{log.get('mtime', 0)}:{log.get('message_count', 0)}"
+        for log in logs
+    )
+    return hashlib.sha256("|".join(parts).encode()).hexdigest()[:16]
+
+
+async def summarize_chat_logs(chat_logs: list[dict]) -> dict:
+    compact = [
+        {
+            "t": log.get("timestamp", "")[:16],
+            "n": log.get("message_count", 0),
+            "u": log.get("user_samples", [])[:3],
+            "a": log.get("assistant_samples", [])[:1],
+        }
+        for log in chat_logs[:12]
+    ]
+    prompt = (
+        "Sohbet kayıtlarından dashboard özeti. SADECE JSON:\n"
+        '{"summary":"2-3 cümle","top_topics":["a","b","c"],'
+        '"dominant_intent":"...","top_project":"...","visitor_expectation":"..."}\n'
+        f"Kayıtlar:{json.dumps(compact, ensure_ascii=False)}"
+    )
+
+    client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY"))
+    response = await client.chat.completions.create(
+        model=MODEL_ADMIN,
+        messages=[
+            {
+                "role": "system",
+                "content": "Portfolio analytics. Yalnızca JSON.",
+            },
+            {"role": "user", "content": prompt},
+        ],
+        stream=False,
+        max_tokens=400,
         temperature=0.2,
     )
+    _log_usage("admin/overview", MODEL_ADMIN, response.usage, context_chars=len(prompt), history_turns=0)
 
     content = response.choices[0].message.content or ""
     cleaned = re.sub(r"```json|```", "", content).strip()
@@ -260,7 +301,7 @@ Kayıtlar:
     except (json.JSONDecodeError, ValueError) as exc:
         print(
             f"[GROQ] summarize_chat_logs: JSON parse failed ({exc}). "
-            f"Raw response (first 200 chars): {content[:200]!r}",
+            f"Raw: {content[:200]!r}",
             file=sys.stderr,
         )
         return {}
@@ -270,34 +311,29 @@ async def answer_admin_chat_about_logs(
     messages: list[dict],
     chat_logs: list[dict],
 ) -> str:
-    """
-    Answer an admin question about visitor chat logs.
-
-    Key design:
-    • Log data is embedded in the SYSTEM prompt so it persists across all turns.
-    • `messages` is the full conversation history (role: user/assistant) and is
-      passed directly as the LLM message list — this gives proper multi-turn memory.
-    • The model acts as an analytics consultant, not a generic assistant.
-    """
     client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY"))
-
-    log_section = _build_analytics_log_section(chat_logs)
+    log_section = _build_analytics_log_section(chat_logs[:15])
     system_content = _ADMIN_ANALYTICS_PROMPT.format(log_section=log_section)
 
-    # Build the full message list:  system  +  full conversation history
     llm_messages: list[dict] = [{"role": "system", "content": system_content}]
-    for msg in messages:
+    for msg in trim_chat_history(messages, max_messages=16):
         role = msg.get("role", "user")
         content = msg.get("content", "")
         if role in ("user", "assistant") and content:
             llm_messages.append({"role": role, "content": content})
 
     response = await client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=MODEL_DEEP,
         messages=llm_messages,
         stream=False,
-        max_tokens=800,
+        max_tokens=600,
         temperature=0.3,
     )
-
+    _log_usage(
+        "admin/assistant",
+        MODEL_DEEP,
+        response.usage,
+        context_chars=len(system_content),
+        history_turns=len(messages),
+    )
     return (response.choices[0].message.content or "").strip()
