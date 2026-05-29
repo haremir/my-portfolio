@@ -5,14 +5,14 @@ Lightweight async background scheduler for the Telegram bot.
 
 Responsibilities
 ────────────────
-* Nightly summary at a configurable hour (default 21:00 local time)
+* Nightly summary at a configurable hour (default 21:00 Istanbul time)
 * Periodic health-check ping (optional, off by default)
-* Inactivity ping when no chat logs arrive for N hours (optional)
 
 Design
 ──────
 * Runs as a background asyncio Task inside the bot process.
 * NEVER imports from Reflex — safe to run standalone.
+* All datetime operations use Europe/Istanbul timezone.
 * On failure: logs the error, sleeps, and retries next cycle.
 """
 
@@ -26,6 +26,21 @@ import time
 from datetime import datetime, date
 from pathlib import Path
 
+try:
+    from zoneinfo import ZoneInfo
+    _TZ = ZoneInfo("Europe/Istanbul")
+except Exception:
+    _TZ = None
+
+
+def _now() -> datetime:
+    return datetime.now(_TZ) if _TZ else datetime.now()
+
+
+def _today_str() -> str:
+    return _now().date().isoformat()
+
+
 # Lazy import to avoid import-time side effects when running inside Reflex
 def _get_notifier():
     from harun_site.telegram_bot import notifier as _n
@@ -38,9 +53,8 @@ def _get_data_manager():
 
 
 # ── Config from env ────────────────────────────────────────────────────────
-_SUMMARY_HOUR    = int(os.environ.get("DAILY_SUMMARY_HOUR", "21"))   # 24h local
-_HEALTH_INTERVAL = int(os.environ.get("HEALTH_CHECK_HOURS",  "0"))   # 0 = disabled
-_INACTIVITY_HRS  = int(os.environ.get("INACTIVITY_PING_HOURS", "0")) # 0 = disabled
+_SUMMARY_HOUR    = int(os.environ.get("DAILY_SUMMARY_HOUR",  "21"))   # 24h Istanbul
+_HEALTH_INTERVAL = int(os.environ.get("HEALTH_CHECK_HOURS",   "0"))   # 0 = disabled
 
 _STATE_FILE = Path(__file__).resolve().parent.parent.parent / "data" / "tg_scheduler_state.json"
 
@@ -71,52 +85,118 @@ def _save_state(state: dict) -> None:
 
 # ── Daily summary builder ──────────────────────────────────────────────────
 async def build_daily_summary() -> str:
-    """Build a human-readable daily summary string (no Groq — fast and free)."""
-    dm = _get_data_manager()
-    today_str = date.today().isoformat()
-    logs = dm.load_chat_logs()
+    """
+    Build a rich human-readable daily summary string.
+    No Groq — fast, free, keyword-based analysis.
+    """
+    dm        = _get_data_manager()
+    notifier  = _get_notifier()
+    today     = _today_str()
+    logs      = dm.load_chat_logs()
 
     # Filter logs from today
-    today_logs = [
-        l for l in logs
-        if (l.get("timestamp") or "").startswith(today_str)
-    ]
+    today_logs = [l for l in logs if (l.get("timestamp") or "").startswith(today)]
 
-    total_visitors  = len(today_logs)
-    total_messages  = sum(l.get("message_count", 0) for l in today_logs)
-    all_logs_count  = len(logs)
+    total_sessions  = len(today_logs)
+    total_user_msgs = sum(
+        l.get("user_message_count", l.get("message_count", 0) // 2)
+        for l in today_logs
+    )
+    all_sessions = len(logs)
 
-    # Project mention tally across today's logs
+    # ── Project mention tally ────────────────────────────────────────────
     from harun_site.utils.data_manager import load_projects, load_chat_log_messages
     projects = load_projects()
     proj_counts: dict[str, int] = {p.get("name", ""): 0 for p in projects}
 
+    # ── Hiring signal count + top user questions ─────────────────────────
+    hiring_count     = 0
+    top_questions: list[str] = []
+
+    from harun_site.telegram_bot.notifier import _HIRING_KEYWORDS, _keyword_score
+
     for log in today_logs:
         messages = load_chat_log_messages(log["filename"])
-        text = " ".join(
+        user_text = " ".join(
             m.get("content", "") for m in messages if m.get("role") == "user"
         ).lower()
+
+        # Project mentions
         for p in projects:
             name = p.get("name", "").lower()
-            if name and name in text:
+            if name and name in user_text:
                 proj_counts[p.get("name", "")] += 1
 
+        # Hiring signal?
+        if _keyword_score(user_text, _HIRING_KEYWORDS) >= 1:
+            hiring_count += 1
+
+        # Collect first user message as a notable question sample
+        first_user = next(
+            (m.get("content", "") for m in messages if m.get("role") == "user"),
+            "",
+        )
+        if first_user and len(top_questions) < 3:
+            top_questions.append(first_user[:100])
+
+    # Top project
     top_project = max(proj_counts, key=proj_counts.get) if proj_counts else ""
     top_count   = proj_counts.get(top_project, 0)
 
-    # Watchlist
-    watchlist   = _get_notifier().load_watchlist()
-    watch_line  = ("👀 İzleniyor: " + ", ".join(watchlist)) if watchlist else "👀 Watchlist boş"
-
-    lines = [
-        f"📊 <b>Günlük Özet — {today_str}</b>",
-        "",
-        f"👥 Bugünkü oturum: <b>{total_visitors}</b>",
-        f"💬 Bugünkü mesaj: <b>{total_messages}</b>",
-        f"📚 Toplam kayıt: {all_logs_count}",
+    # ── Weekly comparison ─────────────────────────────────────────────────
+    # Count sessions from the previous 7 days (excluding today)
+    from datetime import timedelta as _td
+    week_ago = (_now().date() - _td(days=7)).isoformat()
+    prev_week_logs = [
+        l for l in logs
+        if week_ago <= (l.get("timestamp") or "")[:10] < today
     ]
+    prev_avg = len(prev_week_logs) / 7 if prev_week_logs else 0
+    if prev_avg > 0:
+        pct_change = ((total_sessions - prev_avg) / prev_avg) * 100
+        trend_sign = "+" if pct_change >= 0 else ""
+        trend_line = f"📈 7 günlük ortalamayla: {trend_sign}{pct_change:.0f}%"
+    else:
+        trend_line = ""
+
+    # ── Watchlist ──────────────────────────────────────────────────────────
+    watchlist  = notifier.load_watchlist()
+    watch_line = ("👀 İzleniyor: " + ", ".join(watchlist)) if watchlist else "👀 Watchlist boş"
+
+    # ── Mute status ────────────────────────────────────────────────────────
+    mute_state = notifier.get_mute_state()
+    mute_lines: list[str] = []
+    if mute_state["muted"]:
+        if mute_state["until"] == -1:
+            mute_lines = ["", "🔇 <b>Sistem şu an MUTE konumunda</b> (açana kadar)", "   Açmak için: /unmute"]
+        else:
+            until_dt = datetime.fromtimestamp(mute_state["until"], tz=_TZ) if _TZ else datetime.fromtimestamp(mute_state["until"])
+            mute_lines = ["", f"🔇 <b>Sistem MUTE</b> ({until_dt.strftime('%H:%M')}'e kadar)", "   Açmak için: /unmute"]
+
+    # ── Assemble ───────────────────────────────────────────────────────────
+    lines: list[str] = [
+        f"📊 <b>Günlük Özet — {today}</b>",
+        *mute_lines,
+        "",
+        f"👥 Bugünkü oturum: <b>{total_sessions}</b>",
+        f"💬 Bugünkü kullanıcı mesajı: <b>{total_user_msgs}</b>",
+        f"📚 Toplam kayıtlı oturum: {all_sessions}",
+    ]
+
     if top_project and top_count > 0:
         lines.append(f"🔥 En çok konuşulan: <b>{top_project}</b> ({top_count} oturum)")
+    if hiring_count > 0:
+        lines.append(f"🚨 Hiring sinyali: <b>{hiring_count} oturum</b>")
+    if trend_line:
+        lines.append(trend_line)
+
+    if top_questions:
+        lines.append("")
+        lines.append("💬 <b>Öne çıkan sorular:</b>")
+        for q in top_questions:
+            lines.append(f"  • {q.replace('<','&lt;').replace('>','&gt;')}")
+
+    lines.append("")
     lines.append(watch_line)
 
     return "\n".join(lines)
@@ -125,13 +205,25 @@ async def build_daily_summary() -> str:
 # ── Health report builder ──────────────────────────────────────────────────
 async def build_health_report() -> str:
     """Fast health check — no external API calls."""
-    dm = _get_data_manager()
-    logs = dm.load_chat_logs()
-    watchlist = _get_notifier().load_watchlist()
-    data_dir = Path(__file__).resolve().parent.parent.parent / "data"
-    disk_mb = sum(
+    dm        = _get_data_manager()
+    notifier  = _get_notifier()
+    logs      = dm.load_chat_logs()
+    watchlist = notifier.load_watchlist()
+    data_dir  = Path(__file__).resolve().parent.parent.parent / "data"
+    disk_mb   = sum(
         f.stat().st_size for f in data_dir.rglob("*.json") if f.is_file()
     ) / (1024 * 1024)
+
+    mute_state = notifier.get_mute_state()
+    mute_info  = ""
+    if mute_state["muted"]:
+        if mute_state["until"] == -1:
+            mute_info = "\n🔇 Bildirimler: MUTE (süresiz)"
+        else:
+            until_dt = datetime.fromtimestamp(mute_state["until"], tz=_TZ) if _TZ else datetime.fromtimestamp(mute_state["until"])
+            mute_info = f"\n🔇 Bildirimler: MUTE ({until_dt.strftime('%H:%M')}'e kadar)"
+    else:
+        mute_info = "\n🔔 Bildirimler: Aktif"
 
     lines = [
         "🩺 <b>Sistem Durumu</b>",
@@ -139,32 +231,36 @@ async def build_health_report() -> str:
         f"📁 Chat log sayısı: {len(logs)}",
         f"👀 Watchlist: {', '.join(watchlist) if watchlist else '—'}",
         f"💾 Data boyutu: {disk_mb:.2f} MB",
+        f"🕐 Sunucu saati: {_now().strftime('%H:%M')} (İstanbul)",
+        mute_info,
     ]
     if disk_mb > 50:
         lines.append("⚠️ Data dizini büyüyor — eski logları temizlemeyi düşün.")
     return "\n".join(lines)
 
 
-# ── Scheduler loop ────────────────────────────────────────────────────────
+# ── Scheduler loop ─────────────────────────────────────────────────────────
 async def scheduler_loop(send_fn) -> None:
     """
     Main scheduler coroutine. *send_fn* is an async callable that accepts (text: str)
     and sends a Telegram message to the admin.
 
     Runs indefinitely; designed to be started as asyncio.create_task().
+    All time comparisons use Europe/Istanbul timezone.
     """
     print("[TELEGRAM] Scheduler started.", file=sys.stderr)
     state = _load_state()
 
     while True:
         try:
-            now  = datetime.now()
+            now   = _now()
             today = now.date().isoformat()
 
             # ── Nightly summary ──────────────────────────────────────────
             last_summary = state.get("last_summary_date", "")
             if now.hour >= _SUMMARY_HOUR and last_summary != today:
                 summary = await build_daily_summary()
+                # Daily summary is never muted — use send_fn directly
                 await send_fn(summary)
                 state["last_summary_date"] = today
                 _save_state(state)

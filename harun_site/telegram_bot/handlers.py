@@ -15,7 +15,19 @@ import os
 import re
 import sys
 import traceback
-from datetime import date
+from datetime import datetime
+
+try:
+    from zoneinfo import ZoneInfo
+    _TZ = ZoneInfo("Europe/Istanbul")
+except Exception:
+    _TZ = None
+
+
+def _now() -> datetime:
+    """Şimdiki zamanı İstanbul timezone'u ile döner."""
+    return datetime.now(_TZ) if _TZ else datetime.now()
+
 
 # ── Auth helper ────────────────────────────────────────────────────────────
 def _owner_id() -> int | None:
@@ -70,6 +82,14 @@ async def _deny_if_not_owner(update) -> bool:
             f".env → TELEGRAM_ADMIN_ID={uid}",
         )
     return False
+
+
+# ── Keyboard helper ────────────────────────────────────────────────────────
+def _keyboard():
+    """Mute durumuna göre doğru klavyeyi döner."""
+    from harun_site.telegram_bot.keyboards import command_keyboard
+    from harun_site.telegram_bot.notifier import is_muted
+    return command_keyboard(muted=is_muted())
 
 
 # ── Analytics bridge ───────────────────────────────────────────────────────
@@ -130,7 +150,6 @@ def format_markdown_to_tg_html(text: str) -> str:
     text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
     # 2. Markdown Links: [text](url) -> <a href="url">text</a>
-    # If the URL is relative (starts with /), prepend the site URL (default http://localhost:3000)
     site_url = os.environ.get("SITE_URL", "http://localhost:3000").rstrip("/")
     def link_repl(match):
         label = match.group(1)
@@ -138,7 +157,7 @@ def format_markdown_to_tg_html(text: str) -> str:
         if url.startswith("/"):
             url = site_url + url
         return f'<a href="{url}">{label}</a>'
-    
+
     text = re.sub(r"\[(.*?)\]\((.*?)\)", link_repl, text)
 
     # 3. Bold: **text** -> <b>text</b>
@@ -158,20 +177,21 @@ def _msg(update):
     return update.effective_message
 
 
-async def _reply_plain(update, text: str, *, with_keyboard: bool = True) -> None:
+async def _reply_plain(update, text: str, *, with_keyboard: bool = True, reply_markup=None) -> None:
     message = _msg(update)
     if not message:
         return
     if len(text) > 4000:
         text = text[:4000] + "\n\n…(kısaltıldı)"
-    from harun_site.telegram_bot.keyboards import command_keyboard
 
     kwargs = {
         "parse_mode": "HTML",
         "disable_web_page_preview": True,
     }
-    if with_keyboard:
-        kwargs["reply_markup"] = command_keyboard()
+    if reply_markup is not None:
+        kwargs["reply_markup"] = reply_markup
+    elif with_keyboard:
+        kwargs["reply_markup"] = _keyboard()
     await message.reply_text(text, **kwargs)
 
 
@@ -181,11 +201,10 @@ async def _reply(update, text: str, *, parse_html: bool = True, with_keyboard: b
         return
     if len(text) > 4000:
         text = text[:4000] + "\n\n<i>…(mesaj kısaltıldı)</i>"
-    from harun_site.telegram_bot.keyboards import command_keyboard
 
     kwargs = {"disable_web_page_preview": True}
     if with_keyboard:
-        kwargs["reply_markup"] = command_keyboard()
+        kwargs["reply_markup"] = _keyboard()
     try:
         await message.reply_text(
             text,
@@ -196,6 +215,24 @@ async def _reply(update, text: str, *, parse_html: bool = True, with_keyboard: b
         print(f"[TELEGRAM] HTML reply failed ({exc}), retrying plain.", file=sys.stderr)
         plain = re.sub(r"<[^>]+>", "", text) if parse_html else text
         await message.reply_text(plain[:4000], **kwargs)
+
+
+async def _reply_multipart(update, text: str, *, chunk_size: int = 4000) -> None:
+    """4096 karakter limitini aşan uzun metinleri parçalar halinde gönderir."""
+    message = _msg(update)
+    if not message:
+        return
+    parts = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+    for i, part in enumerate(parts):
+        kb = _keyboard() if i == len(parts) - 1 else None
+        kwargs = {"parse_mode": "HTML", "disable_web_page_preview": True}
+        if kb:
+            kwargs["reply_markup"] = kb
+        try:
+            await message.reply_text(part, **kwargs)
+        except Exception:
+            plain = re.sub(r"<[^>]+>", "", part)
+            await message.reply_text(plain[:chunk_size])
 
 
 async def _reply_error(update, exc: Exception, *, context: str) -> None:
@@ -242,9 +279,9 @@ async def cmd_start(update, context) -> None:
     await _reply_plain(
         update,
         "👋 <b>Portföy Ops Bot</b> hazır.\n\n"
-        "/help — komutlar\n"
-        "Serbest metin — ziyaretçi log analizi (admin asistanı gibi)\n"
-        "/sor &lt;mesaj&gt; — portfolyo ziyaretçi sohbeti simülasyonu",
+        "/help — tam komut rehberi\n"
+        "Serbest metin — log analizi (admin asistanı)\n"
+        "/sor &lt;mesaj&gt; — portfolyo chat simülasyonu",
     )
 
 
@@ -252,19 +289,47 @@ async def cmd_start(update, context) -> None:
 async def cmd_help(update, context) -> None:
     if not await _deny_if_not_owner(update):
         return
+    from harun_site.telegram_bot.notifier import is_muted, get_mute_state
+    mute_state = get_mute_state()
+    mute_line = ""
+    if mute_state["muted"]:
+        if mute_state["until"] == -1:
+            mute_line = "\n🔇 <b>Bildirimler: MUTE (açana kadar)</b>\n"
+        else:
+            from datetime import datetime as _dt
+            until_dt = _dt.fromtimestamp(mute_state["until"], tz=_TZ) if _TZ else _dt.fromtimestamp(mute_state["until"])
+            mute_line = f"\n🔇 <b>Bildirimler: MUTE (kadar: {until_dt.strftime('%H:%M')})</b>\n"
+
     await _reply_plain(
         update,
-        "📋 <b>Komutlar</b>\n\n"
-        "/ping — Bot ayakta mı?\n"
-        "/summary — Günlük özet (Groq yok)\n"
-        "/stats — Hızlı istatistik\n"
-        "/hot — İlginç oturumlar (AI)\n"
-        "/panic — Sistem raporu\n"
-        "/sor &lt;mesaj&gt; — Portfolyo chat (site ziyaretçisi gibi)\n"
-        "/watch /unwatch /watchlist — Proje takibi\n"
-        "/clear — Analiz sohbet geçmişini sil\n\n"
-        "💬 Serbest metin → admin panelindeki <b>log analist</b> asistanı\n"
-        "<i>Örn: \"Bugün kim ne sordu?\" \"CebirX kaç kez geçti?\"</i>",
+        f"📋 <b>Portföy Ops Bot — Komut Rehberi</b>{mute_line}\n"
+        "📊 <b>ANALİZ</b>\n"
+        "  /summary — Günlük rapor (oturum, mesaj, projeler, trendler)\n"
+        "  /stats — Hızlı rakamlar (toplam / bugün)\n"
+        "  /hot — AI ile ilginç oturumları bul (recruiter, hiring...)\n"
+        "  /visitor — Ziyaretçi durumu + son sohbetler\n\n"
+        "📖 <b>SOHBET</b>\n"
+        "  /read — Son 5 sohbeti listele\n"
+        "  /read 1 — En son sohbetin tam içeriği\n"
+        "  /read 2 — 2. sohbetin içeriği (vb.)\n"
+        "  /sor &lt;mesaj&gt; — Portfolyo chatını test et (ziyaretçi gibi)\n"
+        "  /export — Tüm logları düz metin dosyası olarak al\n"
+        "  /export today — Sadece bugünkü loglar\n"
+        "  /export last5 — Son 5 sohbet\n\n"
+        "🔧 <b>YÖNETİM</b>\n"
+        "  /watch &lt;proje&gt; — Projeyi takibe al (konuşulunca bildirim gelir)\n"
+        "  /unwatch &lt;proje&gt; — Takipten çıkar\n"
+        "  /watchlist — Takipteki projeler\n"
+        "  /newvisitor on/off — Yeni ziyaretçi bildirimini aç/kapat\n"
+        "  /mute — Bildirimleri geçici sustur (süre seçersin)\n"
+        "  /unmute — Bildirimleri hemen aç\n"
+        "  /clear — Analiz sohbet geçmişini sil\n\n"
+        "🩺 <b>SİSTEM</b>\n"
+        "  /ping — Bot ayakta mı?\n"
+        "  /panic — Sistem sağlık raporu + Groq durumu\n"
+        "  /whoami — Telegram ID kontrolü (herkese açık)\n\n"
+        "💬 <b>Serbest metin</b> → AI log analisti\n"
+        "   <i>Örn: \"Bugün kim ne sordu?\" \"CebirX kaç kez geçti?\"</i>",
     )
 
 
@@ -315,18 +380,18 @@ async def cmd_stats(update, context) -> None:
         from harun_site.utils.data_manager import load_chat_logs
         from harun_site.telegram_bot.notifier import load_watchlist
         logs = load_chat_logs()
-        today_str = date.today().isoformat()
+        today_str = _now().date().isoformat()
         today_logs = [l for l in logs if (l.get("timestamp") or "").startswith(today_str)]
-        total_msgs = sum(l.get("message_count", 0) for l in logs)
-        today_msgs = sum(l.get("message_count", 0) for l in today_logs)
-        watchlist = load_watchlist()
+        total_msgs  = sum(l.get("user_message_count", l.get("message_count", 0) // 2) for l in logs)
+        today_msgs  = sum(l.get("user_message_count", l.get("message_count", 0) // 2) for l in today_logs)
+        watchlist   = load_watchlist()
         await _reply_plain(
             update,
             f"📈 <b>İstatistikler</b>\n\n"
             f"📁 Toplam kayıt: <b>{len(logs)}</b>\n"
-            f"💬 Toplam mesaj: <b>{total_msgs}</b>\n"
+            f"💬 Toplam kullanıcı mesajı: <b>{total_msgs}</b>\n"
             f"👥 Bugünkü oturum: <b>{len(today_logs)}</b>\n"
-            f"📩 Bugünkü mesaj: <b>{today_msgs}</b>\n"
+            f"📩 Bugünkü kullanıcı mesajı: <b>{today_msgs}</b>\n"
             f"👀 Watchlist: {', '.join(watchlist) if watchlist else '—'}",
         )
     except Exception as exc:
@@ -423,7 +488,7 @@ async def cmd_watchlist(update, context) -> None:
         items = "\n".join(f"• {_escape_html(p)}" for p in wl)
         await _reply_plain(update, f"👀 <b>Watchlist:</b>\n{items}")
     else:
-        await _reply_plain(update, "👀 Watchlist boş.")
+        await _reply_plain(update, "👀 Watchlist boş.\n\nProje takibe almak için:\n<code>/watch cebirx</code>")
 
 
 # ── /clear ─────────────────────────────────────────────────────────────────
@@ -435,6 +500,322 @@ async def cmd_clear(update, context) -> None:
     await _reply_plain(update, "🧹 Analiz sohbet geçmişi temizlendi.")
 
 
+# ── /read — sohbet içeriğini oku ──────────────────────────────────────────
+async def cmd_read(update, context) -> None:
+    if not await _deny_if_not_owner(update):
+        return
+    from harun_site.utils.data_manager import load_chat_logs, load_chat_log_messages
+
+    logs = load_chat_logs()
+    if not logs:
+        await _reply_plain(update, "📭 Henüz hiç sohbet kaydı yok.")
+        return
+
+    args = context.args
+    # /read <numara> → belirli sohbeti göster
+    if args:
+        try:
+            idx = int(args[0]) - 1
+            if idx < 0 or idx >= len(logs):
+                await _reply_plain(update, f"⚠️ Geçersiz numara. 1–{len(logs)} arasında bir değer gir.")
+                return
+        except ValueError:
+            await _reply_plain(update, "Kullanım: /read veya /read 1")
+            return
+
+        log = logs[idx]
+        messages = load_chat_log_messages(log["filename"])
+        ts = log.get("timestamp", "")
+        try:
+            from datetime import datetime as _dt
+            dt = _dt.fromisoformat(ts)
+            if _TZ:
+                dt = dt.replace(tzinfo=_TZ) if dt.tzinfo is None else dt.astimezone(_TZ)
+            ts_fmt = dt.strftime("%-d %B %Y, %H:%M") if sys.platform != "win32" else dt.strftime("%d %B %Y, %H:%M")
+        except Exception:
+            ts_fmt = ts[:16]
+
+        user_count = sum(1 for m in messages if m.get("role") == "user")
+        lines = [f"📖 <b>Sohbet #{idx+1}</b> — {ts_fmt}\n💬 {user_count} kullanıcı mesajı\n"]
+        for m in messages:
+            role = m.get("role", "")
+            content = _escape_html(m.get("content", ""))[:600]
+            if role == "user":
+                lines.append(f"👤 {content}")
+            elif role == "assistant":
+                lines.append(f"🤖 {content}")
+            lines.append("")
+
+        full_text = "\n".join(lines)
+        await _reply_multipart(update, full_text)
+        return
+
+    # /read → son 5 sohbeti listele
+    display = logs[:5]
+    lines = ["📖 <b>Son Sohbetler:</b>\n"]
+    for i, log in enumerate(display, 1):
+        ts = log.get("timestamp", "")
+        try:
+            from datetime import datetime as _dt
+            dt = _dt.fromisoformat(ts)
+            if _TZ:
+                dt = dt.replace(tzinfo=_TZ) if dt.tzinfo is None else dt.astimezone(_TZ)
+            now = _now()
+            if dt.date() == now.date():
+                ts_fmt = dt.strftime("%H:%M")
+            else:
+                ts_fmt = "Dün " + dt.strftime("%H:%M") if (now.date() - dt.date()).days == 1 else dt.strftime("%d.%m %H:%M")
+        except Exception:
+            ts_fmt = ts[:16]
+
+        user_count = log.get("user_message_count", log.get("message_count", 0) // 2)
+        # Hiring sinyali varsa bayrak ekle
+        flag = " 🔥" if user_count >= 8 else ""
+        # İlk user mesajını önizle
+        try:
+            from harun_site.utils.data_manager import load_chat_log_messages as _lcm
+            msgs = _lcm(log["filename"])
+            first_msg = next((m.get("content", "") for m in msgs if m.get("role") == "user"), "")
+            preview = _escape_html(first_msg[:60]) + ("…" if len(first_msg) > 60 else "")
+        except Exception:
+            preview = ""
+
+        num_emoji = ["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣"][i-1]
+        lines.append(f"{num_emoji} [{ts_fmt}] \"{preview}\" ({user_count} mesaj){flag}")
+
+    lines.append(f"\n<i>Detay için: /read 1 … /read {len(display)}</i>")
+    await _reply_plain(update, "\n".join(lines))
+
+
+# ── /visitor — anlık ziyaretçi durumu ─────────────────────────────────────
+async def cmd_visitor(update, context) -> None:
+    if not await _deny_if_not_owner(update):
+        return
+    from harun_site.utils.data_manager import load_chat_logs, load_chat_log_messages
+
+    logs = load_chat_logs()
+    now = _now()
+    today_str  = now.date().isoformat()
+    week_start = (now.date().toordinal() - now.weekday())
+
+    today_logs = [l for l in logs if (l.get("timestamp") or "").startswith(today_str)]
+    week_logs  = [
+        l for l in logs
+        if (l.get("timestamp") or "") >= today_str[:4]  # same year
+        and _log_date_ordinal(l) >= week_start
+    ]
+
+    today_msgs = sum(l.get("user_message_count", l.get("message_count", 0) // 2) for l in today_logs)
+    week_msgs  = sum(l.get("user_message_count", l.get("message_count", 0) // 2) for l in week_logs)
+
+    # En aktif gün bu hafta
+    from collections import Counter
+    day_counts: Counter = Counter()
+    for l in week_logs:
+        try:
+            from datetime import date as _date
+            d = _date.fromisoformat(l["timestamp"][:10])
+            day_names = ["Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi","Pazar"]
+            day_counts[day_names[d.weekday()]] += 1
+        except Exception:
+            pass
+    busiest = max(day_counts, key=day_counts.get) if day_counts else "—"
+    busiest_count = day_counts.get(busiest, 0)
+
+    lines = [
+        "👥 <b>Ziyaretçi Durumu</b>\n",
+        f"📊 Bugün: <b>{len(today_logs)} oturum</b>, {today_msgs} mesaj",
+        f"📈 Bu hafta: <b>{len(week_logs)} oturum</b>, {week_msgs} mesaj",
+        f"🔥 En aktif gün: <b>{busiest}</b> ({busiest_count} oturum)" if busiest != "—" else "",
+        "",
+        "Son 3 sohbet:",
+    ]
+    for i, log in enumerate(logs[:3], 1):
+        ts = log.get("timestamp", "")
+        try:
+            from datetime import datetime as _dt
+            dt = _dt.fromisoformat(ts)
+            if _TZ:
+                dt = dt.replace(tzinfo=_TZ) if dt.tzinfo is None else dt.astimezone(_TZ)
+            ts_fmt = dt.strftime("%H:%M") if dt.date() == now.date() else dt.strftime("%d.%m %H:%M")
+        except Exception:
+            ts_fmt = ts[:16]
+        uc = log.get("user_message_count", log.get("message_count", 0) // 2)
+        flag = " 🚨" if uc >= 6 else ""
+        try:
+            from harun_site.utils.data_manager import load_chat_log_messages as _lcm
+            msgs = _lcm(log["filename"])
+            first = next((m.get("content","") for m in msgs if m.get("role") == "user"), "")
+            preview = _escape_html(first[:50]) + ("…" if len(first) > 50 else "")
+        except Exception:
+            preview = ""
+        lines.append(f"{i}. {ts_fmt} — \"{preview}\" ({uc} mesaj){flag}")
+
+    await _reply_plain(update, "\n".join(l for l in lines if l is not None))
+
+
+def _log_date_ordinal(log: dict) -> int:
+    try:
+        from datetime import date as _date
+        return _date.fromisoformat(log["timestamp"][:10]).toordinal()
+    except Exception:
+        return 0
+
+
+# ── /export — logları düz metin dosyası olarak gönder ─────────────────────
+async def cmd_export(update, context) -> None:
+    if not await _deny_if_not_owner(update):
+        return
+    from harun_site.utils.data_manager import load_chat_logs, load_chat_log_messages
+
+    mode = (context.args[0].lower() if context.args else "all")
+    logs = load_chat_logs()
+    if not logs:
+        await _reply_plain(update, "📭 Henüz hiç sohbet kaydı yok.")
+        return
+
+    # Filtrele
+    if mode == "today":
+        today_str = _now().date().isoformat()
+        filtered = [l for l in logs if (l.get("timestamp") or "").startswith(today_str)]
+        if not filtered:
+            await _reply_plain(update, "📭 Bugün hiç sohbet yok.")
+            return
+        label = "bugun"
+    elif mode == "last5":
+        filtered = logs[:5]
+        label = "son5"
+    else:
+        filtered = logs
+        label = "tum_loglar"
+
+    status = _msg(update)
+    if status:
+        await status.reply_text(f"📤 {len(filtered)} sohbet hazırlanıyor…")
+
+    # Dosya içeriği oluştur
+    separator = "═" * 40
+    thin_sep  = "─" * 40
+    content_parts = [
+        f"PORTFÖY SOHBET KAYITLARI",
+        f"Oluşturulma: {_now().strftime('%d.%m.%Y %H:%M')} (İstanbul)",
+        f"Toplam sohbet: {len(filtered)}",
+        "",
+    ]
+
+    for i, log in enumerate(filtered, 1):
+        ts = log.get("timestamp", "")
+        try:
+            from datetime import datetime as _dt
+            dt = _dt.fromisoformat(ts)
+            if _TZ:
+                dt = dt.replace(tzinfo=_TZ) if dt.tzinfo is None else dt.astimezone(_TZ)
+            ts_fmt = dt.strftime("%d %B %Y, %H:%M")
+        except Exception:
+            ts_fmt = ts[:16]
+
+        messages = load_chat_log_messages(log["filename"])
+        user_count = sum(1 for m in messages if m.get("role") == "user")
+
+        content_parts += [
+            separator,
+            f"SOHBET #{i} — {ts_fmt}",
+            f"Kullanıcı mesaj sayısı: {user_count}",
+            separator,
+            "",
+        ]
+        for m in messages:
+            role = m.get("role", "")
+            content = m.get("content", "").strip()
+            if role == "user":
+                content_parts.append(f"[Ziyaretçi]\n{content}")
+            elif role == "assistant":
+                content_parts.append(f"[Harun]\n{content}")
+            content_parts.append("")
+        content_parts.append(thin_sep)
+        content_parts.append("")
+
+    full_content = "\n".join(content_parts)
+    filename = f"portfolio_sohbetler_{label}_{_now().strftime('%Y%m%d_%H%M')}.txt"
+
+    try:
+        from harun_site.telegram_bot.notifier import send_document_async
+        await send_document_async(filename, full_content)
+        # Küçük onay mesajı
+        await _reply_plain(update, f"✅ <b>{len(filtered)}</b> sohbet dosya olarak gönderildi.")
+    except Exception as exc:
+        print(f"[TELEGRAM] /export error: {exc}", file=sys.stderr)
+        await _reply_plain(update, "⚠️ Dosya gönderilemedi.")
+
+
+# ── /mute ─────────────────────────────────────────────────────────────────
+async def cmd_mute(update, context) -> None:
+    if not await _deny_if_not_owner(update):
+        return
+    from harun_site.telegram_bot.keyboards import mute_duration_keyboard
+    from harun_site.telegram_bot.notifier import is_muted, get_mute_state
+
+    if is_muted():
+        ms = get_mute_state()
+        if ms["until"] == -1:
+            current = "açana kadar"
+        else:
+            from datetime import datetime as _dt
+            until_dt = _dt.fromtimestamp(ms["until"], tz=_TZ) if _TZ else _dt.fromtimestamp(ms["until"])
+            current = f"{until_dt.strftime('%H:%M')}'e kadar"
+        await _reply_plain(
+            update,
+            f"🔇 Bildirimler zaten susturulmuş ({current}).\n"
+            "Değiştirmek için yeni süre seç:",
+            reply_markup=mute_duration_keyboard(),
+        )
+    else:
+        await _reply_plain(
+            update,
+            "🔇 <b>Bildirimleri ne kadar süre susturmak istiyorsun?</b>",
+            reply_markup=mute_duration_keyboard(),
+        )
+
+
+# ── /unmute ────────────────────────────────────────────────────────────────
+async def cmd_unmute(update, context) -> None:
+    if not await _deny_if_not_owner(update):
+        return
+    from harun_site.telegram_bot.notifier import clear_mute
+    clear_mute()
+    await _reply_plain(update, "🔔 Bildirimler açıldı.")
+
+
+# ── /newvisitor on|off ─────────────────────────────────────────────────────
+async def cmd_newvisitor(update, context) -> None:
+    if not await _deny_if_not_owner(update):
+        return
+    from harun_site.telegram_bot.notifier import (
+        is_new_visitor_notify_enabled,
+        set_new_visitor_notify,
+    )
+    args = context.args
+    if not args:
+        current = "✅ açık" if is_new_visitor_notify_enabled() else "🔕 kapalı"
+        await _reply_plain(
+            update,
+            f"🆕 Yeni ziyaretçi bildirimi şu an: <b>{current}</b>\n\n"
+            "Değiştirmek için:\n"
+            "<code>/newvisitor on</code> — aç\n"
+            "<code>/newvisitor off</code> — kapat",
+        )
+        return
+    val = args[0].lower()
+    if val in ("on", "aç", "1", "true"):
+        set_new_visitor_notify(True)
+        await _reply_plain(update, "✅ Yeni ziyaretçi bildirimi açıldı.")
+    elif val in ("off", "kapat", "0", "false"):
+        set_new_visitor_notify(False)
+        await _reply_plain(update, "🔕 Yeni ziyaretçi bildirimi kapatıldı.")
+    else:
+        await _reply_plain(update, "Kullanım: /newvisitor on veya /newvisitor off")
+
+
 # ── Inline butonlar (callback) ─────────────────────────────────────────────
 async def handle_callback(update, context) -> None:
     query = update.callback_query
@@ -444,7 +825,38 @@ async def handle_callback(update, context) -> None:
     if not _is_owner(update):
         return
 
-    cmd = (query.data or "").replace("cmd:", "", 1)
+    data = query.data or ""
+
+    # ── Mute süresi seçimi ─────────────────────────────────────────────
+    if data.startswith("mute:"):
+        duration = data.split(":", 1)[1]  # "1h", "1d", "forever"
+        from harun_site.telegram_bot.notifier import set_mute
+        until = set_mute(duration)
+
+        if duration == "1h":
+            label = "1 saat"
+        elif duration == "1d":
+            label = "1 gün"
+        else:
+            label = "açana kadar"
+
+        if until == -1:
+            time_info = "süresiz"
+        else:
+            from datetime import datetime as _dt
+            until_dt = _dt.fromtimestamp(until, tz=_TZ) if _TZ else _dt.fromtimestamp(until)
+            time_info = f"otomatik açılma: {until_dt.strftime('%H:%M')}"
+
+        await _reply_plain(
+            update,
+            f"🔇 Bildirimler <b>{label}</b> süreyle susturuldu.\n"
+            f"⏰ {time_info}\n\n"
+            "Bildirimleri açmak için: /unmute",
+        )
+        return
+
+    # ── Komut butonları ────────────────────────────────────────────────
+    cmd = data.replace("cmd:", "", 1)
     print(f"[TELEGRAM] Button: {cmd}", file=sys.stderr)
 
     if cmd == "sor_hint":
@@ -457,15 +869,20 @@ async def handle_callback(update, context) -> None:
         return
 
     dispatch = {
-        "summary": cmd_summary,
-        "stats": cmd_stats,
-        "hot": cmd_hot,
-        "panic": cmd_panic,
-        "help": cmd_help,
-        "clear": cmd_clear,
-        "watchlist": cmd_watchlist,
-        "ping": cmd_ping,
-        "start": cmd_start,
+        "summary":    cmd_summary,
+        "stats":      cmd_stats,
+        "hot":        cmd_hot,
+        "panic":      cmd_panic,
+        "help":       cmd_help,
+        "clear":      cmd_clear,
+        "watchlist":  cmd_watchlist,
+        "ping":       cmd_ping,
+        "start":      cmd_start,
+        "visitor":    cmd_visitor,
+        "read":       cmd_read,
+        "export":     cmd_export,
+        "mute":       cmd_mute,
+        "unmute":     cmd_unmute,
     }
     handler = dispatch.get(cmd)
     if handler:

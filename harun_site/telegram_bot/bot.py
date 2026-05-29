@@ -34,15 +34,21 @@ from telegram.ext import (
 
 from harun_site.telegram_bot.handlers import (
     cmd_clear,
+    cmd_export,
     cmd_help,
     cmd_hot,
+    cmd_mute,
+    cmd_newvisitor,
     cmd_panic,
     cmd_ping,
+    cmd_read,
     cmd_sor,
     cmd_start,
     cmd_stats,
     cmd_summary,
+    cmd_unmute,
     cmd_unwatch,
+    cmd_visitor,
     cmd_watch,
     cmd_watchlist,
     cmd_whoami,
@@ -131,20 +137,36 @@ def build_application(token: str) -> Application:
         .build()
     )
 
-    # Commands (whoami/ping: kurulum ve sağlık kontrolü)
-    app.add_handler(CommandHandler("whoami",    cmd_whoami))
-    app.add_handler(CommandHandler("ping",      cmd_ping))
-    app.add_handler(CommandHandler("start",     cmd_start))
-    app.add_handler(CommandHandler("help",      cmd_help))
-    app.add_handler(CommandHandler("sor",       cmd_sor))
-    app.add_handler(CommandHandler("summary",   cmd_summary))
-    app.add_handler(CommandHandler("stats",     cmd_stats))
-    app.add_handler(CommandHandler("hot",       cmd_hot))
-    app.add_handler(CommandHandler("panic",     cmd_panic))
-    app.add_handler(CommandHandler("watch",     cmd_watch))
-    app.add_handler(CommandHandler("unwatch",   cmd_unwatch))
-    app.add_handler(CommandHandler("watchlist", cmd_watchlist))
-    app.add_handler(CommandHandler("clear",     cmd_clear))
+    # Kurulum ve sağlık kontrolü
+    app.add_handler(CommandHandler("whoami",      cmd_whoami))
+    app.add_handler(CommandHandler("ping",        cmd_ping))
+    app.add_handler(CommandHandler("start",       cmd_start))
+    app.add_handler(CommandHandler("help",        cmd_help))
+
+    # Analiz
+    app.add_handler(CommandHandler("summary",     cmd_summary))
+    app.add_handler(CommandHandler("stats",       cmd_stats))
+    app.add_handler(CommandHandler("hot",         cmd_hot))
+    app.add_handler(CommandHandler("visitor",     cmd_visitor))
+
+    # Sohbet okuma / export
+    app.add_handler(CommandHandler("read",        cmd_read))
+    app.add_handler(CommandHandler("export",      cmd_export))
+    app.add_handler(CommandHandler("sor",         cmd_sor))
+
+    # Watchlist
+    app.add_handler(CommandHandler("watch",       cmd_watch))
+    app.add_handler(CommandHandler("unwatch",     cmd_unwatch))
+    app.add_handler(CommandHandler("watchlist",   cmd_watchlist))
+
+    # Bildirim yönetimi
+    app.add_handler(CommandHandler("mute",        cmd_mute))
+    app.add_handler(CommandHandler("unmute",      cmd_unmute))
+    app.add_handler(CommandHandler("newvisitor",  cmd_newvisitor))
+
+    # Sistem
+    app.add_handler(CommandHandler("panic",       cmd_panic))
+    app.add_handler(CommandHandler("clear",       cmd_clear))
 
     # Inline keyboard → komutlar
     app.add_handler(CallbackQueryHandler(handle_callback))

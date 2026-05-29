@@ -134,6 +134,7 @@ class ChatState(rx.State):
 		self.is_loading = False
 
 		# Save chat log
+		is_new_session = not self.current_log_filename
 		from harun_site.utils import data_manager
 		self.current_log_filename = data_manager.save_chat_log(
 			self.messages,
@@ -143,13 +144,21 @@ class ChatState(rx.State):
 		# ── Telegram notification hooks (never crash chat on failure) ──────
 		try:
 			from harun_site.telegram_bot.notifier import (
+				notify_new_visitor,
 				notify_hiring_if_warranted,
 				notify_watch_if_warranted,
 				notify_long_session,
 			)
-			notify_hiring_if_warranted(self.messages)
+			# Yeni oturumun ilk mesajı kaydedildiğinde ziyaretçi bildirimi
+			if is_new_session and self.current_log_filename:
+				first_user_msg = next(
+					(m["content"] for m in self.messages if m["role"] == "user"),
+					"",
+				)
+				notify_new_visitor(first_user_msg, self.current_log_filename)
+			notify_hiring_if_warranted(self.messages, self.current_log_filename)
 			notify_watch_if_warranted(self.messages)
-			notify_long_session(self.messages)
+			notify_long_session(self.messages, self.current_log_filename)
 		except Exception as _notify_err:
 			print(f"[NOTIFY] Hook error (non-fatal): {_notify_err}", file=sys.stderr)
 		# ──────────────────────────────────────────────────────────────────

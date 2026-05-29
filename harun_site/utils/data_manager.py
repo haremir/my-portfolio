@@ -177,11 +177,18 @@ def load_chat_logs() -> list[dict]:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
+                messages = data.get("messages", [])
+                user_count = sum(1 for m in messages if m.get("role") == "user")
+                asst_count = sum(1 for m in messages if m.get("role") == "assistant")
                 logs.append({
                     "filename": path.name,
                     "timestamp": data.get("timestamp", ""),
                     "mtime": path.stat().st_mtime,
-                    "message_count": len(data.get("messages", []))
+                    # Geriye uyumluluk — toplam mesaj
+                    "message_count": len(messages),
+                    # Ayrıntılı sayımlar
+                    "user_message_count": user_count,
+                    "assistant_message_count": asst_count,
                 })
         except Exception:
             pass
