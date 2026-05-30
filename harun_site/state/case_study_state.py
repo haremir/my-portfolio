@@ -167,7 +167,13 @@ class CaseStudyState(rx.State):
         self.has_case_study_content = False
         yield  # ← sends is_loading=True + cleared state to frontend NOW
 
-        slug = self.router.url.path.rsplit("/", 1)[-1]
+        raw_path = self.router.url.path.rstrip("/")
+        slug = raw_path.rsplit("/", 1)[-1]
+        try:
+            from urllib.parse import unquote
+            slug = unquote(slug)
+        except Exception:
+            pass
         print(f"[CASE_STUDY] load_project slug={slug!r}", file=sys.stderr)
 
         from harun_site.utils.data_manager import get_project_by_slug

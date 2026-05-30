@@ -103,8 +103,16 @@ def save_projects(projects: list[dict]):
 def add_project(name: str, desc: str, tags: list[str]):
     raise NotImplementedError("Use explicit canonical project data with id/title/slug/url/aliases.")
 
-def get_project_by_slug(slug: str) -> dict | None:
+from typing import Union
+
+def get_project_by_slug(slug: str) -> Union[dict, None]:
+    slug = slug.strip().strip('/')
+    if not slug:
+        return None
     projects = load_projects()
+    for p in projects:
+        if isinstance(p, dict) and p.get("slug", "") == slug:
+            return p
     return resolve_project(slug, projects)
 
 def delete_project(index: int):
