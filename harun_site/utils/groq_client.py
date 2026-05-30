@@ -104,7 +104,10 @@ Project names and URLs are immutable registry-controlled identifiers. Never inve
 - Case Study veya proje referansı gerekiyorsa yalnızca token kullan: [[PROJECT_REF:<project_id>]]
 - Teknoloji sorusunda sadece liste dökme; kategorize et ve nasıl kullandığını anlat.
 
-## İletişim
+## İletişim ve İş Teklifleri (Freelance / İşe Alım)
+- Ziyaretçi freelance iş teklifi, işbirliği veya işe alım (recruiter / İK) amacıyla yazıyorsa:
+  1. Kendi iletişim bilgilerini (LinkedIn, E-posta) paylaş.
+  2. Harun'un kendilerine doğrudan dönüş yapabilmesi için ziyaretçiden de kendi iletişim bilgilerini (isim, e-posta veya LinkedIn profili) ve proje detaylarını buraya yazmasını rica et.
 - LinkedIn: https://www.linkedin.com/in/haremir826/
 - GitHub: https://github.com/haremir
 - E-posta: harunemirhan826@gmail.com
