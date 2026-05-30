@@ -8,6 +8,20 @@ from typing import TypedDict
 from sqlmodel import Session, select
 from harun_site.models import EducationModel, ExperienceModel, get_engine
 
+def slugify(text: str) -> str:
+    tr_map = {
+        'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u',
+        'Ç': 'c', 'Ğ': 'g', 'İ': 'i', 'Ö': 'o', 'Ş': 's', 'Ü': 'u'
+    }
+    for tr_char, eng_char in tr_map.items():
+        text = text.replace(tr_char, eng_char)
+    
+    import re
+    text = text.lower()
+    text = re.sub(r'[^a-z0-9\s-]', '', text)
+    text = re.sub(r'[\s-]+', '-', text)
+    return text.strip('-')
+
 class ChatMessageDict(TypedDict):
     role: str
     content: str
@@ -272,11 +286,17 @@ class AdminBlogState(rx.State):
 
     @rx.event
     def save_post(self):
-        if not self.blog_slug or not self.blog_title:
-            return rx.window_alert("Slug ve Başlık zorunludur.")
+        if not self.blog_title.strip():
+            return rx.window_alert("Yazı başlığı zorunludur.")
+        
+        slug = self.blog_slug.strip()
+        if not slug:
+            slug = slugify(self.blog_title)
+            if not slug:
+                return rx.window_alert("Başlıktan geçerli bir URL adı (slug) üretilemedi. Lütfen elle girin.")
 
         data_manager.save_blog_post(
-            slug=self.blog_slug,
+            slug=slug,
             title=self.blog_title,
             date=self.blog_date,
             description=self.blog_description,
@@ -430,12 +450,36 @@ class AdminProjectState(rx.State):
     def save_project(self):
         if not self.project_name.strip():
             return rx.window_alert("Proje başlığı zorunludur.")
+        
         slug = self.project_slug.strip()
         if not slug:
-            return rx.window_alert("Slug zorunludur.")
+            slug = slugify(self.project_name)
+            if not slug:
+                return rx.window_alert("Başlıktan geçerli bir slug üretilemedi. Lütfen elle girin.")
+        
         # If editing an existing project, replace it
         projects = data_manager.load_projects()
-        aliases = [alias.strip().lower() for alias in self.project_aliases_str.split(",") if alias.strip()]
+        
+        if self.project_aliases_str.strip():
+            aliases = [alias.strip().lower() for alias in self.project_aliases_str.split(",") if alias.strip()]
+        else:
+            # Auto-generate aliases based on project name
+            aliases = []
+            title_clean = self.project_name.strip().lower()
+            aliases.append(title_clean)
+            
+            slugified = slugify(self.project_name)
+            if slugified not in aliases:
+                aliases.append(slugified)
+                
+            if ' ' in title_clean or '-' in title_clean:
+                no_spaces = title_clean.replace(' ', '').replace('-', '')
+                if no_spaces not in aliases:
+                    aliases.append(no_spaces)
+                with_spaces = title_clean.replace('-', ' ')
+                if with_spaces not in aliases:
+                    aliases.append(with_spaces)
+                    
         # Build case_study dict with both legacy and new keys for compatibility
         case_study = {
             "problem": self.cs_problem or "",

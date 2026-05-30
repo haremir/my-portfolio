@@ -103,21 +103,65 @@ def tag_checkbox_grid(state_class) -> rx.Component:
         spacing="2"
     )
 
+def _form_field(label: str, hint: str, field: rx.Component, required: bool = False) -> rx.Component:
+    return rx.vstack(
+        rx.hstack(
+            rx.text(
+                label + (" *" if required else ""),
+                font_family=FONT_MONO,
+                font_size="0.82em",
+                font_weight="600",
+                color=TEXT,
+            ),
+            gap="0.3em",
+            align="center",
+        ),
+        rx.text(
+            hint,
+            font_family=FONT_SANS,
+            font_size="0.75em",
+            color=TEXT_MUTED,
+            line_height="1.4",
+        ),
+        field,
+        align_items="start",
+        width="100%",
+        gap="0.3em",
+    )
+
 def blog_tab() -> rx.Component:
     return rx.vstack(
         rx.heading("Yeni Blog Yazısı", size="4", color=TEXT),
         rx.hstack(
-            rx.input(placeholder="Başlık (örn: Merhaba Dünya)", value=AdminBlogState.blog_title, on_change=AdminBlogState.set_blog_title, width="100%", background=BG),
-            rx.input(placeholder="Slug (örn: merhaba-dunya)", value=AdminBlogState.blog_slug, on_change=AdminBlogState.set_blog_slug, width="100%", background=BG),
+            _form_field(
+                "Yazı Başlığı",
+                "Blog listesinde ve sayfa başlığında görünür",
+                rx.input(placeholder="Başlık (örn: Merhaba Dünya)", value=AdminBlogState.blog_title, on_change=AdminBlogState.set_blog_title, width="100%", background=BG),
+                required=True
+            ),
+            _form_field(
+                "URL Kısa Adı (Slug)",
+                "Otomatik URL: /blog/slug-buraya (Boş bırakılırsa başlığa göre otomatik oluşturulur)",
+                rx.input(placeholder="Slug (örn: merhaba-dunya)", value=AdminBlogState.blog_slug, on_change=AdminBlogState.set_blog_slug, width="100%", background=BG),
+            ),
             width="100%",
             spacing="4"
         ),
-        rx.hstack(
+        _form_field(
+            "Yayın Tarihi",
+            "YYYY-MM-DD formatında",
             rx.input(placeholder="Tarih (YYYY-MM-DD)", value=AdminBlogState.blog_date, on_change=AdminBlogState.set_blog_date, width="100%", background=BG),
-            width="100%",
         ),
-        tag_checkbox_grid(AdminBlogState),
-        rx.text_area(placeholder="Kısa Açıklama", value=AdminBlogState.blog_description, on_change=AdminBlogState.set_blog_description, width="100%", background=BG),
+        _form_field(
+            "Etiketler",
+            "Yazı ile ilişkili etiketleri seçin veya yeni ekleyin",
+            tag_checkbox_grid(AdminBlogState),
+        ),
+        _form_field(
+            "Kısa Özet",
+            "Blog listesinde başlığın altında görünen açıklama",
+            rx.text_area(placeholder="Kısa Açıklama", value=AdminBlogState.blog_description, on_change=AdminBlogState.set_blog_description, width="100%", background=BG),
+        ),
 
         rx.vstack(
             rx.text("Kapak Görseli Yükle", font_size="0.9em", color=TEXT_MUTED),
@@ -148,7 +192,11 @@ def blog_tab() -> rx.Component:
             align_items="start"
         ),
 
-        rx.text_area(placeholder="Markdown İçerik...", value=AdminBlogState.blog_content, on_change=AdminBlogState.set_blog_content, width="100%", height="300px", background=BG),
+        _form_field(
+            "İçerik (Markdown)",
+            "Yazının tam metni — Markdown formatı desteklenir",
+            rx.text_area(placeholder="Markdown İçerik...", value=AdminBlogState.blog_content, on_change=AdminBlogState.set_blog_content, width="100%", height="300px", background=BG),
+        ),
         rx.button("Yazıyı Kaydet", on_click=AdminBlogState.save_post, background=PRIMARY, color=BG, width="100%"),
 
         rx.divider(margin_y="2em", border_color=BORDER),
@@ -182,18 +230,106 @@ def blog_tab() -> rx.Component:
 
 def project_tab() -> rx.Component:
     return rx.vstack(
-        rx.heading("Yeni Proje Ekle", size="4", color=TEXT),
-        rx.input(placeholder="Proje Başlığı", value=AdminProjectState.project_name, on_change=AdminProjectState.set_project_name, width="100%", background=BG),
-        rx.input(placeholder="Slug (örn: cebirx)", value=AdminProjectState.project_slug, on_change=AdminProjectState.set_project_slug, width="100%", background=BG),
-        rx.input(placeholder="Aliaslar (virgülle, opsiyonel)", value=AdminProjectState.project_aliases_str, on_change=AdminProjectState.set_project_aliases_str, width="100%", background=BG),
-        tag_checkbox_grid(AdminProjectState),
-        rx.text_area(placeholder="Açıklama", value=AdminProjectState.project_desc, on_change=AdminProjectState.set_project_desc, width="100%", background=BG),
-        rx.text_area(placeholder="Problem (markdown destekli)", value=AdminProjectState.cs_problem, on_change=AdminProjectState.set_cs_problem, width="100%", height="120px", background=BG),
-        rx.text_area(placeholder="Mimari (markdown destekli)", value=AdminProjectState.cs_architecture, on_change=AdminProjectState.set_cs_architecture, width="100%", height="120px", background=BG),
-        rx.input(placeholder="Architecture Image (path veya url)", value=AdminProjectState.architecture_image, on_change=AdminProjectState.set_architecture_image, width="100%", background=BG),
-        rx.text_area(placeholder="Why This Stack? (markdown destekli)", value=AdminProjectState.cs_stack_reason, on_change=AdminProjectState.set_cs_stack_reason, width="100%", height="100px", background=BG),
-        rx.text_area(placeholder="Challenges (markdown destekli)", value=AdminProjectState.cs_challenges, on_change=AdminProjectState.set_cs_challenges, width="100%", height="100px", background=BG),
-        rx.text_area(placeholder="Lessons Learned (markdown destekli)", value=AdminProjectState.cs_learnings, on_change=AdminProjectState.set_cs_learnings, width="100%", height="100px", background=BG),
+        rx.heading("Yeni Proje Ekle / Düzenle", size="4", color=TEXT),
+        
+        # Section 1 - Temel Bilgiler
+        rx.vstack(
+            rx.text(
+                "Temel Bilgiler",
+                font_family=FONT_MONO,
+                font_size="1.1em",
+                font_weight="bold",
+                color=PRIMARY,
+                letter_spacing="0.05em",
+                margin_bottom="0.5em",
+            ),
+            _form_field(
+                "Proje Başlığı",
+                "Portfolyo kartında ve chatbotta görünecek isim",
+                rx.input(placeholder="Proje Başlığı", value=AdminProjectState.project_name, on_change=AdminProjectState.set_project_name, width="100%", background=BG),
+                required=True
+            ),
+            _form_field(
+                "Slug",
+                "URL'de kullanılır → /portfolio/slug-buraya (Boş bırakılırsa başlığa göre otomatik oluşturulur)",
+                rx.input(placeholder="Slug (örn: cebirx)", value=AdminProjectState.project_slug, on_change=AdminProjectState.set_project_slug, width="100%", background=BG),
+            ),
+            _form_field(
+                "Aliaslar",
+                "Chatbot bu alternatif isimlerle de projeyi bulur (virgülle ayır, boş bırakılırsa otomatik oluşturulur)",
+                rx.input(placeholder="Aliaslar (virgülle, opsiyonel)", value=AdminProjectState.project_aliases_str, on_change=AdminProjectState.set_project_aliases_str, width="100%", background=BG),
+            ),
+            _form_field(
+                "Açıklama",
+                "Portfolyo kartında başlığın altında görünen kısa metin",
+                rx.text_area(placeholder="Açıklama", value=AdminProjectState.project_desc, on_change=AdminProjectState.set_project_desc, width="100%", background=BG),
+                required=True
+            ),
+            _form_field(
+                "Etiketler",
+                "Proje ile ilişkili teknolojileri seçin veya yeni ekleyin",
+                tag_checkbox_grid(AdminProjectState),
+            ),
+            width="100%",
+            spacing="4",
+            align_items="start",
+            padding_bottom="1.5em",
+        ),
+        
+        rx.divider(border_color=BORDER, margin_y="1em"),
+        
+        # Section 2 - Case Study
+        rx.vstack(
+            rx.text(
+                "Case Study (Opsiyonel)",
+                font_family=FONT_MONO,
+                font_size="1.1em",
+                font_weight="bold",
+                color=PRIMARY,
+                letter_spacing="0.05em",
+                margin_bottom="0.2em",
+            ),
+            rx.text(
+                "Bu bölümü doldurduğunuzda projenin case study sayfası aktif olur. /portfolio/[slug] adresinden erişilir. Markdown desteklidir.",
+                font_family=FONT_SANS,
+                font_size="0.8em",
+                color=TEXT_MUTED,
+                line_height="1.5",
+                margin_bottom="1em",
+            ),
+            _form_field(
+                "Problem",
+                "Hangi sorunu çözdün? Neden bu projeye ihtiyaç duyuldu?",
+                rx.text_area(placeholder="Problem (markdown destekli)", value=AdminProjectState.cs_problem, on_change=AdminProjectState.set_cs_problem, width="100%", height="120px", background=BG),
+            ),
+            _form_field(
+                "Mimari",
+                "Sistem nasıl çalışıyor? Bileşenler arası ilişkiler",
+                rx.text_area(placeholder="Mimari (markdown destekli)", value=AdminProjectState.cs_architecture, on_change=AdminProjectState.set_cs_architecture, width="100%", height="120px", background=BG),
+            ),
+            _form_field(
+                "Neden Bu Stack?",
+                "Teknoloji tercihlerinin arkasındaki mantık",
+                rx.text_area(placeholder="Why This Stack? (markdown destekli)", value=AdminProjectState.cs_stack_reason, on_change=AdminProjectState.set_cs_stack_reason, width="100%", height="100px", background=BG),
+            ),
+            _form_field(
+                "Zorluklar",
+                "Geliştirme sürecinde karşılaştığın engeller",
+                rx.text_area(placeholder="Challenges (markdown destekli)", value=AdminProjectState.cs_challenges, on_change=AdminProjectState.set_cs_challenges, width="100%", height="100px", background=BG),
+            ),
+            _form_field(
+                "Öğrendiklerim",
+                "Bu projeden çıkardığın dersler ve kazanımlar",
+                rx.text_area(placeholder="Lessons Learned (markdown destekli)", value=AdminProjectState.cs_learnings, on_change=AdminProjectState.set_cs_learnings, width="100%", height="100px", background=BG),
+            ),
+            width="100%",
+            spacing="4",
+            align_items="start",
+            padding_left="1em",
+            border_left=f"3px solid {PRIMARY}40",
+            padding_bottom="1.5em",
+        ),
+        
         rx.button("Projeyi Kaydet", on_click=AdminProjectState.save_project, background=PRIMARY, color=BG, width="100%"),
 
         rx.divider(margin_y="2em", border_color=BORDER),
