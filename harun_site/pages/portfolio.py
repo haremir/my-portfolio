@@ -118,6 +118,23 @@ class PortfolioState(rx.State):
                     tags.append(tag)
         return tags
 
+    show_all_tags: bool = False
+
+    @rx.event
+    def toggle_show_all_tags(self):
+        self.show_all_tags = not self.show_all_tags
+
+    @rx.var
+    def visible_tags(self) -> list[str]:
+        if self.show_all_tags:
+            return self.all_tags
+        return self.all_tags[:8]
+
+    @rx.var
+    def hidden_tag_count(self) -> int:
+        total = len(self.all_tags)
+        return max(0, total - 8)
+
 
 def project_card(project: ProjectDict) -> rx.Component:
     return rx.box(
@@ -201,81 +218,99 @@ def portfolio_page() -> rx.Component:
         navbar(),
         rx.box(
             rx.vstack(
-                rx.flex(
-                    rx.vstack(
-                        rx.text(
-                            "PORTFOLYO",
-                            font_family=FONT_MONO,
-                            font_size="0.75em",
-                            letter_spacing="0.2em",
-                            color=PRIMARY,
-                            text_shadow=GLOW_PRIMARY,
-                        ),
-                        rx.text(
-                            "Projeler, yarışmalar ve başarılar",
-                            font_family=FONT_SANS,
-                            color=TEXT_MUTED,
-                            font_size="0.85em",
-                        ),
-                        align_items="start",
-                        gap="0.2em",
+                rx.vstack(
+                    rx.text(
+                        "PORTFOLYO",
+                        font_family=FONT_MONO,
+                        font_size="0.75em",
+                        letter_spacing="0.2em",
+                        color=PRIMARY,
+                        text_shadow=GLOW_PRIMARY,
                     ),
-                    rx.hstack(
-                        rx.foreach(
-                            PortfolioState.all_tags,
-                            lambda tag: rx.button(
-                                tag,
-                                on_click=PortfolioState.toggle_tag(tag),
-                                font_family=FONT_MONO,
-                                font_size="0.72em",
-                                padding="0.2em 0.7em",
-                                border_radius="4px",
-                                cursor="pointer",
-                                transition="all 150ms",
-                                background=rx.cond(
-                                    PortfolioState.selected_tags_str.contains(tag),
-                                    PRIMARY,
-                                    "transparent",
-                                ),
-                                color=rx.cond(
-                                    PortfolioState.selected_tags_str.contains(tag),
-                                    BG,
-                                    TEXT_MUTED,
-                                ),
-                                border=rx.cond(
-                                    PortfolioState.selected_tags_str.contains(tag),
-                                    f"1px solid {PRIMARY}",
-                                    f"1px solid {BORDER}",
-                                ),
-                            ),
-                        ),
-                        rx.cond(
-                            PortfolioState.has_filter,
-                            rx.button(
-                                "✕ temizle",
-                                on_click=PortfolioState.clear_tags,
-                                font_family=FONT_MONO,
-                                font_size="0.72em",
-                                padding="0.2em 0.7em",
-                                border_radius="4px",
-                                background="transparent",
-                                color=ACCENT,
-                                border=f"1px solid {ACCENT}66",
-                                cursor="pointer",
-                                transition="all 150ms",
-                                _hover={"border_color": ACCENT, "color": ACCENT},
-                            ),
-                            rx.fragment(),
-                        ),
-                        wrap="wrap",
-                        gap="0.5em",
+                    rx.text(
+                        "Projeler, yarışmalar ve başarılar",
+                        font_family=FONT_SANS,
+                        color=TEXT_MUTED,
+                        font_size="0.85em",
                     ),
-                    direction=rx.breakpoints(initial="column", sm="row"),
-                    justify="between",
-                    align=rx.breakpoints(initial="stretch", sm="center"),
+                    align_items="start",
+                    gap="0.2em",
                     width="100%",
-                    gap="1em",
-                    margin_bottom="2em",
+                    margin_bottom="1.5em",
+                ),
+                rx.hstack(
+                    rx.foreach(
+                        PortfolioState.visible_tags,
+                        lambda tag: rx.button(
+                            tag,
+                            on_click=PortfolioState.toggle_tag(tag),
+                            font_family=FONT_MONO,
+                            font_size="0.72em",
+                            padding="0.2em 0.7em",
+                            border_radius="4px",
+                            cursor="pointer",
+                            transition="all 150ms",
+                            background=rx.cond(
+                                PortfolioState.selected_tags_str.contains(tag),
+                                PRIMARY,
+                                "transparent",
+                            ),
+                            color=rx.cond(
+                                PortfolioState.selected_tags_str.contains(tag),
+                                BG,
+                                TEXT_MUTED,
+                            ),
+                            border=rx.cond(
+                                PortfolioState.selected_tags_str.contains(tag),
+                                f"1px solid {PRIMARY}",
+                                f"1px solid {BORDER}",
+                            ),
+                        ),
+                    ),
+                    rx.cond(
+                        PortfolioState.has_filter,
+                        rx.button(
+                            "✕ temizle",
+                            on_click=PortfolioState.clear_tags,
+                            font_family=FONT_MONO,
+                            font_size="0.72em",
+                            padding="0.2em 0.7em",
+                            border_radius="4px",
+                            background="transparent",
+                            color=ACCENT,
+                            border=f"1px solid {ACCENT}66",
+                            cursor="pointer",
+                            transition="all 150ms",
+                            _hover={"border_color": ACCENT, "color": ACCENT},
+                        ),
+                        rx.fragment(),
+                    ),
+                    rx.cond(
+                        PortfolioState.hidden_tag_count > 0,
+                        rx.button(
+                            rx.cond(
+                                PortfolioState.show_all_tags,
+                                "▲ daralt",
+                                "+" + PortfolioState.hidden_tag_count.to(str) + " daha",
+                            ),
+                            on_click=PortfolioState.toggle_show_all_tags,
+                            font_family=FONT_MONO,
+                            font_size="0.72em",
+                            padding="0.2em 0.7em",
+                            border_radius="4px",
+                            background="transparent",
+                            color=PRIMARY,
+                            border=f"1px dashed {PRIMARY}66",
+                            cursor="pointer",
+                            transition="all 150ms",
+                            _hover={"border_color": PRIMARY, "color": PRIMARY},
+                        ),
+                        rx.fragment(),
+                    ),
+                    wrap="wrap",
+                    gap="0.5em",
+                    width="100%",
+                    margin_bottom="2.5em",
                 ),
                 rx.vstack(
                     rx.foreach(PortfolioState.filtered_projects, project_card),
