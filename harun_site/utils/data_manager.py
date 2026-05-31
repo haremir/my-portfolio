@@ -287,28 +287,75 @@ def save_chat_summary(data: dict):
 
 # ---- TAGS ----
 
-def load_tags() -> list[str]:
+def load_categorized_tags() -> list:
+    """Return tags grouped by category: [{"category": str, "tags": [str]}]."""
     if not TAGS_FILE.exists():
         return []
     try:
-        return json.loads(TAGS_FILE.read_text(encoding="utf-8"))
+        data = json.loads(TAGS_FILE.read_text(encoding="utf-8"))
     except Exception:
         return []
+    # Support both old flat list and new categorized format
+    if isinstance(data, list) and data and isinstance(data[0], dict):
+        return data
+    # Legacy flat list – wrap in a single "Genel" category
+    if isinstance(data, list):
+        return [{"category": "Genel", "tags": data}]
+    return []
 
-def save_tags(tags: list[str]):
+
+def load_tags() -> list:
+    """Return all tags as a flat list (backward compatible)."""
+    cats = load_categorized_tags()
+    flat = []
+    for cat in cats:
+        for tag in cat.get("tags", []):
+            if tag not in flat:
+                flat.append(tag)
+    return flat
+
+
+def save_tags(tags):
+    """Save tags – accepts either flat list or categorized list."""
     _atomic_write_json(TAGS_FILE, tags)
 
-def add_tag(tag: str):
-    tags = load_tags()
-    if tag not in tags:
-        tags.append(tag)
-        save_tags(tags)
+
+def add_tag(tag: str, category: str = ""):
+    """Add a tag. If category given and categorized format, add under that category."""
+    cats = load_categorized_tags()
+    # Check if already exists
+    for cat in cats:
+        if tag in cat.get("tags", []):
+            return
+    if category:
+        for cat in cats:
+            if cat.get("category", "") == category:
+                cat["tags"].append(tag)
+                save_tags(cats)
+                return
+        # Category not found, create it
+        cats.append({"category": category, "tags": [tag]})
+        save_tags(cats)
+    else:
+        # Add to last category or create "Diğer"
+        if cats:
+            cats[-1].get("tags", []).append(tag)
+        else:
+            cats = [{"category": "Diğer", "tags": [tag]}]
+        save_tags(cats)
+
 
 def delete_tag(tag: str):
-    tags = load_tags()
-    if tag in tags:
-        tags = [item for item in tags if item != tag]
-        save_tags(tags)
+    cats = load_categorized_tags()
+    changed = False
+    for cat in cats:
+        tags_list = cat.get("tags", [])
+        if tag in tags_list:
+            cat["tags"] = [t for t in tags_list if t != tag]
+            changed = True
+    if changed:
+        save_tags(cats)
+
 
 
 # ---- CHAT SUGGESTIONS ----
