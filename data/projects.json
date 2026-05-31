@@ -5,15 +5,36 @@
     "name": "CebirX",
     "slug": "cebirx",
     "url": "/portfolio/cebirx",
-    "aliases": ["cebir x", "cebir-x", "cebr x", "cebrix", "cebix"],
+    "aliases": [
+      "cebir x",
+      "cebir-x",
+      "cebr x",
+      "cebrix",
+      "cebix"
+    ],
     "desc": "Multi-tenant AI Gateway & runtime engine — FastAPI, PostgreSQL, Redis, metering & credit-guard mechanisms.",
-    "tags": ["API Gateway", "FastAPI", "PostgreSQL", "Redis", "Multi-tenant", "Production"],
+    "tags": [
+      "API Gateway",
+      "FastAPI",
+      "PostgreSQL",
+      "Redis",
+      "Multi-tenant",
+      "Production",
+      "Python",
+      "State Machine",
+      "Docker",
+      "Qdrant",
+      "JWT",
+      "Circuit Breaker",
+      "Rate Limiting",
+      "Logging"
+    ],
     "case_study": {
-      "problem": "Placeholder — sen dolduracaksın",
-      "architecture": "Placeholder",
-      "stack_reason": "Placeholder",
-      "challenges": "Placeholder",
-      "learnings": "Placeholder"
+      "problem": "Modern kurumsal dünyada, farklı müşteriler (kiracılar) için geliştirilen yapay zekâ çözümlerini bağımsız, güvenli ve maliyet etkin şekilde çalıştırmak büyük operasyonel zorluklar barındırmaktadır:\n\n* **Veri ve Erişim Güvenliği:** Her kiracı için verinin, vektör kayıtlarının ve yetkilendirme mekanizmalarının birbirine sızmayacak şekilde izole edilmesi gereksinimi mimariyi karmaşıklaştırmaktadır.\n\n* **Finansal Riskler ve API Maliyetleri:** Yapay zekâ modellerinin tüketim maliyetleri yüksek olduğundan, kullanıcı ve kiracı bazlı anlık kredi/oran (rate/credit) yönetiminin hatasız yapılması kritik bir zorunluluktur.\n\n* **Sistem Kırılganlığı:** Dağıtık mimarilerde yapay zekâ servis sağlayıcılarında (LLM API'leri vb.) yaşanabilecek kesintilerin tüm platformu çökertme riski.\n\n* **Güvenlik Tehditleri:** Geleneksel siber saldırıların yanı sıra, dil modellerini manipüle etmeye yönelik prompt enjeksiyonu gibi yeni nesil yapay zekâ güvenlik açıklarının bulunması.",
+      "architecture": "CebirX; merkez çekirdeği izole tutarak sistemin kararlılığını koruyan, katmanlı ve mikro-servis yaklaşımına uygun bir mimari yapıda tasarlanmıştır:\n\n* **Akıllı API ve Gateway Katmanı:** Sistemin giriş noktası olan REST endpoint'leri (chat, ingest, health) üzerinden talepleri karşılar ve domain whitelist filtrelemesi ile güvenli yönlendirme yapar.\n\n* **Gelişmiş AI Servisleri ve Savunma:** Güvenli akış (SSE proxy) yönetiminin yanı sıra, yapay zekâ modelleri arasında dinamik rota belirleme (model router) ve gelen talepleri prompt enjeksiyonuna karşı tarayan koruma kalkanını barındırır.\n\n* **Anlık Finansal Ölçümleme (Metering):** Dağıtık sistemde finansal transaction tutarlılığını korumak adına Redis tabanlı atomik kredi kontrolleri gerçekleştirir ve tüm operasyonu detaylı audit log'lar ile kayıt altına alır.\n\n* **İzole Veri ve Vektör Yönetimi:** Performans ve güvenlik için PostgreSQL tarafında otomatik partition (bölümleme) mimarisi kullanırken, semantik aramalar için Qdrant üzerinde tenant başına izole vektör alanları ayağa kaldırır.\n\n* **Modüler Ürün Desteği:** Çekirdek yazılıma dokunmadan, dışa açık eklenti (plug-in) yapısı sayesinde platforma yeni yapay zekâ ürünlerinin modüler olarak bağlanmasını sağlar.",
+      "stack_reason": "* **Python (Modern Async):** Güçlü yapay zekâ/makine öğrenmesi ekosistemini, modern asenkron backend yetenekleriyle harmanlamak amacıyla tercih edilmiştir.\n\n* **FastAPI & Uvicorn:** Mikro-servisler arası asenkron iletişimde ve yüksek trafikli yapay zekâ API'lerinde minimum gecikme (latency) ve maksimum performans elde etmek için seçilmiştir.\n\n* **PostgreSQL (Automatic Partitioning):** Büyük ve karmaşık kurumsal verileri asenkron bağlantı havuzları ve otomatik bölümleme desteğiyle güvenle ölçeklemek için konumlandırılmıştır.\n\n* **Redis (Credit Guard):** Dağıtık sistemde çok hızlı, anlık cache yönetimi yapmak ve finansal işlemlerde race condition (veri çakışması) riskini önleyen atomik transaction'ları yürütmek için kullanılmıştır.\n\n* **Qdrant (Vector Database):** Kiracı bazlı (tenant-specific) vektör veri izolasyonunu sağlamak ve yüksek doğruluklu semantik aramalar gerçekleştirmek için entegre edilmiştir.\n\n* **Docker & Yapılandırılmış Loglama:** Dağıtık mimaride sorunların izini sürmeyi kolaylaştıran gelişmiş loglama altyapısı ve CI/CD süreçlerine tam uyumlu esnek dağıtım için tercih edilmiştir.",
+      "challenges": "* **Çoklu Kiracı İzolasyon Modeli:** Tamamen izole, verilerin ve yetkilendirme politikalarının birbirine asla temas etmediği multi-tenant bir altyapıyı esnek kurallarla inşa etmek.\n\n* **Finansal İşlem Güvenilirliği:** Anlık kredi tüketimi ve finansal transaction süreçlerinde yaşanabilecek olası sistem kesintilerinde (failover) sıfır veri kaybını ve tam tutarlılığı garanti altına almak.\n\n* **Hata Toleransı (Fault Tolerance):** Üçüncü parti yapay zekâ servislerinde yaşanabilecek yavaşlama veya kesintilere karşı circuit breaker (devre kesici) ve fallback (yedek plan) mekanizmalarını sistem geneline sorunsuz entegre etmek.\n\n* **Çekirdek Yapının Korunması:** Platforma sürekli yeni yapay zekâ ürünleri eklenebilirken, sistemin merkez çekirdeğini (core) tamamen izole, sade ve müdahale gerektirmeyecek yapıda tutabilmek.",
+      "learnings": "* **Erken Modularizasyon Stratejisi:** Projenin en başında kurulan test odaklı ve modüler mimari yaklaşımının, sistem büyüdükçe teknik borç oluşmasını engellediği ve yönetim kolaylığı sağladığı görülmüştür.\n\n* **Yapılandırılmış Log Takibi:** Dağıtık ve çok kiracılı sistemlerde, izleme kodları (trace_id, tenant_id, product_id) ile zenginleştirilmiş log stratejisinin hata tespit sürelerini radikal şekilde kısalttığı deneyimlenmiştir.\n\n* **Genişletilebilir Platform Gücü:** Esnek bir \"Plug & Play\" ürün mimarisi kurgulamanın, pazardan gelebilecek yeni müşteri taleplerine ve yapay zekâ entegrasyonlarına saniyeler içinde yanıt verebilme gücü kattığı öğrenilmiştir.\n\n* **Gerçek Hayat Simülasyonları:** Dağıtık finansal altyapılarda teorik tasarımların ötesine geçerek, uç senaryoları (edge cases) içeren yoğun yük ve failover testleri yapmanın sistem kararlılığındaki kritik önemi tecrübe edilmiştir."
     }
   },
   {
@@ -22,32 +43,27 @@
     "name": "DentBot",
     "slug": "dentbot",
     "url": "/portfolio/dentbot",
-    "aliases": [],
+    "aliases": [
+      "dent bot",
+      "dent-bot",
+      "dentbot ai"
+    ],
     "desc": "Multi-channel clinic management ecosystem; LangChain + LangGraph orchestration and deterministic state-machine integration.",
-    "tags": ["LangChain", "LangGraph", "State Machine", "Healthcare", "Tooling"],
+    "tags": [
+      "AI Engineering",
+      "Agentic Workflows",
+      "LangChain",
+      "Reflex",
+      "FastAPI",
+      "Multi-Tenant Architecture",
+      "Python"
+    ],
     "case_study": {
-      "problem": "Placeholder — sen dolduracaksın",
-      "architecture": "Placeholder",
-      "stack_reason": "Placeholder",
-      "challenges": "Placeholder",
-      "learnings": "Placeholder"
-    }
-  },
-  {
-    "id": "mergenx",
-    "title": "MergenX",
-    "name": "MergenX",
-    "slug": "mergenx",
-    "url": "/portfolio/mergenx",
-    "aliases": [],
-    "desc": "NLP-driven dynamic travel package search widget (in collaboration with biTur).",
-    "tags": ["NLP", "Search", "Recommendation", "Python"],
-    "case_study": {
-      "problem": "Placeholder — sen dolduracaksın",
-      "architecture": "Placeholder",
-      "stack_reason": "Placeholder",
-      "challenges": "Placeholder",
-      "learnings": "Placeholder"
+      "problem": "Geleneksel klinik yönetim modelleri, hem operasyonel darboğazlar hem de yapay zekâ entegrasyon süreçlerinde ciddi riskler barındırmaktadır:\n\n* **Mesai Dışı Kayıplar:** Mevcut sistemlerin mesai saatleri dışındaki randevu taleplerine dinamik yanıt verememesi ve potansiyel hastaların kaçırılması.\n\n* **İdari Yoğunluk:** Klinik sekreteryası ve personeli üzerinde biriken yoğun telefon trafiği ile zaman alıcı idari yükler.\n\n* **Yapay Zekâ Halüsinasyonları:** Tamamen serbest bırakılmış yapay zekâ modellerinin randevu takvimlerinde kullanımı; hatalı isim/telefon kaydı veya çakışan slotlar üretilmesi gibi ciddi operasyonel riskler doğurmaktadır.\n\n* **Kontrol ve Onay Eksikliği:** Yapay zekanın doğrudan takvime yazma riskine karşı, hekimlerin süreçleri denetleyebileceği asenkron bir onay mekanizmasına ihtiyaç duyulması.",
+      "architecture": "Proje, ticari stratejileri ve know-how unsurlarını koruyan, birbiriyle entegre çalışacak şekilde tasarlanmış üç ana modüler katmandan oluşmaktadır:\n\n* **Çekirdek Motor (Core Agent):** Kullanıcı etkileşimlerini, kanal entegrasyonlarını ve iş mantığı servislerini yöneten asenkron ana yapı.\n\n* **Yönetim Paneli & REST API:** Klinik yetkililerinin süreçleri izlemesini sağlayan modern bir web arayüzü ve multi-tenant destekli merkezi API katmanı.\n\n* **Veri Adaptörleri (Data Layer):** Farklı veritabanı mimarileri arasında esnek ve dinamik geçişe izin veren soyutlanmış veri protokolleri.\n\nSistem; veri toplama ve doğrulama süreçlerini güvenli kurallarla yönetirken, zamanlama ve asenkron bildirim servisleriyle hekimlerin anlık onay/red süreçlerine tam entegre olmaktadır.",
+      "stack_reason": "* **Python & LangChain:** Gelişmiş dil modeli entegrasyonlarını ve asenkron ajan iş akışlarını güncel kütüphane desteğiyle yapılandırmak için tercih edilmiştir.\n\n* **FastAPI & Reflex:** Web paneli ve API servislerinin saf Python ekosisteminde, yüksek performansla ve tek dilde hızlıca ayağa kaldırılması amacıyla seçilmiştir.\n\n* **OpenRouter & Çevrimdışı Fallback Düzenlemeleri:** API tabanlı büyük dil modelleri ana motor olarak kullanılırken, olası kesintilere karşı yerel model failover (otomatik geçiş) mekanizmalarının kurgulanabilmesi için mimariye dahil edilmiştir.\n\n* **PostgreSQL & SQLAlchemy:** Çoklu klinik yapısını ilişkisel veritabanı güvenliğiyle ve ölçeklenebilir şekilde modellemek için kullanılmıştır.",
+      "challenges": "* **Sahte ve Eksik Veri Girişlerinin Engellenmesi:** Kullanıcıların doğal dille konuşurken eksik iletişim bilgisi vermesi veya geçersiz placeholder metinler kullanması, randevu kayıtlarında tutarsızlıklara yol açmıştır. Bu durum, veritabanına yazılmadan önce devreye giren katı doğrulama ve temizleme katmanlarıyla çözülmüştür.\n\n* **Sohbet Geçmişi ve Gecikme Süreleri:** Uzayan konuşma geçmişinin sistem yanıt sürelerini artırması problemi; akıllı geçmiş budama ve veri sıkıştırma yöntemleri kullanılarak optimize edilmiş, token tüketimi düşürülmüştür.\n\n* **Eşzamanlı Slot Sorguları (Race Condition):** Aynı zaman diliminde slot arayan kullanıcıların takvimde çakışmasını önlemek adına, sorgulanan zaman dilimleri onay aşamasına kadar geçici kilit mekanizmalarıyla korunmuştur.",
+      "learnings": "* **Hibrit Sistem Tasarımı:** Bir yapay zekâ projesinde veri doğrulama ve form doldurma gibi kritik adımların geleneksel deterministik kod yapısıyla yönetilip, dil modellerinin sadece esnek bir arayüz olarak konumlandırılmasının kararlılığı artırdığı görülmüştür.\n\n* **Katı Tip Güvenliği ve Sözleşmeler:** Büyük ölçekli ve dinamik ajan projelerinde sıkı şema validasyonları ve arayüz protokolleri kullanmanın, çalışma zamanı hatalarını minimize etmedeki önemi deneyimlenmiştir.\n\n* **Merkezi Veri Normalizasyonu:** Farklı kaynaklardan gelen tutarsız veri ve zaman formatlarının merkezi bir adaptör katmanında normalize edilmesinin entegrasyon süreçlerini büyük ölçüde kolaylaştırdığı öğrenilmiştir."
     }
   },
   {
@@ -56,15 +72,29 @@
     "name": "GameGain",
     "slug": "gamegain",
     "url": "/portfolio/gamegain",
-    "aliases": [],
+    "aliases": [
+      "game gain",
+      "game-gain"
+    ],
     "desc": "User behavior analysis and revenue forecasting using time-series models and RFM segmentation.",
-    "tags": ["Big Data", "Time-Series", "Forecasting", "Pandas"],
+    "tags": [
+      "Data Science",
+      "Big Data Processing",
+      "Predictive Modeling",
+      "RFM Analysis",
+      "User Segmentation",
+      "Behavior Analytics",
+      "Python",
+      "Machine Learning",
+      "Data Engineering",
+      "Feature Engineering"
+    ],
     "case_study": {
-      "problem": "Placeholder — sen dolduracaksın",
-      "architecture": "Placeholder",
-      "stack_reason": "Placeholder",
-      "challenges": "Placeholder",
-      "learnings": "Placeholder"
+      "problem": "Oyun endüstrisinde ve dijital platformlarda kullanıcı segmentasyonu ve gelir optimizasyonu süreçleri, ham verinin büyüklüğü ve karmaşıklığı nedeniyle şu kritik zorlukları barındırmaktadır:\n\n* **Büyük Ölçekli Veri Yoğunluğu:** Milyonlarca kullanıcının oluşturduğu anlık tıklama, oturum ve etkileşim loglarının geleneksel yöntemlerle işlenememesi ve anlamlı bir yapıya dönüştürülememesi.\n\n* **Gelir Tahminleme Belirsizliği:** Hangi oyuncu kitlesinin sadık kalacağını, hangilerinin platformu terk edeceğini (churn) veya hangilerinin oyun içi satın alım yapacağını öngörememenin yarattığı pazarlama bütçesi kayıpları.\n\n* **Statik Yaklaşımların Yetersizliği:** Kullanıcıları sadece toplam harcama miktarına göre segmentlere ayıran, zamanlama ve frekans faktörlerini göz ardı eden eski nesil analizlerin eksik çıkarımlar yapması.",
+      "architecture": "Proje, büyük ölçekli kullanıcı verilerini kayıpsız işlemek ve analitik modellere hazırlamak adına esnek ve veri odaklı bir boru hattı (data pipeline) mimarisiyle kurgulanmıştır:\n\n* **Kullanıcı Olayı (Event) İşleme Katmanı:** Milyonlarca satırdan oluşan kullanıcı ham log verilerini ve etkileşim parametrelerini yapılandırılmış veri setlerine dönüştüren veri toplama adımı.\n\n* **Davranışsal Segmentasyon Motoru:** Kullanıcıların platform etkileşimlerini zamanlama (Recency), sıklık (Frequency) ve finansal değer (Monetary) eksenlerinde işleyerek RFM metriklerini çıkaran analitik katman.\n\n* **Öngörüsel Tahminleme Havuzu:** Elde edilen segmentasyon ve davranış verileri üzerinden, kullanıcıların gelecekteki harcama eğilimlerini ve oyun içi gelir potansiyellerini modelleyen tahminleme katmanı.\n\n* **Analitik Raporlama Çıktıları:** Modellerin ürettiği kullanıcı segmentlerini, sadakat metriklerini ve finansal öngörüleri stratejik kararlar için hazır hale getiren veri tabanlı raporlama bileşeni.",
+      "stack_reason": "* **Python:** Büyük veri işleme kütüphaneleriyle olan esnek entegrasyon yetenekleri, hızlı prototipleme gücü ve analitik modelleme ekosistemi nedeniyle ana geliştirme dili olarak tercih edilmiştir.\n\n* **Pandas & NumPy:** Milyonlarca kullanıcı olayını içeren devasa veri blokları üzerinde asenkron, yüksek performanslı matris operasyonları yürütmek ve veri manipülasyonlarını optimize etmek amacıyla seçilmiştir.\n\n* **Scikit-Learn:** Kullanıcı segmentasyon modellerinin kurulması, veri standardizasyonu ve tahminleme algoritmalarının endüstriyel standartlarda eğitilmesi için konumlandırılmıştır.\n\n* **Seaborn & Matplotlib:** Kullanıcı davranış patternlerini, harcama dağılımlarını ve RFM segment kümelerini görselleştirerek karmaşık verileri anlaşılır analitik grafiklere dönüştürmek amacıyla entegre edilmiştir.",
+      "challenges": "* **Yüksek Hacimli Veri Yönetimi:** Geliştirme sürecinin ilk aşamalarında milyonlarca satırdan oluşan devasa log dosyalarının bellek (RAM) optimizasyonunu sağlamak ve veri işleme süreçlerindeki tıkanmaları (bottleneck) engellemek.\n\n* **Anlamlı Öznitelik Çıkarımı (Feature Engineering):** Ham kullanıcı zaman damgalarından ve etkileşim sayılarından; kullanıcının platforma bağlılığını ve harcama yapma ihtimalini gerçekten temsil edecek tutarlı RFM skorları üretebilmek.\n\n* **Gürültülü Verilerin Temizlenmesi:** Veri setinde yer alan, analizi saptırabilecek bot hesapları, uç değerleri (outliers) veya eksik bırakılmış sistem loglarını verinin doğasını bozmadan ayıklayabilmek.",
+      "learnings": "* **Büyük Veri Refleksi:** Çok yüksek satırlı veri setleriyle çalışırken algoritma karmaşıklığının (Time/Space Complexity) ve bellek yönetiminin ne kadar hayati olduğunu deneyimlemek, kod yazarken optimizasyon odaklı düşünme yetisini geliştirmek.\n\n* **Ticari Veri Bilimi Yaklaşımı:** Ham matematiksel verilerin RFM gibi iş dünyası metriklerine dönüştürülmesinin, üretilen yazılımın ticari değerini ve karar alma süreçlerindeki katma değerini nasıl katladığını görmek.\n\n* **Pipeline Tasarımının Önemi:** Veri temizleme ve öznitelik mühendisliği adımlarının sistematik bir pipeline yapısına dönüştürülmediğinde, projenin sürdürülebilirliğinin ve test edilebilirliğinin ne kadar zorlaştığını erken aşamada kavramak."
     }
   },
   {
@@ -73,15 +103,31 @@
     "name": "FraudEye",
     "slug": "fraudeye",
     "url": "/portfolio/fraudeye",
-    "aliases": [],
+    "aliases": [
+      "fraud eye",
+      "fraud-eye"
+    ],
     "desc": "Credit card fraud detection system using SMOTE, Random Forest and XGBoost for high-accuracy anomaly detection.",
-    "tags": ["ML", "Anomaly Detection", "XGBoost", "SMOTE"],
+    "tags": [
+      "Anomaly Detection",
+      "Machine Learning",
+      "XGBoost",
+      "Imbalanced Data",
+      "SMOTE",
+      "Data Science",
+      "Python",
+      "Predictive Modeling",
+      "Data Preprocessing",
+      "Feature Engineering",
+      "Supervised Learning",
+      "Financial Security"
+    ],
     "case_study": {
-      "problem": "Placeholder — sen dolduracaksın",
-      "architecture": "Placeholder",
-      "stack_reason": "Placeholder",
-      "challenges": "Placeholder",
-      "learnings": "Placeholder"
+      "problem": "Finans dünyasında makine öğrenmesi tabanlı anomali tespiti yaparken karşılaşılan en büyük operasyonel ve matematiksel zorluklar şunlardır:\n\n* **Sınıf Dengesizliği (Class Imbalance):** Gerçek dünya verilerinde dolandırıcılık işlemlerinin oranının çok düşük seviyelerde olması, geleneksel modellerin yanlılık göstermesine ve sahte işlemleri gözden kaçırmasına neden olmaktadır.\n\n* **Sürekli Değişen Patternler:** Geleneksel kural tabanlı statik filtrelerin ve eşik değer yapılarının, organize suç gruplarının sürekli güncellenen dolandırıcılık stratejilerine karşı esneklik gösterememesi ve yetersiz kalması.\n\n* **Yüksek Doğruluk İhtiyacı:** Finansal kuruluşların sistemlerinde false positive (hatalı dolandırıcılık alarmı) oranını minimumda tutarak kullanıcı deneyimini bozmamak, aynı zamanda gerçek riskleri de sıfıra yakın kaçırmak zorunda olması.\n\n* **Veri Gizliliği ve Anonimlik:** Müşteri gizliliği nedeniyle doğrudan kimlik veya işlem detayları yerine, soyutlanmış ve boyutsallığı azaltılmış veriler üzerinden anlamlı ve güvenilir çıkarımlar yapma zorunluluğu.",
+      "architecture": "FraudEye projesi, veri biliminden üretime hazır (production-ready) kod yapısına geçişi kolaylaştıran, modüler ve sürdürülebilir bir yazılım mimarisiyle organize edilmiştir:\n\n* **Gelişmiş Veri Ön İşleme Hattı (Pipeline):** Eksik veri kontrollerini, aykırı değer (outlier) sınırlandırmalarını ve veri ölçekleme işlemlerini otomatik olarak yürüten merkezi ön işleme bileşeni.\n\n* **Sınıf Sınıflandırma ve Dengeleme Katmanı:** Sınıf dengesizliğini ortadan kaldırmak amacıyla sentetik veri üretim ve örnekleme stratejilerini uygulayan akıllı veri mühendisliği adımı.\n\n* **Modüler Algoritma Belirleme Havuzu:** Farklı makine öğrenmesi yaklaşımlarının (Tree-based Ensemble metotları ve doğrusal modeller) sistematik olarak eğitildiği, optimizasyonların ve hiperparametre konfigürasyonlarının yürütüldüğü bağımsız model yönetim modülü.\n\n* **Metrik Raporlama ve Versiyonlama:** Eğitilen modellerin performanslarını karşılaştırmalı olarak analiz eden, sonuçları grafikleştirerek kaydeden ve modelleri uygun formatta versiyonlayan çıktı katmanı.",
+      "stack_reason": "* **Python Ekosistemi:** Veri bilimi ve makine öğrenmesi kütüphaneleriyle olan zengin entegrasyon yetenekleri ve modüler backend geliştirme kolaylığı nedeniyle ana dil olarak seçilmiştir.\n\n* **XGBoost (Gradient Boosting Framework):** Dengesiz ve büyük veri setlerindeki yüksek öğrenme kapasitesi, karmaşık ağaç yapılandırmalarındaki hızı ve performans üstünlüğü nedeniyle ana tahmin motoru olarak konumlandırılmıştır.\n\n* **Scikit-Learn:** Model eğitimi, pipeline tasarımı, veri ölçekleme ve sistemik hiperparametre optimizasyonu süreçlerinin endüstriyel standartlarda yürütülmesi amacıyla kullanılmıştır.\n\n* **Pandas & NumPy:** Büyük matris operasyonlarını, keşifsel veri analizlerini ve matematiksel veri manipülasyonlarını yüksek performansla gerçekleştirmek için tercih edilmiştir.\n\n* **Matplotlib & Seaborn:** Korelasyon matrislerini, işlem tutarı ve zaman serisi bazlı dolandırıcılık desenlerini görselleştirerek verideki saklı anormallikleri ortaya çıkarmak amacıyla entegre edilmiştir.",
+      "challenges": "* **Ciddi Veri Dengesizliğiyle Mücadele:** Sınıf oranları arasındaki uçurumu kapatırken, modelin aşırı öğrenmesini (overfitting) engellemek ve azınlık sınıfının (dolandırıcılık) ayırt edici özelliklerini koruyabilmek.\n\n* **Performans Metriklerinin Doğru Seçimi:** Bu tür dengesiz senaryolarda geleneksel doğruluk metriklerinin aldatıcı olması riskine karşı, Precision-Recall eğrisinin altında kalan alanı ve ortalama kesinlik değerlerini optimize etmeye odaklanmak.\n\n* **Açıklanabilirlik ve Performans Dengesi:** Yüksek performans sunan karmaşık modeller ile finans sektörünün regülasyonları gereği ihtiyaç duyulan açıklanabilir doğrusal modeller arasındaki dengeyi kurmak, özellik önemliliği analizlerini doğru yapılandırmak.",
+      "learnings": "* **Doğru Metrik Hayat Kurtarır:** Dengesiz veri setleriyle çalışırken sadece genel doğruluk oranına odaklanmanın körlük yaratacağı; gerçek performansı ölçmek için iş odaklı anomali metriklerinin takip edilmesi gerektiği öğrenilmiştir.\n\n* **Modüler Kodun Sürdürülebilirliği:** Analiz kodlarını deneysel ortamlardan çıkarıp nesne yönelimli (OOP) ve modüler fonksiyonlara dönüştürmenin üretim ortamına geçişi ne kadar hızlandırdığı tecrübe edilmiştir.\n\n* **Veri Ön İşlemenin Gücü:** En karmaşık algoritmanın bile ham verinin kalitesi ve yapılan özellik dönüşümleri kadar iyi sonuç verebileceği; veri dengeleme ve ölçekleme tekniklerinin doğru uygulanmasının model başarısını doğrudan belirlediği görülmüştür."
     }
   },
   {
@@ -90,32 +136,194 @@
     "name": "ScoutMaster",
     "slug": "scoutmaster",
     "url": "/portfolio/scoutmaster",
-    "aliases": [],
+    "aliases": [
+      "scout master",
+      "scout-master"
+    ],
     "desc": "Player performance analytics and market value prediction (Coderspace Summer School 2024).",
-    "tags": ["Analytics", "Regression", "Sports Analytics"],
+    "tags": [
+      "Sports Analytics",
+      "Predictive Modeling",
+      "Predictive Analytics",
+      "Regression Models",
+      "Data Science",
+      "Machine Learning",
+      "Feature Engineering",
+      "Python",
+      "Decision Support Systems",
+      "Scikit-Learn"
+    ],
     "case_study": {
-      "problem": "Placeholder — sen dolduracaksın",
-      "architecture": "Placeholder",
-      "stack_reason": "Placeholder",
-      "challenges": "Placeholder",
-      "learnings": "Placeholder"
+      "problem": "Geleneksel yetenek avcılığı ve oyuncu değerleme süreçleri, spor endüstrisinde yüksek bütçeli hatalara yol açabilen şu temel operasyonel darboğazları barındırmaktadır:\n\n* **Sübjektif Değerlendirme Riskleri:** Oyuncu transferlerinde ve değer biçme süreçlerinde nesnel veriler yerine gözlemcilerin kişisel yorumlarına, anlık form grafiklerine veya menajer yönlendirmelerine bağımlı kalınması.\n\n* **Veri Dağınıklığı ve Karar Güçlüğü:** Bir futbolcunun sahada ürettiği yüzlerce farklı istatistiksel verinin (pas yüzdesi, ikili mücadele, koşu mesafesi vb.) tek bir potada eritilip, oyuncunun gerçek potansiyelini yansıtan net bir çıktıya dönüştürülememesi.\n\n* **Yatırım ve Finansal Risk Yönetimi:** Kulüplerin kısıtlı bütçelerini verimsiz kullanma riski ve oyuncuların gerçek performans hak edişleri ile piyasa değerleri arasındaki dengesizliklerin öngörülememesi.",
+      "architecture": "ScoutMaster projesi, ham spor istatistiklerini işleyerek finansal ve teknik öngörülere dönüştüren modüler bir veri işleme ve modelleme mimarisine sahiptir:\n\n* **Performans Metrikleri Toplama Katmanı:** Futbolcuların teknik, taktik ve fiziksel sahadaki aksiyon loglarını ve istatistiklerini kabul eden veri giriş adımı.\n\n* **Özellik Mühendisliği ve Skorlama Motoru:** Ham oyuncu istatistiklerini anlamlı performans göstergelerine dönüştüren, pozisyon bazlı ağırlıklandırma ve veri standardizasyonu süreçlerini yürüten analitik katman.\n\n* **Öngörüsel Regresyon Havuzu:** Geliştirilen performans skorları ve piyasa dinamikleri üzerinden, oyuncuların güncel ve gelecekteki tahmini piyasa değerlerini hesaplayan makine öğrenmesi regresyon modelleri katmanı.\n\n* **Karar Destek ve Raporlama Çıktısı:** Scout ekiplerinin aradığı kriterlerdeki oyuncuları filtrelemesine, karşılaştırmasına ve değerleme raporlarına ulaşmasına olanak tanıyan veri tabanlı çıktı bileşeni.",
+      "stack_reason": "* **Python:** Spor analitiği kütüphaneleriyle olan tam uyumu, esnek veri manipülasyonu yetenekleri ve makine öğrenmesi ekosistemi nedeniyle projenin çekirdek dili olarak tercih edilmiştir.\n\n* **Scikit-Learn:** Oyuncu piyasa değerlerini öngören gelişmiş regresyon modellerinin kurulması, çapraz doğrulama (cross-validation) süreçlerinin yönetilmesi ve model optimizasyonu için kullanılmıştır.\n\n* **Pandas & NumPy:** Farklı liglerden ve pozisyonlardan gelen büyük hacimli futbolcu istatistik tablolarını hızlıca birleştirmek, filtrelemek ve matematiksel matris operasyonlarını yürütmek amacıyla seçilmiştir.\n\n* **Seaborn & Matplotlib:** Oyuncuların performans dağılımlarını, metrikler arasındaki korelasyonları ve tahmin edilen değerler ile gerçek piyasa değerleri arasındaki ilişkileri görselleştirmek için entegre edilmiştir.",
+      "challenges": "* **Pozisyonel Veri Tutarsızlıkları:** Bir stoperin pas ve defansif metrikleri ile bir forvetin gol/asist beklentisi (xG) verilerinin doğası gereği farklı olması; tüm pozisyonlar için adil ve tutarlı bir merkezi tahminleme modeli kurgulamanın zorluğu.\n\n* **Uç Değerlerin (Outliers) Modeli Saptırması:** Yıldız oyuncuların olağanüstü istatistiklerinin veya aşırı yüksek piyasa değerlerinin regresyon modelini domine ederek genel tahmin başarısını düşürmesi problemi ve bu verilerin akıllıca izole edilmesi süreci.\n\n* **Multikolinearite (Çoklu Doğrusallık) Problemi:** Oyuncu istatistiklerinde birbiriyle doğrudan ilişkili (örneğin toplam pas ile isabetli pas gibi) birçok değişkenin modelde yapısal karmaşaya yol açması ve doğru öznitelik seçimi (feature selection) ihtiyacı.",
+      "learnings": "* **Domain Bilgisinin Gücü:** Veri biliminde sadece algoritma bilmenin yetmediği; futbolun iç dinamiklerini, pozisyon gereksinimlerini ve sektörel mantığı koda dökmenin model başarısını doğrudan etkilediğini kavramak.\n\n* **Boyut Azaltma ve Öznitelik Seçimi:** Modeli karmaşıklaştıran gereksiz ve birbiriyle çakışan değişkenleri eleyerek, en az değişkenle en yüksek açıklanabilirlik oranına (R-squared) ulaşma stratejilerini öğrenmek.\n\n* **Uçtan Uca Proje Yönetimi:** Deneysel bir veri analizi çalışmasını, bir problemin tanımından başlayarak veri ön işleme, modelleme ve anlamlı bir karar destek mekanizmasına dönüştürme süreçlerinin tamamını bağımsız yönetebilme yetisi kazanmak."
     }
   },
   {
-    "id": "lazyeda",
-    "title": "LazyEda",
-    "name": "LazyEda",
-    "slug": "lazyeda",
-    "url": "/portfolio/lazyeda",
-    "aliases": [],
-    "desc": "Open-source library automating common exploratory data analysis steps with optional LLM integration.",
-    "tags": ["EDA", "Python", "Open Source"],
+    "id": "netguard-ai",
+    "title": "NetGuard AI",
+    "name": "NetGuard AI",
+    "slug": "netguard-ai",
+    "url": "/portfolio/netguard-ai",
+    "aliases": [
+      "netguard",
+      "net guard",
+      "net-guard",
+      "netguard ai"
+    ],
+    "desc": "Makine öğrenmesi tabanlı ağ güvenlik ve anomali tespit sistemi — XGBoost, LightGBM ile çok sınıflı saldırı sınıflandırması.",
+    "tags": [
+      "Anomaly Detection",
+      "Cyber Security",
+      "Network Security",
+      "Intrusion Detection",
+      "Machine Learning",
+      "Tree-Based Models",
+      "Multi-Class Classification",
+      "Data Science",
+      "Python",
+      "Predictive Modeling"
+    ],
     "case_study": {
-      "problem": "Placeholder — sen dolduracaksın",
-      "architecture": "Placeholder",
-      "stack_reason": "Placeholder",
-      "challenges": "Placeholder",
-      "learnings": "Placeholder"
+      "problem": "Modern kurumsal ağların güvenliğini sağlamak ve veri sızıntılarını engellemek, siber tehditlerin karmaşıklaşması nedeniyle şu kritik teknik zorlukları barındırmaktadır:\n\n* **İmza Tabanlı Sistemlerin Yetersizliği:** Geleneksel güvenlik duvarlarının ve kural tabanlı sistemlerin, \"Zero-Day\" (Sıfırıncı Gün) olarak adlandırılan veya daha önce tanımlanmamış yeni nesil saldırı patternlerine karşı tamamen korumasız kalması.\n\n* **Yüksek Trafik ve Gürültülü Veri:** Ağ bileşenlerinden saniyede milyonlarca log akması ve bu devasa trafik verisi içerisindeki gerçek tehdit sinyallerinin, normal ağ aktiviteleri (gürültü) arasından ayıklanmasının yarattığı hesaplama zorluğu.\n\n* **Yanlış Alarmlar (False Positives):** Güvenlik sistemlerinin normal bir kullanıcı hareketini saldırı olarak yorumlayıp sistemi kilitlemesi veya tam tersi, gerçek bir sızıntıyı kaçırması (False Negative) durumlarının finansal ve operasyonel riskleri.",
+      "architecture": "Proje, ham ağ paket verilerini siber tehdit öngörülerine dönüştüren, ölçeklenebilir ve çok aşamalı bir veri bilimi boru hattı mimarisiyle tasarlanmıştır:\n\n* **Ağ Logu Ön İşleme ve Temizleme Katmanı:** Ağ trafiğinden gelen ham istatistiksel özellikleri, eksik verileri ve kategorik protokol verilerini (TCP, UDP, HTTP vb.) analize hazır matrislere dönüştüren veri işleme adımı.\n\n* **Boyut Azaltma ve Öznitelik Mühendisliği:** Ağ trafiğindeki yüzlerce alt parametre içerisinden saldırı türlerini en iyi ayırt eden kritik değişkenleri belirleyen ve model performansını optimize eden boyut yönetimi modülü.\n\n* **Çok Sınıflı (Multi-Class) Tehdit Sınıflandırma Havuzu:** Ağ aktivitesinin sadece normal veya anormal olduğunu belirlemekle kalmayıp, anomalinin hangi spesifik saldırı türüne (Fuzzers, Analysis, DoS vb.) ait olduğunu teşhis eden makine öğrenmesi katmanı.\n\n* **Performans Metrik Raporlama Çıktısı:** Eğitilen güvenlik modellerinin başarı oranlarını ve anomali yakalama skorlarını karşılaştırmalı analizlerle kayıt altına alan çıktı katmanı.",
+      "stack_reason": "* **Python:** Siber güvenlik araçları, ağ analitiği kütüphaneleri ve makine öğrenmesi ekosistemi arasındaki köprüyü en kararlı şekilde kurmak amacıyla tercih edilmiştir.\n\n* **Scikit-Learn:** Gelişmiş sınıflandırma algoritmalarının entegrasyonu, ağ verilerinin standardizasyonu, etiket kodlama (Label Encoding) ve model doğrulama süreçlerinin yürütülmesi için kullanılmıştır.\n\n* **XGBoost & LightGBM:** Ağ trafiği gibi çok yüksek hacimli ve satır sayılı veri setlerinde, minimum gecikmeyle (low latency) ve yüksek doğrulukla anomali tahmini yapabilen ağaç tabanlı boosting algoritmalarından yararlanılmak üzere konumlandırılmıştır.\n\n* **Pandas & NumPy:** Milyonlarca bağlantı kaydından oluşan karmaşık ağ trafiği veri setlerini bellek optimizasyonuyla manipüle etmek ve matematiksel işlemleri hızlandırmak amacıyla seçilmiştir.\n\n* **Matplotlib & Seaborn:** Saldırı türlerinin dağılımını ve karmaşıklık matrislerini (Confusion Matrix) görselleştirerek sistemin siber tehditleri ayırt etme gücünü raporlamak için entegre edilmiştir.",
+      "challenges": "* **Veri Setindeki Aşırı Sınıf Dengesizliği:** Normal ağ trafiğinin yoğunluğu yanında, bazı nadir saldırı türlerine (örneğin Backdoor veya Worms) ait logların veri setinde çok az yer alması ve modelin bu nadir tehditlere karşı körleşmesini engelleme zorluğu.\n\n* **Kategorik Verilerin Yoğunluğu:** Ağ protokolleri, servis türleri ve bayraklar (flags) gibi çok sayıda yüksek kardinaliteli kategorik değişkenin, modellerin performansını düşürmeden ve boyutsallık lanetine (curse of dimensionality) takılmadan doğru şekilde sayısallaştırılması.\n\n* **Gerçek Zamanlılık ve Hız Baskısı:** Bir ağ saldırısının milisaniyeler içinde sistemi çökertebileceği gerçeği karşısında, geliştirilen modelin tahmin hızını (inference time) kurumsal IDS sistemlerine entegre olabilecek seviyede optimize tutabilmek.",
+      "learnings": "* **Siber Güvenlikte Veri Odaklı Bakış:** Güvenlik dünyasındaki tehdit senaryolarının statik kurallarla değil, olasılıksal ve istatistiksel anomali yaklaşımlarıyla çözülmesinin siber savunmaya kattığı asimetrik gücü kavramak.\n\n* **Boosting Algoritmalarının Karşılaştırılması:** XGBoost ve LightGBM gibi modellerin ağ verileri üzerindeki eğitim hızlarını, bellek tüketimlerini ve false positive oranlarını canlı veri üzerinde objektif kriterlerle karşılaştırma yetisi kazanmak.\n\n* **Veri Hazırlığının Önemi:** Siber güvenlik verilerindeki kirliliğin ve uç değerlerin (outliers) elenmesinin, en karmaşık siber güvenlik algoritmasını eğitmekten çok daha fazla performans artışı sağladığını yaşayarak öğrenmek."
+    }
+  },
+  {
+    "id": "logsentinel-ai",
+    "title": "LogSentinel AI",
+    "name": "LogSentinel AI",
+    "slug": "logsentinel-ai",
+    "url": "/portfolio/logsentinel-ai",
+    "aliases": [
+      "logsentinel",
+      "log sentinel",
+      "log-sentinel",
+      "logsentinel ai"
+    ],
+    "desc": "Windows Event Log analizi ve birliktelik kuralı madenciliği ile siber tehdit avcılığı ve korelasyon motoru.",
+    "tags": [
+      "Data Mining",
+      "Association Rule Mining",
+      "Apriori Algorithm",
+      "Cyber Security",
+      "SIEM Correlation",
+      "Threat Hunting",
+      "Windows Event Logs",
+      "Pattern Recognition",
+      "Python",
+      "Network Analytics"
+    ],
+    "case_study": {
+      "problem": "Kurumsal altyapılarda sistem güvenliğini ve kararlılığını izlemek, log verilerinin doğası gereği şu kritik mühendislik zorluklarını barındırmaktadır:\n\n* **Dehşet Verici Log Hacmi:** Büyük ölçekli sunucu ve istemci ağlarında günde milyonlarca Windows Event Logu üretilmesi ve bu devasa veri yığını içinde anlamlı güvenlik kalıplarını manuel bulmanın imkansızlığı.\n\n* **Statik SIEM Kurallarının Yetersizliği:** Geleneksel SIEM sistemlerinin sadece siber güvenlik uzmanlarının yazdığı sınırlı ve statik \"X olayı olursa alarm üret\" mantığıyla çalışması, karmaşık ve zamana yayılmış gelişmiş tehdit (APT) zincirlerini gözden kaçırması.\n\n* **Kök Neden Analizi (Root Cause) Zorluğu:** Bir sistem çökmesi veya siber sızıntı anında, tetiklenen yüzlerce log arasından ilk hangi olayın (root event) bu zincirleme reaksiyonu başlattığının tespit edilememesi.",
+      "architecture": "Proje, karmaşık Windows Event log dosyalarını yapılandırılmış sepet analizlerine ve stratejik siber güvenlik kurallarına dönüştüren modüler bir veri madenciliği mimarisine sahiptir:\n\n* **Event Log Ayrıştırma ve Normalizasyon Katmanı:** Windows işletim sisteminden gelen ham XML/JSON veya CSV tabanlı log formatlarını, olay kimliklerine (Event ID) ve zamansal pencerelere göre yapılandırılmış veri matrislerine dönüştüren ön işleme adımı.\n\n* **Zamana Dayalı Transaksiyon Sepeti Oluşturucu:** Peş peşe gelen sistem günlüklerini, belirli zaman aralıklarına (time-window) göre gruplayarak algoritmaların işleyebileceği \"olay sepetleri\" haline getiren zaman serisi modülü.\n\n* **Birliktelik Kuralı Madenciliği (Association Mining) Motoru:** Dönüştürülen olay sepetleri üzerinde Apriori mimarisini koşturarak, olaylar arasındaki destek (Support), güven (Confidence) ve kaldıraç (Lift) değerlerini hesaplayan çekirdek analitik katman.\n\n* **Korelasyon ve Filtreleme Çıktı Katmanı:** Üretilen binlerce kural arasından siber güvenlik açısından anlamsız olan gürültüleri eleyen ve doğrudan SIEM sistemlerine entegre edilebilecek yüksek güvenilirlikli kuralları raporlayan çıktı bileşeni.",
+      "stack_reason": "* **Python:** Gelişmiş veri madenciliği kütüphaneleriyle olan kararlı entegrasyonu, veri analitiği ekosistemi ve siber güvenlik betikleri yazımındaki esnekliği nedeniyle tercih edilmiştir.\n\n* **MLxtend (Machine Learning Extensions):** Yüksek performanslı birliktelik kuralları (Association Rules) üretmek ve Apriori gibi yoğun döngü içeren pazar sepeti analizi algoritmalarını optimize şekilde çalıştırmak amacıyla konumlandırılmıştır.\n\n* **Pandas & NumPy:** Devasa sistem günlük tablolarını zaman damgalarına göre hızlıca indekslemek, dilimlemek ve transaksiyon matrislerine dönüştürmek için seçilmiştir.\n\n* **Matplotlib & Seaborn:** Keşfedilen olay ilişkilerini, Event ID korelasyon ağlarını ve kuralların lift/confidence dağılımlarını görselleştirerek analistlerin anomalileri hızla fark etmesini sağlamak üzere entegre edilmiştir.",
+      "challenges": "* **Kombinasyonel Patlama ve Performans Tıkanması:** Apriori algoritmasının doğası gereği, benzersiz Event ID sayısı arttıkça kural kombinasyonlarının geometrik olarak büyümesi ve sistem belleğini (RAM) kilitleme riski. Bu durum, minimum destek (min_support) ve güven eşiklerinin canlı veride dinamik olarak optimize edilmesiyle aşılmıştır.\n\n* **Verideki Güvenlik Dışı Gürültülerin Elenmesi:** Windows işletim sisteminin arka planda sürekli ürettiği ve güvenlik açığıyla ilgisi olmayan rutin sistem loglarının (örneğin sıradan güncelleme veya servis kontrolleri) kuralları domine etmesini engelleme ve bunları akıllıca filtreleme zorluğu.\n\n* **Zaman Penceresi (Time Window) Belirsizliği:** Bir siber saldırı adımının ne kadarlık bir zaman diliminde (5 dakika mı, 1 saat mi?) gerçekleştiğini öngörüp, log sepetlerini en doğru zamansal aralıklarla segmentlere ayırma karmaşası.",
+      "learnings": "* **Veri Madenciliğinin Gücü:** Siber güvenlik problemlerinin sadece sınıflandırma modelleriyle değil, pazar sepeti analizi gibi doğrudan örüntü tanıma (pattern recognition) odaklı veri madenciliği yaklaşımlarıyla da ne kadar kreatif şekilde çözülebileceğini görmek.\n\n* **Korelasyon Mantığı:** Ham log verisinden kurumsal yapılarda katma değer üretecek \"anlamlı siber istihbarat kuralları\" türetme süreçlerindeki iş mantığını ve metriklerin (özellikle Lift metriğinin) siber savunmadaki matematiksel karşılığını kavramak.\n\n* **Büyük Veride Algoritma Kısıtları:** Teoride harika çalışan algoritmaların, gerçek dünya kurumsal log hacimleriyle karşılaştığında yaşayabileceği performans darboğazlarını erken aşamada deneyimleyip parametre optimizasyonuna hakim olmak."
+    }
+  },
+  {
+    "id": "netxplore-ai",
+    "title": "NetXplore AI",
+    "name": "NetXplore AI",
+    "slug": "netxplore-ai",
+    "url": "/portfolio/netxplore-ai",
+    "aliases": [
+      "netxplore",
+      "net xplore",
+      "net-xplore",
+      "netxplore ai"
+    ],
+    "desc": "Gözetimsiz öğrenme tabanlı ağ trafiği segmentasyon ve haritalama motoru — K-Means, PCA ile anomali keşfi.",
+    "tags": [
+      "Unsupervised Learning",
+      "Clustering",
+      "K-Means Algorithm",
+      "Principal Component Analysis (PCA)",
+      "Cyber Security",
+      "Network Segmentation",
+      "Anomaly Detection",
+      "Data Science",
+      "Python",
+      "Dimensionality Reduction"
+    ],
+    "case_study": {
+      "problem": "Ağ trafiği analitiğinde ve siber savunma süreçlerinde, ham ve etiketlenmemiş verilerle çalışmak şu kritik mühendislik zorluklarını beraberinde getirmektedir:\n\n* **Etiketli Veri Eksikliği ve Maliyeti:** Gerçek dünya ağ altyapılarında akan verilerin \"saldırı\" veya \"normal\" olarak elle etiketlenmesinin operasyonel olarak imkansız olması ve geleneksel supervised (gözetimli) modellerin bu yüzden üretim ortamında tıkanması.\n\n* **Bilinmeyen (Zero-Day) Saldırı Tehditleri:** Sadece geçmiş siber saldırı kalıplarını öğrenen sınıflandırma modellerinin, hackerlar tarafından yeni geliştirilmiş ve siber güvenlik literatürüne henüz girmemiş saldırı stratejilerini asla yakalayamaması.\n\n* **Yüksek Boyutlu Veri Karmaşası:** Ağ paketlerinden elde edilen onlarca farklı teknik parametrenin (port numaraları, paket boyutları, bayraklar vb.) yarattığı boyutsallık laneti nedeniyle, verinin gerçek geometrik yapısının ve saklı kümeleşmelerinin bilgisayarlar tarafından algılanmasının zorluğu.",
+      "architecture": "NetXplore AI projesi, karmaşık ve etiketlenmemiş ağ paket akışlarını anlamlı siber güvenlik haritalarına dönüştüren, optimize edilmiş bir gözetimsiz öğrenme boru hattına (pipeline) sahiptir:\n\n* **Veri Standardizasyonu ve Ön İşleme Katmanı:** Ağ trafiğinden gelen ve aralarında uçurumlar olan sayısal değerleri, kümeleme algoritmalarının mesafe hesaplarını saptırmaması için ölçekleyen ve kategorik verileri normalize eden katman.\n\n* **Matematiksel Boyut Azaltma (PCA) Motoru:** Verinin taşıdığı toplam varyansı (bilgiyi) maksimum oranda koruyarak, onlarca öznitelikten oluşan ağ verisini geometrik olarak en anlamlı alt bileşenlere indirgeyen boyut yönetim adımı.\n\n* **Gözetimsiz Kümeleme ve Mesafe Analizör (K-Means):** Boyutu indirgenen veri uzayında, veri noktalarının birbirine olan Euclidean mesafelerini hesaplayarak ağ trafiğini en optimal küme sayısında (Elbow Method entegrasyonuyla) segmentlere ayıran çekirdek motor.\n\n* **Görselleştirme ve Tehdit Keşif Çıktısı:** Oluşan kümelerin ağaç şemalarını, merkez noktalarını (centroids) ve gruptan sapan yalnız veri noktalarını (anomali) siber güvenlik analistleri için anlık grafik raporlara dönüştüren çıktı katmanı.",
+      "stack_reason": "* **Python:** Gözetimsiz öğrenme algoritmalarındaki güçlü kütüphane desteği ve gelişmiş veri görselleştirme ekosistemi nedeniyle ana mimari dil olarak tercih edilmiştir.\n\n* **Scikit-Learn (Sklearn):** K-Means kümeleme mimarisinin optimize çalıştırılması, Principal Component Analysis (PCA) ile boyut azaltma süreçlerinin yönetilmesi ve veri standardizasyonu adımları için endüstriyel standart olarak konumlandırılmıştır.\n\n* **Pandas & NumPy:** Etiketlenmemiş devasa ağ log tablolarını yüksek hızda işlemek, matris dönüştürmelerini yürütmek ve mesafe tabanlı veri manipülasyonlarını RAM optimizasyonuyla gerçekleştirmek amacıyla seçilmiştir.\n\n* **Matplotlib & Seaborn:** İki ve üç boyutlu uzayda ağ trafiği kümelerini, küme merkezlerini ve dağılım grafiklerini (Scatter Plots) görselleştirerek görünmeyen siber anomalileri somutlaştırmak üzere entegre edilmiştir.",
+      "challenges": "* **Optimal Küme Sayısının (K) Belirlenmesi:** Veri setinde önceden tanımlanmış bir sınıf (etiket) olmadığı için, ağ trafiğini kaç farklı gruba ayırmanın hem siber güvenlik mantığına hem de matematiksel tutarlılığa en uygun olduğunu (Elbow Method ve WCSS metrikleriyle) dengeli şekilde bulma zorluğu.\n\n* **Büyük Veride Mesafe Hesaplama Yoğunluğu:** Satır sayısı milyonları bulan devasa veri setlerinde K-Means algoritmasının sürekli merkez noktası güncellerken yaşadığı işlemci (CPU) yükü ve performans tıkanmaları. Bu durum, veri örnekleme ve pipeline optimizasyonlarıyla aşılmıştır.\n\n* **Kümelerin Siber Güvenlik Karşılığını Yorumlamak:** Algoritmanın matematiksel olarak başarıyla ayırdığı bir kümenin, gerçek hayatta \"Ağ taraması (Scanning)\" mı, \"DoS saldırısı\" mı yoksa rutin bir kurumsal yedekleme (Backup) işlemi mi olduğunu domain bilgisiyle eşleştirme karmaşası.",
+      "learnings": "* **Etiketsiz Verinin Gücü:** Siber güvenlikte hiçbir kural veya etiket olmadan, sadece verinin kendi iç geometrisinden ve mesafe ilişkilerinden yola çıkarak saklı siber tehditlerin ve operasyonel davranışların nasıl keşfedilebileceğini yaşayarak öğrenmek.\n\n* **Boyut Azaltmanın Performansa Etkisi:** PCA uygulayarak model eğitim sürelerini kaliteden ödün vermeden nasıl radikal şekilde düşürülebileceğini, yüksek boyutlu karmaşık verileri insan gözünün anlayabileceği 2D/3D grafiklere indirgemenin mimari matematiğini kavramak.\n\n* **Gözetimsiz Modellerde Optimizasyon:** Gerçek dünya projelerinde hiperparametrelerin (küme sayısı, başlangıç merkezleri vb.) statik seçilemeyeceğini; verinin doğasına göre sistematik metriklerle (Elbow vb.) doğrulanması gerektiğini tecrübe etmek."
+    }
+  },
+  {
+    "id": "voltpredict-ai",
+    "title": "VoltPredict AI",
+    "name": "VoltPredict AI",
+    "slug": "voltpredict-ai",
+    "url": "/portfolio/voltpredict-ai",
+    "aliases": [
+      "voltpredict",
+      "volt predict",
+      "volt-predict",
+      "voltpredict ai"
+    ],
+    "desc": "Hane bazlı elektrik tüketim tahmini ve enerji analitiği motoru — çoklu regresyon modelleri ile akıllı şebeke optimizasyonu.",
+    "tags": [
+      "Energy Analytics",
+      "Predictive Modeling",
+      "Regression Models",
+      "Smart Grid",
+      "Time Series Analysis",
+      "Data Science",
+      "Python",
+      "Regularization (Ridge/Lasso)",
+      "Feature Engineering",
+      "Scikit-Learn"
+    ],
+    "case_study": {
+      "problem": "Enerji sektöründe tüketim tahmini ve akıllı şebeke yönetimi süreçleri, verinin yapısı ve çevresel faktörler nedeniyle şu kritik mühendislik zorluklarını barındırmaktadır:\n\n* **Arz-Talep Dengesizliği ve Maliyetler:** Elektrik enerjisinin depolanmasının yüksek maliyetli olması nedeniyle, şebekeye verilecek enerji miktarının anlık tahmin edilememesinin enerji israfına veya kesintilere yol açması.\n\n* **Tüketim Davranışlarının Değişkenliği:** Hane halkı elektrik tüketiminin günün saatlerine, haftanın günlerine ve mevsimsel döngülere bağlı olarak ani ve doğrusal olmayan (non-linear) dalgalanmalar göstermesi.\n\n* **Çoklu Kaynak Veri Karmaşası:** Ana elektrik tüketiminin yanı sıra mutfak, çamaşır odası, ısıtma/soğutma gibi farklı alt devrelerden (sub-metering) gelen verilerin bütüncül bir tahminleme modeline dönüştürülmesindeki karmaşıklık.",
+      "architecture": "VoltPredict AI projesi, karmaşık tüketim loglarını stratejik enerji öngörülerine dönüştüren, optimize edilmiş çok aşamalı bir regresyon boru hattı (pipeline) mimarisine sahiptir:\n\n* **Zaman Tabanlı Veri Ön İşleme Katmanı:** Ham elektrik tüketim verilerindeki eksik sinyalleri temizleyen, tarihsel zaman damgalarını (saat, gün, ay) algoritmaların işleyebileceği zamansal özniteliklere ayıran katman.\n\n* **Ağırlıklı Öznitelik Mühendisliği (Feature Engineering):** Ana güç tüketimi ile alt devrelerin (sub-metering) tüketim oranları arasındaki korelasyonları hesaplayan ve modele en yüksek bilgi kazancını (information gain) sağlayacak değişkenleri rafine eden katman.\n\n* **Çoklu Regresyon ve Optimizasyon Havuzu:** Doğrusal modellerden (Linear Regression, Ridge, Lasso, ElasticNet) ağaç tabanlı ensemble yaklaşımlarına (Random Forest, Gradient Boosting) kadar geniş bir yelpazeyi sistematik olarak eğiten ve hiperparametre optimizasyonu yürüten modelleme katmanı.\n\n* **Karşılaştırmalı Performans Raporlama Çıktısı:** Eğitilen enerji modellerinin tahmin başarılarını endüstri standartlarındaki hata metrikleri (MAE, MSE, RMSE, R2 Score) üzerinden objektif grafiklerle analiz eden çıktı katmanı.",
+      "stack_reason": "* **Python:** Zaman serisi analizi, enerji analitiği ve ileri seviye istatistiksel modelleme kütüphaneleriyle olan zengin entegrasyon gücü nedeniyle ana mimari dil olarak tercih edilmiştir.\n\n* **Scikit-Learn:** Doğrusal ve ağaç tabanlı regresyon algoritmalarının entegrasyonu, regularization (Ridge/Lasso) süreçlerinin yönetilmesi ve modellerin sistematik hata analizlerinin yapılması için endüstriyel standart olarak konumlandırılmıştır.\n\n* **Pandas & NumPy:** Sürekli akan zaman serisi tabanlı enerji tüketim verilerini hızlıca indekslemek, zamansal pencerelere (time-windows) göre gruplamak ve matematiksel matris operasyonlarını yürütmek amacıyla seçilmiştir.\n\n* **Matplotlib & Seaborn:** Gerçek tüketim değerleri ile model tahminleri arasındaki uyumu, hata dağılım grafiklerini ve alt devrelerin tüketim oranlarını görselleştirerek anlaşılır analitik raporlara dönüştürmek üzere entegre edilmiştir.",
+      "challenges": "* **Çoklu Doğrusallık (Multikolinearite) ve Aşırı Öğrenme:** Alt devre ölçümleri ile toplam tüketim arasında doğrudan matematiksel bağlar bulunmasının modellerde yarattığı yapısal gürültü ve Ridge/Lasso regülasyonları ile modelin aşırı öğrenmesinin (overfitting) engellenmesi süreci.\n\n* **Geniş Ölçekli Hata Optimizasyonu:** Enerji tahminlemede tek bir büyük hatanın (peak error) şebekeye büyük maliyetler yükleyebileceği gerçeği karşısında, ortalama hatayı (MAE) düşürürken büyük sapmaları cezalandıran RMSE metriğini optimize etme zorluğu.\n\n* **Mevsimsel ve Zamansal Kaymalar:** Hafta içi ve hafta sonu tüketim alışkanlıkları arasındaki radikal farkların veya mevsimsel ısıtma/soğutma yüklerinin modelin genel tahmin tutarlılığını bozmasını önleyecek güçlü zamansal özniteliklerin kurgulanması.",
+      "learnings": "* **Regülasyon Tekniklerinin Etkisi:** Karmaşık ve birbiriyle ilişkili öznitelik barındıran veri setlerinde Ridge, Lasso ve ElasticNet gibi ceza mekanizmalarının (L1/L2 regularization) modelin genellenebilirliğini nasıl artırdığını yaşayarak öğrenmek.\n\n* **Çok Yönlü Metrik Analizi:** Regresyon modellerinde sadece tek bir başarı metriğine (R² gibi) bakmanın aldatıcı olabileceği; iş mantığına göre hata metriklerinin (MAE/RMSE) ayrı ayrı yorumlanması gerektiği tecrübesini kazanmak.\n\n* **Akıllı Enerji Vizyonu:** Veri biliminin sadece dijital yazılımlarda değil, temiz enerji yönetimi, akıllı şebekeler ve karbon ayak izini azaltma gibi sürdürülebilir dünya problemlerinde nasıl asimetrik bir katma değer ürettiğini deneyimlemek."
+    }
+  },
+  {
+    "id": "phishshield-ai",
+    "title": "PhishShield AI",
+    "name": "PhishShield AI",
+    "slug": "phishshield-ai",
+    "url": "/portfolio/phishshield-ai",
+    "aliases": [
+      "phishshield",
+      "phish shield",
+      "phish-shield",
+      "phishshield ai"
+    ],
+    "desc": "Makine öğrenmesi tabanlı proaktif URL güvenlik ve kimlik avı (phishing) tespit motoru.",
+    "tags": [
+      "Cyber Security",
+      "Machine Learning",
+      "Phishing Detection",
+      "URL Analytics",
+      "Supervised Learning",
+      "Data Science",
+      "Python",
+      "Predictive Modeling",
+      "Scikit-Learn",
+      "Network Security"
+    ],
+    "case_study": {
+      "problem": "Siber güvenlik dünyasında kimlik avı (phishing) saldırılarıyla mücadele etmek, tehditlerin sosyal mühendislik ve dinamik altyapılarla birleşmesi nedeniyle şu kritik mühendislik zorluklarını barındırmaktadır:\n\n* **Kara Listelerin (Blacklist) Yetersizliği:** Geleneksel güvenlik duvarlarının ve antivirüs yazılımlarının kullandığı statik kara liste veri tabanlarının, saldırganların dakikalar içinde açıp kapattığı yeni ve dinamik \"Zero-Hour\" sahte web sitelerine karşı tamamen etkisiz kalması.\n\n* **Gelişmiş Görsel ve Metinsel Taklit yeteneği:** Saldırganların meşru kurumların arayüzlerini, logo yapılarını ve domain isimlerini (Typosquatting/Homograph saldırıları) insan gözünün ayırt edemeyeceği kadar kusursuz taklit etmesiyle oluşan siber riskler.\n\n* **Milisaniyelik İşlem Baskısı:** Kullanıcı bir bağlantıya tıkladığı an, web sitesinin güvenli olup olmadığının tarayıcı deneyimini ve ağ hızını yavaşlatmadan, anlık ve yüksek doğrulukla analiz edilme zorunluluğu.",
+      "architecture": "PhishShield AI projesi; şüpheli bağlantıları ve web metriklerini analiz ederek siber tehdit skorlarına dönüştüren, optimize edilmiş çok aşamalı bir sınıflandırma hattı (classification pipeline) mimarisiyle kurgulanmıştır:\n\n* **URL ve Alan Adı Öznitelik Çözümleme Katmanı:** Şüpheli web sitelerinin adres uzunluklarını, özel karakter yoğunluklarını, HTTP/HTTPS protokol durumlarını ve alt alan adı (subdomain) katmanlarını ayrıştırarak yapılandırılmış sayılara döken veri işleme adımı.\n\n* **Altyapı ve Ağ Güvenlik Metrikleri Modülü:** Web sitesinin barındırıldığı IP adreslerini, harici yönlendirme (redirection) sayılarını, form alanlarının (input) güvenliğini ve tarayıcı çubuğu durum kodlarını analiz eden ağ mühendisliği katmanı.\n\n* **Yüksek Hassasiyetli Sınıflandırma Havuzu:** Elde edilen karmaşık web özellikleri üzerinden, web sitesinin güvenli (legitimate) mi yoksa bir kimlik avı tuzağı (phishing) mı olduğunu ayırt eden, hiperparametre optimizasyonlu makine öğrenmesi katmanı.\n\n* **Proaktif Tehdit Skoru ve Entegrasyon Çıktısı:** Sınıflandırma modelinin ürettiği olasılık değerlerini siber risk skorlarına dönüştürerek, harici güvenlik sistemlerinin bağlantıları anında bloke etmesine imkan tanıyan çıktı bileşeni.",
+      "stack_reason": "* **Python:** Siber güvenlik araçları, ağ sorgulama kütüphaneleri ve veri bilimi ekosistemi arasındaki entegrasyon süreçlerini en optimize ve kararlı şekilde yürütmek amacıyla tercih edilmiştir.\n\n* **Scikit-Learn:** Web özelliklerinin standardizasyonu, veri setinin eğitim/test olarak bölünmesi, farklı sınıflandırma modellerinin sistematik olarak eğitilmesi ve başarı metriklerinin analizi için endüstriyel standart olarak konumlandırılmıştır.\n\n* **Pandas & NumPy:** On binlerce şüpheli ve güvenli web sitesine ait teknik parametre tablolarını yüksek hızda işlemek, filtrelemek ve vektörleştirilmiş matris operasyonlarını çalıştırmak amacıyla seçilmiştir.\n\n* **Matplotlib & Seaborn:** Modellerin siber tehditleri ayırt etme başarısını gösteren karmaşıklık matrislerini (Confusion Matrix), ROC eğrilerini ve web özelliklerinin önemlilik (feature importance) derecelerini görselleştirmek üzere entegre edilmiştir.",
+      "challenges": "* **Dinamik Tehdit Karşısında Model Sürdürülebilirliği:** Saldırganların güvenlik modellerini atlatmak için sürekli yeni URL yapıları ve gizleme (obfuscation) teknikleri geliştirmesi karşısında, modelin genellenebilirliğini (generalization) yüksek tutarak aşırı öğrenme (overfitting) riskini engelleme zorluğu.\n\n* **False Positive (Hatalı Engelleme) Dengesi:** Meşru ve güvenli bir kurumsal web sitesinin model tarafından yanlışlıkla \"phishing\" olarak sınıflandırılmasının yaratacağı ticari ve operasyonel aksamaları önlemek adına, modelin kesinlik (Precision) metriğini en üst düzeye çıkarma baskısı.\n\n* **Karmaşık Web Özelliklerinin Seçimi:** Bir web sitesine ait yüzlerce teknik parametre içerisinden, modeli yavaşlatmayacak ancak sahte siteleri en yüksek bilgi kazancıyla (information gain) yakalayacak en ayırt edici özniteliklerin filtrelenmesi süreci.",
+      "learnings": "* **Siber Savunmada Olasılıksal Yaklaşım:** Güvenlik dünyasındaki tehditlerin statik kurallarla engellenemeyeceğini; makine öğrenmesi tabanlı olasılıksal sınıflandırma modellerinin kurumsal siber savunmaya nasıl asimetrik bir proaktif güç kattığını kavramak.\n\n* **Metriklerin İş Dünyasındaki Karşılığı:** Bir modelin sadece matematiksel skorlarının değil, siber güvenlik domain'indeki False Positive ve False Negative oranlarının kurumsal şirketler ve son kullanıcılar için ne kadar hayati maliyetlere karşılık geldiğini yaşayarak öğrenmek.\n\n* **Uçtan Uca Sınıflandırma Deneyimi:** Dağınık ve kirli web metriklerinden yola çıkarak veri ön işleme, modelleme, optimizasyon ve anlamlı bir siber güvenlik karar destek modülü inşa etme süreçlerinin tamamında derinlemesine pratik yetkinlik kazanmak."
     }
   }
 ]
