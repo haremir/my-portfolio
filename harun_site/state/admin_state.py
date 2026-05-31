@@ -99,14 +99,24 @@ class AdminAuthState(rx.State):
     password: str = ""
     is_authenticated: bool = False
     login_error: str = ""
+    show_password: bool = False
 
     @rx.event
     def set_password(self, value: str):
         self.password = value
 
     @rx.event
+    def toggle_show_password(self):
+        self.show_password = not self.show_password
+
+    @rx.event
+    def handle_keydown(self, key: str, info: rx.event.KeyInputInfo):
+        if key == "Enter":
+            return self.login()
+
+    @rx.event
     def login(self):
-        env_password = os.environ.get("ADMIN_PASSWORD", "admin123")
+        env_password = os.environ.get("ADMIN_PASSWORD", "SoloTrk826!")
         if self.password == env_password:
             self.is_authenticated = True
             self.login_error = ""

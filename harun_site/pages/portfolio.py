@@ -43,7 +43,10 @@ class PortfolioState(rx.State):
     modal_tags: list[str] = []
     modal_slug: str = ""
     modal_url: str = ""
+    modal_problem: str = ""
+    modal_architecture: str = ""
     is_modal_open: bool = False
+    show_filters: bool = False
 
     @rx.event
     def on_load(self):
@@ -67,12 +70,33 @@ class PortfolioState(rx.State):
 
     @rx.event
     def open_project(self, project: ProjectDict):
-        # Flatten into primitive state vars — never store the raw dict.
+        from harun_site.utils.data_manager import load_projects
+        import re
+        
+        raw_projects = load_projects()
+        target_id = project.get("id", "")
+        full_project = next((p for p in raw_projects if p.get("id") == target_id), {})
+        
+        # Flatten into primitive state vars
         self.modal_name = str(project.get("name", ""))
         self.modal_desc = str(project.get("desc", ""))
         self.modal_tags = [str(t) for t in (project.get("tags") or [])]
         self.modal_slug = str(project.get("slug", ""))
         self.modal_url = str(project.get("url", ""))
+        
+        # Load case study details
+        cs = full_project.get("case_study") or {}
+        
+        def clean_md(text: str) -> str:
+            if not text:
+                return ""
+            # Strip simple markdown headers, bold, list markers to make it clean text
+            text = re.sub(r"\*\*|#|`|_", "", text)
+            return text.strip()
+            
+        self.modal_problem = clean_md(cs.get("problem", ""))
+        self.modal_architecture = clean_md(cs.get("architecture", ""))
+        
         self.is_modal_open = True
 
     @rx.event
@@ -82,7 +106,13 @@ class PortfolioState(rx.State):
         self.modal_tags = []
         self.modal_slug = ""
         self.modal_url = ""
+        self.modal_problem = ""
+        self.modal_architecture = ""
         self.is_modal_open = False
+
+    @rx.event
+    def toggle_show_filters(self):
+        self.show_filters = not self.show_filters
 
     @rx.event
     def toggle_tag(self, tag: str):
@@ -296,14 +326,27 @@ def portfolio_page() -> rx.Component:
                     margin_bottom="1.5em",
                 ),
                 rx.vstack(
+                    # Toggle header & clear button
                     rx.hstack(
-                        rx.text(
-                            "ETİKET FİLTRESİ",
-                            font_family=FONT_MONO,
-                            font_size="0.8em",
-                            letter_spacing="0.25em",
-                            color=TEXT,
-                            font_weight="700",
+                        rx.button(
+                            rx.hstack(
+                                rx.cond(
+                                    PortfolioState.show_filters,
+                                    rx.text("▲ Filtreleri Gizle", font_family=FONT_MONO, font_size="0.75em"),
+                                    rx.text("▼ Filtreleri Göster (Etikete Göre Ara)", font_family=FONT_MONO, font_size="0.75em"),
+                                ),
+                                gap="0.3em",
+                                align="center",
+                            ),
+                            on_click=PortfolioState.toggle_show_filters,
+                            background="transparent",
+                            border=f"1px solid {BORDER}",
+                            color=PRIMARY,
+                            padding="0.4em 0.9em",
+                            border_radius="6px",
+                            cursor="pointer",
+                            transition="all 150ms",
+                            _hover={"background": f"{PRIMARY}15", "border_color": PRIMARY},
                         ),
                         rx.cond(
                             PortfolioState.has_filter,
@@ -312,8 +355,8 @@ def portfolio_page() -> rx.Component:
                                 on_click=PortfolioState.clear_tags,
                                 font_family=FONT_MONO,
                                 font_size="0.72em",
-                                padding="0.2em 0.7em",
-                                border_radius="4px",
+                                padding="0.4em 0.9em",
+                                border_radius="6px",
                                 background="transparent",
                                 color=ACCENT,
                                 border=f"1px solid {ACCENT}66",
@@ -323,16 +366,55 @@ def portfolio_page() -> rx.Component:
                             ),
                             rx.fragment(),
                         ),
-                        justify="space-between",
+                        justify="between",
                         align="center",
                         width="100%",
-                        margin_bottom="1.2em",
-                        border_bottom=f"1px solid {BORDER}",
-                        padding_bottom="0.5em",
+                        margin_bottom="1em",
                     ),
-                    rx.foreach(
-                        PortfolioState.categorized_tags,
-                        category_tag_row,
+                    # Selected tags summary pills (always visible if filtering is active)
+                    rx.cond(
+                        PortfolioState.has_filter,
+                        rx.flex(
+                            rx.text("Aktif Filtreler:", font_family=FONT_MONO, font_size="0.7em", color=TEXT_MUTED, margin_right="0.5em", margin_top="0.35em"),
+                            rx.foreach(
+                                PortfolioState.selected_tags,
+                                lambda tag: rx.button(
+                                    tag + " ✕",
+                                    on_click=PortfolioState.toggle_tag(tag),
+                                    font_family=FONT_MONO,
+                                    font_size="0.7em",
+                                    padding="0.15em 0.5em",
+                                    border_radius="3px",
+                                    background=PRIMARY,
+                                    color=BG,
+                                    border=f"1px solid {PRIMARY}",
+                                    cursor="pointer",
+                                    margin_bottom="0.4em",
+                                    margin_right="0.4em",
+                                ),
+                            ),
+                            wrap="wrap",
+                            width="100%",
+                            margin_bottom="1em",
+                        ),
+                        rx.fragment(),
+                    ),
+                    # Collapsible tags panel by category
+                    rx.cond(
+                        PortfolioState.show_filters,
+                        rx.vstack(
+                            rx.foreach(
+                                PortfolioState.categorized_tags,
+                                category_tag_row,
+                            ),
+                            width="100%",
+                            padding="1.2em",
+                            background=f"{BG_CARD}66",
+                            border=f"1px solid {BORDER}",
+                            border_radius="8px",
+                            margin_top="0.5em",
+                        ),
+                        rx.fragment(),
                     ),
                     width="100%",
                     margin_bottom="2.5em",
@@ -380,6 +462,59 @@ def portfolio_page() -> rx.Component:
                                 ),
                                 # ── Description ───────────────────────────────────────────
                                 rx.text(PortfolioState.modal_desc, font_family=FONT_SANS, color=TEXT_MUTED, margin_top="0.8em", font_size="0.9em", line_height="1.6"),
+                                # ── Case Study Sections ─────────────────────────────────
+                                rx.cond(
+                                    PortfolioState.modal_problem != "",
+                                    rx.vstack(
+                                        rx.text(
+                                            "Problem",
+                                            font_family=FONT_MONO,
+                                            font_size="0.75em",
+                                            letter_spacing="0.1em",
+                                            color=PRIMARY,
+                                            text_transform="uppercase",
+                                            font_weight="bold",
+                                            margin_top="1.2em",
+                                        ),
+                                        rx.text(
+                                            PortfolioState.modal_problem,
+                                            font_family=FONT_SANS,
+                                            color=TEXT_MUTED,
+                                            font_size="0.85em",
+                                            line_height="1.6",
+                                        ),
+                                        align_items="start",
+                                        gap="0.3em",
+                                        width="100%",
+                                    ),
+                                    rx.fragment(),
+                                ),
+                                rx.cond(
+                                    PortfolioState.modal_architecture != "",
+                                    rx.vstack(
+                                        rx.text(
+                                            "Mimari / Çözüm",
+                                            font_family=FONT_MONO,
+                                            font_size="0.75em",
+                                            letter_spacing="0.1em",
+                                            color=PRIMARY,
+                                            text_transform="uppercase",
+                                            font_weight="bold",
+                                            margin_top="1.2em",
+                                        ),
+                                        rx.text(
+                                            PortfolioState.modal_architecture,
+                                            font_family=FONT_SANS,
+                                            color=TEXT_MUTED,
+                                            font_size="0.85em",
+                                            line_height="1.6",
+                                        ),
+                                        align_items="start",
+                                        gap="0.3em",
+                                        width="100%",
+                                    ),
+                                    rx.fragment(),
+                                ),
                                 # ── Tags ─────────────────────────────────────────────────
                                 rx.hstack(
                                     rx.foreach(
@@ -387,7 +522,7 @@ def portfolio_page() -> rx.Component:
                                         lambda tag: rx.text(tag, font_family=FONT_MONO, font_size="0.72em", color=PRIMARY, border=f"1px solid {BORDER}", padding="0.2em 0.6em", border_radius="4px"),
                                     ),
                                     gap="0.4em",
-                                    margin_top="0.8em",
+                                    margin_top="1.2em",
                                     wrap="wrap",
                                 ),
                                 # ── CTA: navigate to case study ────────────────────────

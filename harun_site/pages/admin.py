@@ -16,13 +16,21 @@ def login_form() -> rx.Component:
             ),
             rx.input(
                 placeholder="Şifre...",
-                type="password",
+                type=rx.cond(AdminAuthState.show_password, "text", "password"),
                 value=AdminAuthState.password,
                 on_change=AdminAuthState.set_password,
+                on_key_down=AdminAuthState.handle_keydown,
                 width="100%",
                 background=BG_CARD,
                 border=f"1px solid {BORDER}",
                 color=TEXT,
+            ),
+            rx.button(
+                rx.cond(AdminAuthState.show_password, "Şifreyi Gizle", "Şifreyi Göster"),
+                on_click=AdminAuthState.toggle_show_password,
+                variant="ghost",
+                width="100%",
+                color=TEXT_MUTED,
             ),
             rx.button(
                 "Giriş Yap",

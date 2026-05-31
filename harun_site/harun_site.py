@@ -62,11 +62,15 @@ from harun_site.utils.groq_client import validate_groq_key
 validate_groq_key()
 
 # 3. Admin password security check
-_admin_pw = _os.environ.get("ADMIN_PASSWORD", "")
-if not _admin_pw or _admin_pw == "admin123":
+_admin_pw = _os.environ.get("ADMIN_PASSWORD", "SoloTrk826!")
+if not _admin_pw or _admin_pw == "SoloTrk826!":
     print(
         "[SECURITY] WARNING: ADMIN_PASSWORD is "
-        + ("not set — defaulting to 'admin123'" if not _admin_pw else "still set to the default 'admin123'"),
+        + (
+            "not set — defaulting to 'SoloTrk826!'"
+            if not _admin_pw
+            else "still set to the default 'SoloTrk826!'"
+        ),
         file=_sys.stderr,
     )
     print(
