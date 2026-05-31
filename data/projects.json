@@ -12,7 +12,7 @@
       "cebrix",
       "cebix"
     ],
-    "desc": "Multi-tenant AI Gateway & runtime engine — FastAPI, PostgreSQL, Redis, metering & credit-guard mechanisms.",
+    "desc": "CebirX; birden fazla yapay zekâ tabanlı ürünü ve servisi tek bir merkezi platform üzerinde güvenle çalıştırmaya olanak tanıyan, Python tabanlı kurumsal bir yapay zekâ çalışma zamanı (AI Runtime) mühendisliğidir. Sistem; kurumsal yazılım ihtiyaçlarına yönelik olarak JWT doğrulama, kiracı izolasyonu (tenant isolation), anlık finansal ücretlendirme/ölçümleme (metering), veritabanı otomasyonları ve prompt enjeksiyon savunması (prompt injection defense) gibi ileri seviye altyapı çözümlerini tek çatı altında sunar. Modüler yapısı sayesinde `pip` kütüphanesi olarak projelere hızla entegre edilebilir ve sisteme yeni yapay zekâ dikey ürünlerinin \"plug & play\" olarak eklenmesine imkan tanır.",
     "tags": [
       "API Gateway",
       "FastAPI",
@@ -76,7 +76,7 @@
       "game gain",
       "game-gain"
     ],
-    "desc": "User behavior analysis and revenue forecasting using time-series models and RFM segmentation.",
+    "desc": "GameGain; oyun sektöründe kullanıcı davranışlarını ve etkileşim süreçlerini analiz ederek, oyun içi gelir potansiyelini (in-app revenue prediction) tahmin etmek amacıyla geliştirilmiş büyük ölçekli bir veri analitiği ve davranış madenciliği projesidir. Sistem; milyonlarca kullanıcı etkileşimini ve dinamik olay (event) akışını işleyerek, oyuncuların finansal değerlerini ve sadakat skorlarını hesaplayan analitik bir altyapı sunar. Elde edilen veri çıktıları, oyun stüdyolarının ve geliştiricilerin veri odaklı pazarlama stratejileri geliştirmesine, kullanıcı segmentasyonunu optimize etmesine ve gelir artırıcı aksiyonlar almasına zemin hazırlamaktadır.",
     "tags": [
       "Data Science",
       "Big Data Processing",
@@ -107,7 +107,7 @@
       "fraud eye",
       "fraud-eye"
     ],
-    "desc": "Credit card fraud detection system using SMOTE, Random Forest and XGBoost for high-accuracy anomaly detection.",
+    "desc": "FraudEye; finansal teknolojilerde en kritik güvenlik açıklarından biri olan kredi kartı işlemlerindeki dolandırıcılık ve anomali faaliyetlerini anlık olarak yakalamak amacıyla geliştirilmiş, makine öğrenmesi tabanlı bir yüksek doğruluklu tespit sistemidir. Sistem, son derece dengesiz ve anonimleştirilmiş finansal veri setleri üzerinde çalışarak şüpheli işlem desenlerini erken aşamada tespit eder. Geliştirilen modüler ve ölçeklenebilir veri ön işleme hattı (preprocessing pipeline) sayesinde, verileri analiz edip en doğru kararı verebilecek finansal güvenlik modellerini eğitecek bir altyapı sunmaktadır.",
     "tags": [
       "Anomaly Detection",
       "Machine Learning",
@@ -140,7 +140,7 @@
       "scout master",
       "scout-master"
     ],
-    "desc": "Player performance analytics and market value prediction (Coderspace Summer School 2024).",
+    "desc": "ScoutMaster; spor endüstrisinde veri odaklı karar destek mekanizmaları oluşturmak amacıyla geliştirilmiş, futbolcu performans verilerini ve istatistiksel metrikleri analiz eden gelişmiş bir oyuncu değerlendirme ve piyasa değeri tahminleme (player valuation) projesidir. Sistem; sporcuların sahadaki performans parametrelerini, fiziksel ve teknik istatistiklerini işleyerek nesnel bir performans skoru üretir ve makine öğrenmesi tabanlı regresyon modelleriyle oyuncuların finansal değerlerini öngörür. Bu çalışma, modern futbol kulüplerinin ve scout (oyuncu gözlem) ekiplerinin transfer süreçlerinde spekülatif kararlar yerine tamamen veri tabanlı, riskleri minimize edilmiş stratejiler geliştirmesine katkı sunmaktadır.",
     "tags": [
       "Sports Analytics",
       "Predictive Modeling",
@@ -173,7 +173,7 @@
       "net-guard",
       "netguard ai"
     ],
-    "desc": "Makine öğrenmesi tabanlı ağ güvenlik ve anomali tespit sistemi — XGBoost, LightGBM ile çok sınıflı saldırı sınıflandırması.",
+    "desc": "Bu proje; modern bilgisayar ağlarında meydana gelen siber saldırıları, ağ trafiği anomalilerini ve kötü niyetli aktiviteleri anlık olarak tespit etmek amacıyla geliştirilmiş, makine öğrenmesi tabanlı bir ağ güvenlik ve anomali tespit sistemidir. Sistem, geleneksel imzalara dayalı IDS (Saldırı Tespit Sistemleri) yapılarının yakalayamadığı, karmaşık ve yeni nesil saldırı türlerini (DoS, Fuzzers, Backdoors, Exploits vb.) ağ trafiğindeki sıra dışı hareketleri analiz ederek erken aşamada teşhis eder. Geliştirilen boru hattı (pipeline) mimarisi sayesinde, yüksek hacimli ham ağ loglarını temizleyerek siber güvenlik analistlerinin ve kurumsal altyapıların tehdit avcılığı (threat hunting) süreçlerini veri odaklı yönetmesini sağlar.",
     "tags": [
       "Anomaly Detection",
       "Cyber Security",
@@ -206,7 +206,7 @@
       "log-sentinel",
       "logsentinel ai"
     ],
-    "desc": "Windows Event Log analizi ve birliktelik kuralı madenciliği ile siber tehdit avcılığı ve korelasyon motoru.",
+    "desc": "LogSentinel AI; kurumsal BT altyapılarında ve sunucularda oluşan Windows Olay Günlüklerini (Event Logs) analiz ederek, sistem olayları arasındaki gizli ilişkileri ve ardışık örüntüleri ortaya çıkarmak amacıyla geliştirilmiş veri madenciliği tabanlı bir tehdit avcılığı ve korelasyon motorudur. Sistem, büyük hacimli log verileri üzerinde birliktelik kuralı madenciliği (Association Rule Mining) algoritmalarını koşturarak, hangi sistem olaylarının veya potansiyel güvenlik ihlallerinin birbirini tetiklediğini matematiksel olarak modeller. Geliştirilen analitik altyapı, SIEM (Siber Olay Yönetimi) sistemlerine akıllı korelasyon kuralları beslemek ve sistem yöneticileri ile SOC (Siber Operasyon Merkezi) analistlerinin anomali tespiti süreçlerini otomatize etmek için optimize edilmiştir.",
     "tags": [
       "Data Mining",
       "Association Rule Mining",
@@ -239,7 +239,7 @@
       "net-xplore",
       "netxplore ai"
     ],
-    "desc": "Gözetimsiz öğrenme tabanlı ağ trafiği segmentasyon ve haritalama motoru — K-Means, PCA ile anomali keşfi.",
+    "desc": "NetXplore AI; modern kurumsal ağlarda akan ve etiketlenmemiş (unlabeled) ham ağ trafik verilerini analiz ederek, yapısal desenleri ve siber güvenlik anormalliklerini keşfetmek amacıyla geliştirilmiş, gözetimsiz öğrenme (Unsupervised Learning) tabanlı bir ağ trafiği segmentasyon ve haritalama motorudur. Sistem; K-Means kümeleme ve Boyut Azaltma (PCA) mimarilerini kullanarak, milyarlarca paketlik karmaşık ağ aktivitelerini benzer davranışsal özelliklerine göre gruplara ayırır. Geliştirilen bu altyapı, geleneksel saldırı tespit sistemlerinin (IDS) gözden kaçırdığı bilinmeyen tehdit senaryolarını, ağ davranış haritalarını çıkararak ve sıra dışı kümeleşmeleri (anomali) tespit ederek siber güvenlik ekiplerine erken uyarı istihbaratı sağlar.",
     "tags": [
       "Unsupervised Learning",
       "Clustering",
@@ -305,7 +305,7 @@
       "phish-shield",
       "phishshield ai"
     ],
-    "desc": "Makine öğrenmesi tabanlı proaktif URL güvenlik ve kimlik avı (phishing) tespit motoru.",
+    "desc": "PhishShield AI; dijital platformlarda ve kurumsal altyapılarda kullanıcı kimlik bilgilerini, finansal verileri ve hassas erişim yetkilerini ele geçirmeyi hedefleyen sahte (phishing) web sitelerini ve siber dolandırıcılık domain'lerini anlık olarak tespit etmek amacıyla geliştirilmiş, makine öğrenmesi tabanlı bir proaktif URL güvenlik ve kimlik avı engelleme motorudur. Sistem; web sitelerinin IP adreslerinden alan adı yapılarına, SSL sertifika varlıklarından tarayıcı çubuğu manipülasyonlarına kadar düzinelerce teknik özniteliği analiz ederek, siber saldırganların kurduğu tuzakları web sitesi henüz kullanıcıya ulaşmadan milisaniyeler içinde teşhis eder. Geliştirilen bu modüler sınıflandırma (classification) altyapısı; kurumsal e-posta ağ geçitlerine (Email Gateway), tarayıcı eklentilerine ve kurumsal DNS güvenlik duvarlarına entegre edilerek, insan hatasından kaynaklanan siber sızıntı risklerini proaktif olarak minimize edecek karar destek çıktıları sunar.",
     "tags": [
       "Cyber Security",
       "Machine Learning",
