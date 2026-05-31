@@ -48,7 +48,7 @@
       "dent-bot",
       "dentbot ai"
     ],
-    "desc": "Multi-channel clinic management ecosystem; LangChain + LangGraph orchestration and deterministic state-machine integration.",
+    "desc": "DentBot; diş klinikleri için geliştirilmiş, hasta randevu süreçlerini ve klinik yönetimini otomatize eden çok kanallı (Multi-Channel) ve çok kiracılı (Multi-Tenant) bir yapay zekâ asistanı ekosistemidir. Sistem, hastaların Telegram gibi popüler kanallar üzerinden doğal dille başlattığı randevu ve bilgi alma süreçlerini insan müdahalesi olmadan otomatik olarak yönetir. Kullanıcılardan aldığı semptom ve talep verilerine göre en uygun tedavi ve hekim eşleştirmesini arka planda gerçekleştirerek, tüm verileri doğrudan klinik yönetim paneline aktarır ve tam entegrasyon sağlar.",
     "tags": [
       "AI Engineering",
       "Agentic Workflows",
@@ -272,7 +272,7 @@
       "volt-predict",
       "voltpredict ai"
     ],
-    "desc": "Hane bazlı elektrik tüketim tahmini ve enerji analitiği motoru — çoklu regresyon modelleri ile akıllı şebeke optimizasyonu.",
+    "desc": "VoltPredict AI; akıllı şehir mimarileri ve enerji dağıtım şebekeleri için geliştirilmiş, hane bazlı elektrik tüketim davranışlarını ve anlık güç taleplerini makine öğrenmesi algoritmalarıyla öngören yüksek doğruluklu bir enerji analitiği ve tahminleme motorudur. Sistem; tarihsel tüketim loglarını, alt devre ölçümlerini (sub-metering) ve zamansal değişkenleri işleyerek enerji talebindeki dalgalanmaları ve yük tüketim patternlerini matematiksel olarak modeller. Geliştirilen bu altyapı, enerji dağıtım şirketlerinin arz-talep dengesini optimize etmesine, şebeke aşırı yüklenmelerini önlemesine ve kaynakların sürdürülebilir, maliyet etkin şekilde yönetilmesine yönelik karar destek çıktıları üretir.",
     "tags": [
       "Energy Analytics",
       "Predictive Modeling",

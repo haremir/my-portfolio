@@ -37,14 +37,11 @@ class PortfolioState(rx.State):
     # NEVER store the full project dict in state — it carries a nested
     # case_study object that Reflex serialises to the frontend as a JS object
     # and any .get() call on the Var evaluates on the JS side → [object Object].
-    # Extract only the four fields the modal actually renders.
     modal_name: str = ""
     modal_desc: str = ""
     modal_tags: list[str] = []
     modal_slug: str = ""
     modal_url: str = ""
-    modal_problem: str = ""
-    modal_architecture: str = ""
     is_modal_open: bool = False
     show_filters: bool = False
 
@@ -70,33 +67,12 @@ class PortfolioState(rx.State):
 
     @rx.event
     def open_project(self, project: ProjectDict):
-        from harun_site.utils.data_manager import load_projects
-        import re
-        
-        raw_projects = load_projects()
-        target_id = project.get("id", "")
-        full_project = next((p for p in raw_projects if p.get("id") == target_id), {})
-        
-        # Flatten into primitive state vars
+        # Flatten into primitive state vars — never store the raw dict.
         self.modal_name = str(project.get("name", ""))
         self.modal_desc = str(project.get("desc", ""))
         self.modal_tags = [str(t) for t in (project.get("tags") or [])]
         self.modal_slug = str(project.get("slug", ""))
         self.modal_url = str(project.get("url", ""))
-        
-        # Load case study details
-        cs = full_project.get("case_study") or {}
-        
-        def clean_md(text: str) -> str:
-            if not text:
-                return ""
-            # Strip simple markdown headers, bold, list markers to make it clean text
-            text = re.sub(r"\*\*|#|`|_", "", text)
-            return text.strip()
-            
-        self.modal_problem = clean_md(cs.get("problem", ""))
-        self.modal_architecture = clean_md(cs.get("architecture", ""))
-        
         self.is_modal_open = True
 
     @rx.event
@@ -106,8 +82,6 @@ class PortfolioState(rx.State):
         self.modal_tags = []
         self.modal_slug = ""
         self.modal_url = ""
-        self.modal_problem = ""
-        self.modal_architecture = ""
         self.is_modal_open = False
 
     @rx.event
@@ -462,59 +436,6 @@ def portfolio_page() -> rx.Component:
                                 ),
                                 # ── Description ───────────────────────────────────────────
                                 rx.text(PortfolioState.modal_desc, font_family=FONT_SANS, color=TEXT_MUTED, margin_top="0.8em", font_size="0.9em", line_height="1.6"),
-                                # ── Case Study Sections ─────────────────────────────────
-                                rx.cond(
-                                    PortfolioState.modal_problem != "",
-                                    rx.vstack(
-                                        rx.text(
-                                            "Problem",
-                                            font_family=FONT_MONO,
-                                            font_size="0.75em",
-                                            letter_spacing="0.1em",
-                                            color=PRIMARY,
-                                            text_transform="uppercase",
-                                            font_weight="bold",
-                                            margin_top="1.2em",
-                                        ),
-                                        rx.text(
-                                            PortfolioState.modal_problem,
-                                            font_family=FONT_SANS,
-                                            color=TEXT_MUTED,
-                                            font_size="0.85em",
-                                            line_height="1.6",
-                                        ),
-                                        align_items="start",
-                                        gap="0.3em",
-                                        width="100%",
-                                    ),
-                                    rx.fragment(),
-                                ),
-                                rx.cond(
-                                    PortfolioState.modal_architecture != "",
-                                    rx.vstack(
-                                        rx.text(
-                                            "Mimari / Çözüm",
-                                            font_family=FONT_MONO,
-                                            font_size="0.75em",
-                                            letter_spacing="0.1em",
-                                            color=PRIMARY,
-                                            text_transform="uppercase",
-                                            font_weight="bold",
-                                            margin_top="1.2em",
-                                        ),
-                                        rx.text(
-                                            PortfolioState.modal_architecture,
-                                            font_family=FONT_SANS,
-                                            color=TEXT_MUTED,
-                                            font_size="0.85em",
-                                            line_height="1.6",
-                                        ),
-                                        align_items="start",
-                                        gap="0.3em",
-                                        width="100%",
-                                    ),
-                                    rx.fragment(),
-                                ),
                                 # ── Tags ─────────────────────────────────────────────────
                                 rx.hstack(
                                     rx.foreach(
@@ -522,7 +443,7 @@ def portfolio_page() -> rx.Component:
                                         lambda tag: rx.text(tag, font_family=FONT_MONO, font_size="0.72em", color=PRIMARY, border=f"1px solid {BORDER}", padding="0.2em 0.6em", border_radius="4px"),
                                     ),
                                     gap="0.4em",
-                                    margin_top="1.2em",
+                                    margin_top="0.8em",
                                     wrap="wrap",
                                 ),
                                 # ── CTA: navigate to case study ────────────────────────
