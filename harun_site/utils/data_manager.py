@@ -131,13 +131,17 @@ def delete_blog_post(slug: str):
 def save_blog_post(slug: str, title: str, date: str, description: str, tags: list[str], content: str, cover: str = ""):
     post_path = POSTS_DIR / f"{slug}.md"
 
-    # Format tags for frontmatter
-    tags_formatted = "\n".join([f"  - {t}" for t in tags])
-
+    # Escape quotes for YAML frontmatter
+    title_escaped = title.replace('"', "'")
+    description_escaped = description.replace('"', "'")
+    
+    # YAML Frontmatter
+    tags_formatted = "\n".join([f"  - {tag}" for tag in tags])
+    
     frontmatter = f"""---
-title: "{title}"
+title: "{title_escaped}"
 date: "{date}"
-description: "{description}"
+description: "{description_escaped}"
 tags:
 {tags_formatted}
 cover: "{cover}"

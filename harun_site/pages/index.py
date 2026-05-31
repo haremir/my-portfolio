@@ -39,7 +39,7 @@ def hero_section() -> rx.Component:
             margin_bottom="1.2em",
         ),
         rx.text(
-            "── AI & BACKEND ENGINEER ──",
+            "── DATA SCIENCE & AI ENGINEER | LLM ORCHESTRATOR ──",
             color=PRIMARY,
             font_family=FONT_MONO,
             style={
@@ -122,16 +122,16 @@ def hero_section() -> rx.Component:
             rx.input(
                 placeholder="bir şey sor... · dent-bot nedir?",
                 width="100%",
-                background="#0a1a1d",
+                background=BG_CARD,
                 border=f"1px solid {BORDER}",
                 color=TEXT,
-                color_scheme="teal",
+                color_scheme="cyan",
                 font_family=FONT_MONO,
                 font_size="0.85em",
                 padding="0.85em 3em 0.85em 1.2em",
                 border_radius="8px",
                 height="48px",
-                _placeholder={"color": "#7a9ba8"},
+                _placeholder={"color": TEXT_MUTED},
                 _focus={
                     "border_color": PRIMARY,
                     "box_shadow": f"0 0 0 1px {PRIMARY}40",
@@ -180,7 +180,7 @@ def hero_section() -> rx.Component:
         padding="8em 2em 4em 2em",
         style={
             "justify_content": "center",
-            "background": "radial-gradient(ellipse at 50% 30%, #00f5d412 0%, transparent 60%)",
+            "background": f"radial-gradient(ellipse at 50% 30%, {PRIMARY}14 0%, transparent 60%)",
         },
     )
 
@@ -229,7 +229,7 @@ def about_preview() -> rx.Component:
                         font_size="1.05em",
                     ),
                     rx.text(
-                        "AI & Backend Engineer",
+                        "Data Science & AI Engineer | LLM Orchestrator",
                         font_family=FONT_MONO,
                         color=PRIMARY,
                         font_size="0.78em",

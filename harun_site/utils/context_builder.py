@@ -26,7 +26,7 @@ from harun_site.utils.project_registry import (
 POSTS_DIR = DATA_DIR.parent / "posts"
 
 _PERSONAL = """## Kişisel
-- Harun Emirhan Bostancı · Erzurum · AI & Backend Engineer (ProudSec)
+- Harun Emirhan Bostancı · Erzurum · Data Science & AI Engineer | LLM Orchestrator (ProudSec)
 - Bilgisayar Mühendisliği mezunu · RAG, LLM, üretim odaklı AI/backend"""
 
 _BLOG_KEYWORDS = ("blog", "yazı", "yazılar", "post", "makale")

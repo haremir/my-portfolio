@@ -40,6 +40,18 @@ class FloatingChatState(rx.State):
     current_log_filename: str = ""
     suggestions: list[str] = []
     show_suggestions: bool = True
+    show_greeting: bool = False
+
+    @rx.event
+    async def start_greeting_timer(self):
+        import asyncio
+        await asyncio.sleep(5)
+        if not self.is_open and not self.messages:
+            self.show_greeting = True
+
+    @rx.event
+    def dismiss_greeting(self):
+        self.show_greeting = False
 
     @rx.event
     def on_load(self):
@@ -50,10 +62,14 @@ class FloatingChatState(rx.State):
             restored = load_chat_log_messages(self.current_log_filename)
             if restored:
                 self.messages = restored
+        
+        return FloatingChatState.start_greeting_timer
 
     @rx.event
     def toggle(self):
         self.is_open = not self.is_open
+        if self.is_open:
+            self.show_greeting = False
         if self.is_open and not self.suggestions:
             return FloatingChatState.on_load()
 
@@ -315,7 +331,7 @@ def floating_chat(show: bool = True) -> rx.Component:
                 align="center",
                 width="100%",
             ),
-            background="#00f5d410",
+            background=f"{PRIMARY}10",
             border_top=f"1px solid {BORDER}",
             padding="0.5em 1em",
             display="flex",
@@ -396,15 +412,51 @@ def floating_chat(show: bool = True) -> rx.Component:
         style={"cursor": "pointer"},
     )
 
+    greeting_bubble = rx.cond(
+        FloatingChatState.show_greeting & ~FloatingChatState.is_open,
+        rx.box(
+            rx.hstack(
+                rx.text(
+                    "Merhaba! Harun Emirhan ve projeleri hakkında merak ettiklerini bana sorabilirsin. 💬",
+                    font_family=FONT_SANS,
+                    font_size="0.78em",
+                    color=TEXT,
+                    line_height="1.4",
+                ),
+                rx.button(
+                    "×",
+                    on_click=FloatingChatState.dismiss_greeting,
+                    variant="ghost",
+                    color=TEXT_MUTED,
+                    padding="0",
+                    size="1",
+                    _hover={"color": PRIMARY},
+                    style={"cursor": "pointer"},
+                ),
+                align="start",
+                spacing="2",
+            ),
+            width="260px",
+            padding="0.8em 1em",
+            background=BG_CARD,
+            border=f"1px solid {PRIMARY}",
+            box_shadow=GLOW_PRIMARY,
+            border_radius="12px",
+            transition="all 300ms ease-out",
+        ),
+        rx.fragment(),
+    )
+
     return rx.box(
-        toggle_button,
         rx.cond(FloatingChatState.is_open, popup, rx.fragment()),
+        greeting_bubble,
+        toggle_button,
         position="fixed",
         bottom="1.5em",
-        left="1.5em",
+        right="1.5em",
         z_index="1000",
         display="flex",
         flex_direction="column",
-        align_items="flex-start",
+        align_items="flex-end",
         gap="0.5em",
     )

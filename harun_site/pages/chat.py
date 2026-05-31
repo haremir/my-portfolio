@@ -190,7 +190,7 @@ def chat_page() -> rx.Component:
                     style={
                         "border_radius": "16px",
                         "padding": "1.5em",
-                        "box_shadow": "0 0 15px #00f5d420",
+                        "box_shadow": f"0 0 15px {PRIMARY}24",
                     },
                     width="100%",
                 ),

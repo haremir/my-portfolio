@@ -1,19 +1,19 @@
 import reflex as rx
 
-BG = "#050d0f"
-BG_CARD = "#0a1a1d"
-PRIMARY = "#00f5d4"
-ACCENT = "#ff2d55"
-TEXT = "#e2e8f0"
-TEXT_MUTED = "#7a9ba8"
-BORDER = "#0e2a30"
-GLOW_PRIMARY = "0 0 20px #00f5d480, 0 0 40px #00f5d430"
-GLOW_ACCENT = "0 0 20px #ff2d5580"
+BG = "#050505"
+BG_CARD = "#111719"
+PRIMARY = "#15c4ee"
+ACCENT = "#b09be7"
+TEXT = "#f4f8fb"
+TEXT_MUTED = "#9fb2bb"
+BORDER = "#1a4a5d"
+GLOW_PRIMARY = "0 0 20px #15c4ee70, 0 0 44px #217a9140"
+GLOW_ACCENT = "0 0 20px #b09be770"
 FONT_MONO = "'JetBrains Mono', 'Fira Code', monospace"
 FONT_SANS = "'Inter', sans-serif"
 
 APP_THEME = rx.theme(
     color_mode="dark",
     background_color=BG,
-    color_scheme="teal",
+    color_scheme="cyan",
 )

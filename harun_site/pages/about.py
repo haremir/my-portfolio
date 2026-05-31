@@ -160,7 +160,7 @@ def education_card(edu: dict) -> rx.Component:
                 edu["degree"],
                 font_family=FONT_MONO,
                 font_size="0.72em",
-                background="#00f5d415",
+                background=f"{PRIMARY}15",
                 color=PRIMARY,
                 border=f"1px solid {PRIMARY}44",
                 padding="0.2em 0.6em",
@@ -236,7 +236,7 @@ def about_page() -> rx.Component:
                             font_weight="700",
                         ),
                         rx.text(
-                            "── AI & BACKEND ENGINEER ──",
+                            "── DATA SCIENCE & AI ENGINEER | LLM ORCHESTRATOR ──",
                             color=PRIMARY,
                             font_family=FONT_MONO,
                             font_size="0.85em",

@@ -9,8 +9,9 @@ exclude_paths = [
     "data",
     "posts",
     "assets/cv",
+    "assets/blog",
 ]
-os.environ["REFLEX_HOT_RELOAD_EXCLUDE_PATHS"] = ":".join(exclude_paths)
+os.environ["REFLEX_HOT_RELOAD_EXCLUDE_PATHS"] = os.pathsep.join(exclude_paths)
 
 # Production: Railway sets RAILWAY_PUBLIC_DOMAIN
 railway_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")

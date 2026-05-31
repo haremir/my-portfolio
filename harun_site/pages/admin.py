@@ -423,7 +423,7 @@ def chat_log_tab() -> rx.Component:
                                 on_click=lambda: AdminChatLogState.delete_log(log["filename"]),
                                 background="transparent",
                                 color=ACCENT,
-                                _hover={"color": "red"},
+                                _hover={"color": ACCENT},
                                 padding="0"
                             ),
                             spacing="2",

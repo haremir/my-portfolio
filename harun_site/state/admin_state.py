@@ -281,8 +281,7 @@ class AdminBlogState(rx.State):
 
             # Save to assets/blog
             # Ensure assets/blog exists
-            import pathlib
-            assets_dir = pathlib.Path.cwd() / "assets" / "blog"
+            assets_dir = data_manager.BASE_DIR / "assets" / "blog"
             assets_dir.mkdir(parents=True, exist_ok=True)
 
             outfile = assets_dir / filename
