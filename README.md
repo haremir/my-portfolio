@@ -8,7 +8,7 @@ A modern, full-stack personal portfolio and blog built entirely in Python using 
 ## ✨ Features
 
 - **Full-Stack Python**: Both frontend and backend are written purely in Python via Reflex.
-- **AI Chat Assistant**: Embedded RAG chatbot powered by the Groq API (Llama-3) that can answer questions about my CV, projects, and skills.
+- **AI Chat Assistant**: Embedded RAG chatbot powered primarily by DeepSeek v4 Flash/Pro, with Groq fallback for reliability, that can answer questions about my CV, projects, and skills.
 - **Admin Dashboard**: Secure, UI-driven management for:
   - Blog posts, Portfolio Projects, and Case Studies.
   - Skills and Career History (Education & Experience).
@@ -22,7 +22,7 @@ A modern, full-stack personal portfolio and blog built entirely in Python using 
 
 - **Framework**: [Reflex](https://reflex.dev/) (React under the hood, written in Python)
 - **Database**: SQLite with `SQLModel` & `SQLAlchemy`
-- **AI / LLM**: [Groq API](https://groq.com/) (Llama-3 models)
+- **AI / LLM**: [DeepSeek API](https://api.deepseek.com/) (primary) + [Groq API](https://groq.com/) (fallback)
 - **Bot Integration**: `python-telegram-bot`
 - **Package Manager**: [uv](https://github.com/astral-sh/uv)
 
@@ -32,7 +32,7 @@ A modern, full-stack personal portfolio and blog built entirely in Python using 
 
 - Python >= 3.12
 - `uv` package manager installed
-- A [Groq API Key](https://console.groq.com/keys)
+- A [DeepSeek API Key](https://platform.deepseek.com/) or a [Groq API Key](https://console.groq.com/keys)
 - A Telegram Bot Token (from BotFather)
 
 ### Installation
@@ -48,7 +48,7 @@ A modern, full-stack personal portfolio and blog built entirely in Python using 
    ```bash
    cp .env.example .env
    ```
-   *Make sure to configure `GROQ_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_ID`, and `ADMIN_PASSWORD`.*
+   *Make sure to configure `DEEPSEEK_API_KEY` or `GROQ_API_KEY`, plus `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_ID`, and `ADMIN_PASSWORD`.*
 
 3. **Install dependencies**
    ```bash

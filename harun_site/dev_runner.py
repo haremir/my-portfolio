@@ -47,7 +47,7 @@ def run_all(*, with_bot: bool = True) -> int:
     from dotenv import load_dotenv
     import time
 
-    load_dotenv(ROOT / ".env")
+    load_dotenv(ROOT / ".env", override=True)
 
     bot_proc: subprocess.Popen | None = None
     reflex_proc: subprocess.Popen | None = None
