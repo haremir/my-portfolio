@@ -10,6 +10,8 @@ class MessageDict(TypedDict):
     as a JS string, never as [object Object]."""
     role: str
     content: str
+    provider: str
+    model: str
 
 from harun_site.utils.groq_client import (
 	complete_chat,
@@ -30,20 +32,24 @@ class ChatState(rx.State):
 	show_suggestions: bool = True
 
 	@rx.event
-	def on_load(self):
+	async def on_load(self):
 		from harun_site.utils.data_manager import load_suggestions, load_chat_log_messages
+		from harun_site.state.language_state import LanguageState
+		lang_state = await self.get_state(LanguageState)
 
-		self.suggestions = load_suggestions()
+		self.suggestions = load_suggestions(lang_state.language)
 		if not self.messages and self.current_log_filename:
 			restored = load_chat_log_messages(self.current_log_filename)
 			if restored:
 				self.messages = restored
 
 	@rx.event
-	def load_from_params(self):
+	async def load_from_params(self):
 		from harun_site.utils.data_manager import load_suggestions
+		from harun_site.state.language_state import LanguageState
+		lang_state = await self.get_state(LanguageState)
 
-		self.suggestions = load_suggestions()
+		self.suggestions = load_suggestions(lang_state.language)
 		log_filename = ""
 		q = ""
 		if "?" in self.router.url:
@@ -91,29 +97,43 @@ class ChatState(rx.State):
 		if not content:
 			return
 
-		history = [*self.messages, {"role": "user", "content": content}]
-		self.messages = [*self.messages, {"role": "user", "content": content}]
+		history = [*self.messages, {"role": "user", "content": content, "provider": "", "model": ""}]
+		self.messages = [*self.messages, {"role": "user", "content": content, "provider": "", "model": ""}]
 		self.current_input = ""
 		self.is_loading = True
 		yield
 
 		self.messages = [
 			*self.messages,
-			{"role": "assistant", "content": ""},
+			{"role": "assistant", "content": "", "provider": "", "model": ""},
 		]
 		yield
 
 		try:
 			raw_assistant_content = ""
 			streamed_any_chunk = False
-			async for chunk in stream_chat(history):
+			info = {"provider": "", "model": ""}
+			async for chunk in stream_chat(history, info):
 				streamed_any_chunk = True
 				raw_assistant_content += chunk
+				self.messages[-1]["content"] = raw_assistant_content
+				if info.get("provider"):
+					self.messages[-1]["provider"] = info["provider"]
+					self.messages[-1]["model"] = info["model"]
+				self.messages = list(self.messages)  # Force dirty tracking
+				yield
+
 			if not streamed_any_chunk and not raw_assistant_content:
-				raw_assistant_content = await complete_chat(history)
-			formatted = format_chat_response(raw_assistant_content)
-			self.messages[-1]["content"] = finalize_streamed_project_references([formatted], content)
-			yield
+				raw_assistant_content = await complete_chat(history, info)
+				if info.get("provider"):
+					self.messages[-1]["provider"] = info["provider"]
+					self.messages[-1]["model"] = info["model"]
+
+			if raw_assistant_content:
+				formatted = format_chat_response(raw_assistant_content)
+				self.messages[-1]["content"] = finalize_streamed_project_references([formatted], content)
+				self.messages = list(self.messages)  # Force dirty tracking
+				yield
 		except Exception as exc:
 			err = str(exc)
 			if is_rate_limit_error(exc):
@@ -129,6 +149,7 @@ class ChatState(rx.State):
 				except Exception:
 					pass
 			self.messages[-1]["content"] = user_message_for_groq_error(exc)
+			self.messages = list(self.messages)  # Force dirty tracking
 			yield
 
 		self.is_loading = False

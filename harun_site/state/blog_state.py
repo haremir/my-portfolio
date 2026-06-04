@@ -11,11 +11,14 @@ from harun_site.utils.markdown_parser import get_all_posts
 class PostDict(TypedDict):
     slug: str
     title: str
+    title_en: str
     date: str
     month: str
+    month_en: str
     day: str
     year: str
     description: str
+    description_en: str
     tags: list[str]
     cover: str
 
@@ -33,25 +36,35 @@ class BlogState(rx.State):
             "09": "Eyl", "10": "Eki", "11": "Kas", "12": "Ara"
         }
         
+        months_en = {
+            "01": "Jan", "02": "Feb", "03": "Mar", "04": "Apr",
+            "05": "May", "06": "Jun", "07": "Jul", "08": "Aug",
+            "09": "Sep", "10": "Oct", "11": "Nov", "12": "Dec"
+        }
+
         self.all_posts = []
         for post in posts:
             try:
                 dt = datetime.strptime(post.date, "%Y-%m-%d")
                 month_tr = months_tr.get(dt.strftime("%m"), dt.strftime("%b"))
+                month_en = months_en.get(dt.strftime("%m"), dt.strftime("%b"))
                 day = dt.strftime("%d")
                 year = dt.strftime("%Y")
             except Exception:
-                month_tr, day, year = "", "", ""
-                
+                month_tr, month_en, day, year = "", "", "", ""
+
             self.all_posts.append(
                 PostDict(
                     slug=post.slug,
                     title=post.title,
+                    title_en=getattr(post, "title_en", ""),
                     date=post.date,
                     month=month_tr.upper(),
+                    month_en=month_en.upper(),
                     day=day,
                     year=year,
                     description=post.description,
+                    description_en=getattr(post, "description_en", ""),
                     tags=post.tags,
                     cover=getattr(post, "cover", ""),
                 )

@@ -143,7 +143,7 @@ class CaseStudyState(rx.State):
         return rx.redirect(target)
 
     @rx.event
-    def load_project(self):  # noqa: C901
+    async def load_project(self):  # noqa: C901
         # ─────────────────────────────────────────────────────────────── #
         # PHASE 1: Instantly clear stale data and show loading indicator.      #
         # yield sends this partial state to the frontend before the file I/O.  #
@@ -176,8 +176,14 @@ class CaseStudyState(rx.State):
             pass
         print(f"[CASE_STUDY] load_project slug={slug!r}", file=sys.stderr)
 
-        from harun_site.utils.data_manager import get_project_by_slug
-        p = get_project_by_slug(slug)
+        from harun_site.utils.data_manager import get_project_by_slug, localize_project
+        from harun_site.state.language_state import LanguageState
+
+        lang_state = await self.get_state(LanguageState)
+        lang = lang_state.language
+
+        p_raw = get_project_by_slug(slug)
+        p = localize_project(p_raw, lang) if p_raw else None
 
         # ── project not found ───────────────────────────────────────────────────
         if p is None:

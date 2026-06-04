@@ -15,6 +15,7 @@ from harun_site.utils.data_manager import (
     load_experience,
     load_projects,
     load_skills,
+    get_localized,
 )
 from harun_site.utils.markdown_parser import get_all_posts
 from harun_site.utils.project_registry import (
@@ -98,7 +99,7 @@ def _match_posts(query: str, posts: list) -> list:
     ]
 
 
-def _project_block(proj: dict, *, detailed: bool) -> str:
+def _project_block(proj: dict, *, detailed: bool, lang: str = "tr") -> str:
     title = proj.get("title", proj.get("name", ""))
     url = proj.get("url", "")
     payload = project_reference_payload(proj)
@@ -107,7 +108,7 @@ def _project_block(proj: dict, *, detailed: bool) -> str:
         f"### {title}",
         project_ref_token(payload.get("project_id", "")),
         json.dumps(payload, ensure_ascii=False),
-        f"- Özet: {proj.get('desc', '')}",
+        f"- Özet: {get_localized(proj, 'desc', lang)}",
         f"- Teknolojiler: {', '.join(proj.get('tags') or [])}",
         f"- ID: {proj.get('id', '')}",
         f"- URL: {url}",
@@ -125,77 +126,87 @@ def _project_block(proj: dict, *, detailed: bool) -> str:
             ("lessons_learned", "Öğrenilenler"),
             ("learnings", "Öğrenilenler"),
         ):
-            val = cs.get(key)
+            val = get_localized(cs, key, lang)
             if isinstance(val, str) and val.strip() and "placeholder" not in val.lower():
                 lines.append(f"- {label}: {val[:280]}")
     return "\n".join(lines)
 
 
-def _projects_index(projects: list[dict], *, exclude_slugs: set[str] | None = None) -> str:
+def _projects_index(projects: list[dict], *, exclude_slugs: set[str] | None = None, lang: str = "tr") -> str:
     exclude = exclude_slugs or set()
-    lines = ["## Proje indeksi (kısa)"]
+    lines = ["## Proje indeksi (kısa)" if lang == "tr" else "## Project index (short)"]
     for proj in projects:
         slug = proj.get("slug", "")
         if slug in exclude:
             continue
         cs = " [CS]" if proj.get("case_study") else ""
         lines.append(
-            f"- {proj.get('title', proj.get('name', ''))}: {proj.get('desc', '')[:100]} "
+            f"- {proj.get('title', proj.get('name', ''))}: {get_localized(proj, 'desc', lang)[:100]} "
             f"({', '.join((proj.get('tags') or [])[:4])}){cs}"
         )
     return "\n".join(lines)
 
 
-def _experience_section() -> str:
+def _experience_section(lang: str = "tr") -> str:
     experiences = load_experience()
     if not experiences:
         return ""
-    lines = ["## İş deneyimi"]
+    lines = ["## İş deneyimi" if lang == "tr" else "## Work Experience"]
+    role_key = "role_en" if lang == "en" else "role"
+    desc_key = "description_en" if lang == "en" else "description"
     for exp in experiences:
         lines.append(
-            f"- {exp.get('company', '')} / {exp.get('role', '')} "
+            f"- {exp.get('company', '')} / {exp.get(role_key, '')} "
             f"({exp.get('start_date', '')}–{exp.get('end_date', '')}): "
-            f"{(exp.get('description') or '')[:200]}"
+            f"{(exp.get(desc_key) or '')[:200]}"
         )
     return "\n".join(lines)
 
 
-def _education_section() -> str:
+def _education_section(lang: str = "tr") -> str:
     education = load_education()
     if not education:
         return ""
-    lines = ["## Eğitim"]
+    lines = ["## Eğitim" if lang == "tr" else "## Education"]
+    dept_key = "department_en" if lang == "en" else "department"
+    degree_key = "degree_en" if lang == "en" else "degree"
     for edu in education:
+        degree_part = f" ({edu.get(degree_key)})" if edu.get(degree_key) else ""
         lines.append(
-            f"- {edu.get('school', '')} · {edu.get('department', '')} "
+            f"- {edu.get('school', '')} · {edu.get(dept_key, '')}{degree_part} "
             f"({edu.get('start_year', '')}–{edu.get('end_year', '')})"
         )
     return "\n".join(lines)
 
 
-def _blog_section(posts: list, *, matched: list | None = None) -> str:
+def _blog_section(posts: list, *, matched: list | None = None, lang: str = "tr") -> str:
     if not posts:
         return ""
     show = matched if matched else posts[:5]
     lines = ["## Blog"]
+    title_key = "title_en" if lang == "en" else "title"
+    desc_key = "description_en" if lang == "en" else "description"
     for post in show:
+        title = getattr(post, title_key, "") or post.title
+        desc = getattr(post, desc_key, "") or post.description
         lines.append(
-            f"- {post.title} ({post.date}): {post.description} "
+            f"- {title} ({post.date}): {desc} "
             f"[{', '.join(post.tags[:4])}]"
         )
     return "\n".join(lines)
 
 
-def _skills_section() -> str:
+def _skills_section(lang: str = "tr") -> str:
     skills = load_skills()
     if not skills:
         return ""
-    lines = ["## Beceriler (kategorili)"]
+    lines = ["## Beceriler (kategorili)" if lang == "tr" else "## Skills (categorized)"]
+    cat_key = "category_en" if lang == "en" else "category"
     for cat in skills:
-        category = cat.get("category", "")
-        items = cat.get("skills", [])
-        if category and items:
-            lines.append(f"- **{category}**: {', '.join(items)}")
+        category = cat.get(cat_key, cat.get("category", ""))
+        skills_list = cat.get("skills", [])
+        if category and skills_list:
+            lines.append(f"- **{category}**: {', '.join(skills_list)}")
     return "\n".join(lines)
 
 
@@ -209,7 +220,8 @@ def build_case_study_directive(query: str) -> str:
     """LLM'e ilk yanıtta case study linki zorunluluğu — token dostu kısa blok."""
     matched = match_projects_for_query(query)
     lines: list[str] = []
-    for proj in matched[:2]:
+    
+    for proj in matched[:3]:
         payload = project_reference_payload(proj)
         if not payload.get("url") or not proj.get("case_study"):
             continue
@@ -222,12 +234,13 @@ def build_case_study_directive(query: str) -> str:
             "- Project names and URLs are immutable registry-controlled identifiers. "
             "Never invent, rewrite, pluralize, abbreviate, or autocorrect them."
         )
+    
     if not lines:
         return ""
     return "## ZORUNLU (bu tur)\n" + "\n".join(lines)
 
 
-def build_context_for_query(query: str) -> str:
+def build_context_for_query(query: str, lang: str = "tr") -> str:
     """Intent-routed context — smaller than full dump for most messages."""
     fp = _data_fingerprint()
     projects = _cached_projects(fp)
@@ -239,46 +252,47 @@ def build_context_for_query(query: str) -> str:
     matched_posts = _match_posts(query, posts) if posts else []
 
     # Always include categorized skills for tech/skill queries
-    skills_ctx = _skills_section()
+    skills_ctx = _skills_section(lang)
     is_tech_query = any(k in q for k in _TECH_KEYWORDS)
 
     if matched_projects:
         detailed = bool(_DEEP_TECH_IN_QUERY.search(query))
-        sections.append("## İlgili proje(ler)")
+        sections.append("## İlgili proje(ler)" if lang == "tr" else "## Related project(s)")
         for proj in matched_projects[:2]:
-            sections.append(_project_block(proj, detailed=detailed))
+            sections.append(_project_block(proj, detailed=detailed, lang=lang))
         exclude = {p.get("slug", "") for p in matched_projects}
-        sections.append(_projects_index(projects, exclude_slugs=exclude))
+        sections.append(_projects_index(projects, exclude_slugs=exclude, lang=lang))
 
     elif is_tech_query:
         if skills_ctx:
             sections.append(skills_ctx)
-        sections.append(_projects_index(projects))
+        sections.append(_projects_index(projects, lang=lang))
 
     elif any(k in q for k in _BLOG_KEYWORDS) or matched_posts:
-        sections.append(_blog_section(posts, matched=matched_posts or None))
+        sections.append(_blog_section(posts, matched=matched_posts or None, lang=lang))
 
     elif any(k in q for k in _CAREER_KEYWORDS):
-        exp = _experience_section()
-        edu = _education_section()
+        exp = _experience_section(lang)
+        edu = _education_section(lang)
         if exp:
             sections.append(exp)
         if edu:
             sections.append(edu)
         if skills_ctx:
             sections.append(skills_ctx)
-        sections.append(_projects_index(projects))
+        sections.append(_projects_index(projects, lang=lang))
 
     else:
         if skills_ctx:
             sections.append(skills_ctx)
-        sections.append(_projects_index(projects))
+        sections.append(_projects_index(projects, lang=lang))
         experiences = load_experience()
         if experiences:
             top = experiences[0]
+            desc_key = "description_en" if lang == "en" else "description"
             sections.append(
-                f"## Deneyim (özet)\n- {top.get('company', '')}: "
-                f"{(top.get('description') or '')[:120]}"
+                (f"## Deneyim (özet)\n- {top.get('company', '')}: " if lang == "tr" else f"## Experience (summary)\n- {top.get('company', '')}: ") +
+                f"{(top.get(desc_key) or '')[:120]}"
             )
 
     ctx = "\n\n".join(s for s in sections if s.strip())
@@ -290,10 +304,10 @@ def build_context_for_query(query: str) -> str:
     return ctx
 
 
-def build_context_for_messages(messages: list[dict]) -> str:
-    return build_context_for_query(_last_user_text(messages))
+def build_context_for_messages(messages: list[dict], lang: str = "tr") -> str:
+    return build_context_for_query(_last_user_text(messages), lang=lang)
 
 
 def build_context() -> str:
     """Legacy full context — prefer build_context_for_messages in chat."""
-    return build_context_for_query("")
+    return build_context_for_query("", "tr")

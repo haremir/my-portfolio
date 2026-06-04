@@ -15,6 +15,9 @@ class BlogPost:
 	tags: list[str]
 	content: str
 	cover: str = ""
+	title_en: str = ""
+	description_en: str = ""
+	content_en: str = ""
 
 
 def _posts_dir() -> Path:
@@ -42,6 +45,11 @@ def _parse_post(path: Path) -> BlogPost | None:
 	if hasattr(post, "metadata") and isinstance(post.metadata, dict):
 		cover = str(post.metadata.get("cover", "") or "")
 
+	# Bilingual fields — optional, fallback to empty string if not present
+	title_en = str(post.get("title_en") or "")
+	description_en = str(post.get("description_en") or "")
+	content_en = str(post.get("content_en") or "")
+
 	return BlogPost(
 		slug=slug,
 		title=str(title),
@@ -50,6 +58,9 @@ def _parse_post(path: Path) -> BlogPost | None:
 		tags=[str(tag) for tag in tags],
 		content=post.content or "",
 		cover=cover,
+		title_en=title_en,
+		description_en=description_en,
+		content_en=content_en,
 	)
 
 
