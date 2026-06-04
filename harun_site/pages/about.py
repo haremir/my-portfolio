@@ -270,8 +270,8 @@ def about_page() -> rx.Component:
                         rx.text(
                             rx.cond(
                                 LanguageState.language == "en",
-                                "As a computer engineering graduate from Erzurum Technical University, I focus on artificial intelligence, machine learning, and data engineering. I specialize in large language models (LLMs), data processing systems, and production-oriented AI applications, building scalable Python-based AI solutions, data pipelines, and end-to-end systems. Currently, I play an active role in developing AI products at a cybersecurity startup.",
-                                "Erzurum Teknik Üniversitesi mezunu bir bilgisayar mühendisi olarak yapay zeka, makine öğrenmesi ve veri mühendisliği alanlarında çalışıyorum. Büyük dil modelleri (LLM), veri işleme sistemleri ve üretim odaklı AI uygulamaları üzerine yoğunlaşıyorum. Python tabanlı ölçeklenebilir yapay zeka çözümleri, veri pipeline’ları ve uçtan uca AI sistemleri geliştiriyor; siber güvenlik alanında faaliyet gösteren bir girişimde yapay zeka ürünlerinin geliştirme süreçlerinde aktif rol alıyorum.",
+                                "As a computer engineering graduate from Erzurum Technical University, I focus on artificial intelligence, machine learning, and data engineering. I specialize in large language models (LLMs), data processing systems, and production-oriented AI applications, building scalable Python-based AI solutions, data pipelines, and end-to-end systems.",
+                                "Erzurum Teknik Üniversitesi mezunu bir bilgisayar mühendisi olarak yapay zeka, makine öğrenmesi ve veri mühendisliği alanlarında çalışıyorum. Büyük dil modelleri (LLM), veri işleme sistemleri ve üretim odaklı AI uygulamaları üzerine yoğunlaşıyorum. Python tabanlı ölçeklenebilir yapay zeka çözümleri, veri pipeline’ları ve uçtan uca AI sistemleri geliştiriyorum.",
                             ),
                             color=TEXT_MUTED,
                             font_family=FONT_SANS,

@@ -27,7 +27,7 @@ from harun_site.utils.project_registry import (
 POSTS_DIR = DATA_DIR.parent / "posts"
 
 _PERSONAL = """## Kişisel
-- Harun Emirhan Bostancı · Erzurum · Data Science & AI Engineer | LLM Orchestrator (ProudSec)
+- Harun Emirhan Bostancı · Erzurum · Data Science & AI Engineer | LLM Orchestrator
 - Bilgisayar Mühendisliği mezunu · RAG, LLM, üretim odaklı AI/backend"""
 
 _BLOG_KEYWORDS = ("blog", "yazı", "yazılar", "post", "makale")
@@ -255,6 +255,10 @@ def build_context_for_query(query: str, lang: str = "tr") -> str:
     skills_ctx = _skills_section(lang)
     is_tech_query = any(k in q for k in _TECH_KEYWORDS)
 
+    # Intro or personal about keywords
+    _INTRO_KEYWORDS = ("kimsin", "kendinden", "tanıt", "hakkında", "biyografi", "özet", "who are you", "yourself", "introduce", "about you")
+    is_intro_query = any(k in q for k in _INTRO_KEYWORDS)
+
     if matched_projects:
         detailed = bool(_DEEP_TECH_IN_QUERY.search(query))
         sections.append("## İlgili proje(ler)" if lang == "tr" else "## Related project(s)")
@@ -271,7 +275,7 @@ def build_context_for_query(query: str, lang: str = "tr") -> str:
     elif any(k in q for k in _BLOG_KEYWORDS) or matched_posts:
         sections.append(_blog_section(posts, matched=matched_posts or None, lang=lang))
 
-    elif any(k in q for k in _CAREER_KEYWORDS):
+    elif any(k in q for k in _CAREER_KEYWORDS) or is_intro_query:
         exp = _experience_section(lang)
         edu = _education_section(lang)
         if exp:
@@ -283,17 +287,17 @@ def build_context_for_query(query: str, lang: str = "tr") -> str:
         sections.append(_projects_index(projects, lang=lang))
 
     else:
+        # Fallback to general info including all experiences, education, and skills.
+        # This ensures the chatbot has a comprehensive view for greetings or general questions.
+        exp = _experience_section(lang)
+        edu = _education_section(lang)
+        if exp:
+            sections.append(exp)
+        if edu:
+            sections.append(edu)
         if skills_ctx:
             sections.append(skills_ctx)
         sections.append(_projects_index(projects, lang=lang))
-        experiences = load_experience()
-        if experiences:
-            top = experiences[0]
-            desc_key = "description_en" if lang == "en" else "description"
-            sections.append(
-                (f"## Deneyim (özet)\n- {top.get('company', '')}: " if lang == "tr" else f"## Experience (summary)\n- {top.get('company', '')}: ") +
-                f"{(top.get(desc_key) or '')[:120]}"
-            )
 
     ctx = "\n\n".join(s for s in sections if s.strip())
     print(
