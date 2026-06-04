@@ -56,7 +56,7 @@ import os as _os
 # 1. Database tables — must run AFTER rx.App() so rxconfig is loaded.
 models.ensure_tables()
 
-# 2. Groq API key — warn immediately if missing rather than failing silently
+# 2. LLM API keys — warn immediately if missing rather than failing silently
 #    on the first user chat request.
 from harun_site.utils.groq_client import validate_groq_key
 validate_groq_key()

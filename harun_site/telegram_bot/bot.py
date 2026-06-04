@@ -183,7 +183,7 @@ def build_application(token: str) -> Application:
 def main() -> None:
     """Entry point called by run_telegram_bot.py."""
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(override=True)
 
     creds = _validate_env()
     if creds is None:
