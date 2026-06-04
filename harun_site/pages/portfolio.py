@@ -2,6 +2,8 @@ import reflex as rx
 from harun_site.components.navbar import navbar
 from harun_site.components.footer import footer
 from harun_site.components.floating_chat import floating_chat
+from harun_site.state.language_state import LanguageState
+from harun_site.utils.i18n import TXT
 from harun_site.theme import (
     BG,
     BG_CARD,
@@ -24,6 +26,8 @@ class ProjectDict(TypedDict, total=False):
     url: str
     aliases: list[str]
     desc: str
+    desc_tr: str
+    desc_en: str
     tags: list[str]
 
 class CategorizedTagDict(TypedDict):
@@ -39,6 +43,8 @@ class PortfolioState(rx.State):
     # and any .get() call on the Var evaluates on the JS side → [object Object].
     modal_name: str = ""
     modal_desc: str = ""
+    modal_desc_tr: str = ""
+    modal_desc_en: str = ""
     modal_tags: list[str] = []
     modal_slug: str = ""
     modal_url: str = ""
@@ -47,7 +53,7 @@ class PortfolioState(rx.State):
 
     @rx.event
     def on_load(self):
-        from harun_site.utils.data_manager import load_projects
+        from harun_site.utils.data_manager import load_projects, get_localized
         raw = load_projects()
         # Strip each project to only the four fields ProjectDict declares so
         # the nested case_study dict is never included in the state delta.
@@ -60,6 +66,8 @@ class PortfolioState(rx.State):
                 "url": p.get("url", ""),
                 "aliases": [str(a) for a in (p.get("aliases") or [])],
                 "desc": p.get("desc", ""),
+                "desc_tr": get_localized(p, "desc", "tr"),
+                "desc_en": get_localized(p, "desc", "en"),
                 "tags": [str(t) for t in (p.get("tags") or [])],
             }
             for p in raw
@@ -68,8 +76,10 @@ class PortfolioState(rx.State):
     @rx.event
     def open_project(self, project: ProjectDict):
         # Flatten into primitive state vars — never store the raw dict.
-        self.modal_name = str(project.get("name", ""))
-        self.modal_desc = str(project.get("desc", ""))
+        self.modal_name = str(project.get("title", project.get("name", "")))
+        self.modal_desc_tr = str(project.get("desc_tr", ""))
+        self.modal_desc_en = str(project.get("desc_en", ""))
+        self.modal_desc = self.modal_desc_tr
         self.modal_tags = [str(t) for t in (project.get("tags") or [])]
         self.modal_slug = str(project.get("slug", ""))
         self.modal_url = str(project.get("url", ""))
@@ -79,6 +89,8 @@ class PortfolioState(rx.State):
     def close_modal(self):
         self.modal_name = ""
         self.modal_desc = ""
+        self.modal_desc_tr = ""
+        self.modal_desc_en = ""
         self.modal_tags = []
         self.modal_slug = ""
         self.modal_url = ""
@@ -216,8 +228,14 @@ def project_card(project: ProjectDict) -> rx.Component:
                 color=TEXT,
                 font_size="1.05em",
             ),
-            rx.text(
-                project["desc"],
+
+
+
+
+
+
+                        rx.text(
+                rx.cond(LanguageState.language == "en", project["desc_en"], project["desc_tr"]),
                 font_family=FONT_SANS,
                 color=TEXT_MUTED,
                 font_size="0.87em",
@@ -280,8 +298,8 @@ def portfolio_page() -> rx.Component:
         rx.box(
             rx.vstack(
                 rx.vstack(
-                    rx.text(
-                        "PORTFOLYO",
+                                        rx.text(
+                        rx.cond(LanguageState.language == "en", "PORTFOLIO", "PORTFOLYO"),
                         font_family=FONT_MONO,
                         font_size="0.75em",
                         letter_spacing="0.2em",
@@ -289,7 +307,7 @@ def portfolio_page() -> rx.Component:
                         text_shadow=GLOW_PRIMARY,
                     ),
                     rx.text(
-                        "Projeler, yarışmalar ve başarılar",
+                        rx.cond(LanguageState.language == "en", "Projects, competitions, and achievements", "Projeler, yarışmalar ve başarılar"),
                         font_family=FONT_SANS,
                         color=TEXT_MUTED,
                         font_size="0.85em",
@@ -325,7 +343,7 @@ def portfolio_page() -> rx.Component:
                         rx.cond(
                             PortfolioState.has_filter,
                             rx.button(
-                                "✕ temizle",
+                                rx.cond(LanguageState.language == "en", "✕ clear", "✕ temizle"),
                                 on_click=PortfolioState.clear_tags,
                                 font_family=FONT_MONO,
                                 font_size="0.72em",
@@ -349,7 +367,7 @@ def portfolio_page() -> rx.Component:
                     rx.cond(
                         PortfolioState.has_filter,
                         rx.flex(
-                            rx.text("Aktif Filtreler:", font_family=FONT_MONO, font_size="0.7em", color=TEXT_MUTED, margin_right="0.5em", margin_top="0.35em"),
+                            rx.text(rx.cond(LanguageState.language == "en", "Active Filters:", "Aktif Filtreler:"), font_family=FONT_MONO, font_size="0.7em", color=TEXT_MUTED, margin_right="0.5em", margin_top="0.35em"),
                             rx.foreach(
                                 PortfolioState.selected_tags,
                                 lambda tag: rx.button(
@@ -429,13 +447,23 @@ def portfolio_page() -> rx.Component:
                                         padding="0 0.3em",
                                         cursor="pointer",
                                         _hover={"color": PRIMARY},
-                                        border="none",
                                     ),
                                     width="100%",
                                     align="center",
                                 ),
                                 # ── Description ───────────────────────────────────────────
-                                rx.text(PortfolioState.modal_desc, font_family=FONT_SANS, color=TEXT_MUTED, margin_top="0.8em", font_size="0.9em", line_height="1.6"),
+                                rx.text(
+                                    rx.cond(
+                                        LanguageState.language == "en",
+                                        PortfolioState.modal_desc_en,
+                                        PortfolioState.modal_desc_tr,
+                                    ),
+                                    font_family=FONT_SANS,
+                                    color=TEXT_MUTED,
+                                    margin_top="0.8em",
+                                    font_size="0.9em",
+                                    line_height="1.6",
+                                ),
                                 # ── Tags ─────────────────────────────────────────────────
                                 rx.hstack(
                                     rx.foreach(
@@ -453,7 +481,8 @@ def portfolio_page() -> rx.Component:
                                         rx.link(
                                             rx.hstack(
                                                 rx.text(
-                                                    "Case Study'yi Görüntüle",
+
+                                                    rx.cond(LanguageState.language == "en", "View Case Study", "Case Study'yi Görüntüle"),
                                                     font_family=FONT_MONO,
                                                     font_size="0.82em",
                                                     font_weight="600",

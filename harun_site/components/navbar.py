@@ -1,5 +1,44 @@
 import reflex as rx
-from harun_site.theme import BG, BORDER, PRIMARY, TEXT, FONT_MONO, GLOW_PRIMARY
+from harun_site.theme import BG, BORDER, PRIMARY, TEXT, TEXT_MUTED, FONT_MONO, GLOW_PRIMARY
+from harun_site.state.language_state import LanguageState
+from harun_site.utils.i18n import TXT
+
+
+def _nav_link(text_key, href):
+    return rx.link(
+        rx.cond(
+            LanguageState.language == "en",
+            TXT[text_key]["en"],
+            TXT[text_key]["tr"],
+        ),
+        href=href, color=TEXT, font_family=FONT_MONO, font_size="0.75em",
+        _hover={"color": PRIMARY}, text_decoration="none",
+    )
+
+
+def _lang_toggle():
+    return rx.button(
+        rx.cond(
+            LanguageState.language == "en",
+            rx.hstack(
+                rx.text("TR", font_size="0.65em", font_weight="600", color=TEXT_MUTED, opacity="0.5"),
+                rx.text("|", font_size="0.6em", color=TEXT_MUTED, opacity="0.3"),
+                rx.text("EN", font_size="0.65em", font_weight="700", color=PRIMARY),
+                spacing="1", align="center",
+            ),
+            rx.hstack(
+                rx.text("TR", font_size="0.65em", font_weight="700", color=PRIMARY),
+                rx.text("|", font_size="0.6em", color=TEXT_MUTED, opacity="0.3"),
+                rx.text("EN", font_size="0.65em", font_weight="600", color=TEXT_MUTED, opacity="0.5"),
+                spacing="1", align="center",
+            ),
+        ),
+        on_click=LanguageState.toggle_language,
+        background="transparent", border=f"1px solid {BORDER}",
+        border_radius="6px", padding="0.1em 0.4em",
+        cursor="pointer", _hover={"border_color": PRIMARY}, transition="all 150ms",
+    )
+
 
 def navbar() -> rx.Component:
     return rx.center(
@@ -29,12 +68,13 @@ def navbar() -> rx.Component:
             ),
             rx.spacer(),
             rx.hstack(
-                rx.link("Ana Sayfa", href="/", color=TEXT, font_family=FONT_MONO, font_size="0.75em", _hover={"color": PRIMARY}, text_decoration="none"),
-                rx.link("Hakkımda", href="/about", color=TEXT, font_family=FONT_MONO, font_size="0.75em", _hover={"color": PRIMARY}, text_decoration="none"),
-                rx.link("Portfolyo", href="/portfolio", color=TEXT, font_family=FONT_MONO, font_size="0.75em", _hover={"color": PRIMARY}, text_decoration="none"),
-                rx.link("Blog", href="/blog", color=TEXT, font_family=FONT_MONO, font_size="0.75em", _hover={"color": PRIMARY}, text_decoration="none"),
-                rx.link("Chat", href="/chat", color=TEXT, font_family=FONT_MONO, font_size="0.75em", _hover={"color": PRIMARY}, text_decoration="none"),
-                spacing="5",
+                _nav_link("nav_home", "/"),
+                _nav_link("nav_about", "/about"),
+                _nav_link("nav_portfolio", "/portfolio"),
+                _nav_link("nav_blog", "/blog"),
+                _nav_link("nav_chat", "/chat"),
+                _lang_toggle(),
+                spacing="4",
                 align="center",
             ),
             width="100%",

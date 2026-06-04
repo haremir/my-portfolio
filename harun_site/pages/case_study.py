@@ -43,6 +43,7 @@ from harun_site.components.navbar import navbar
 from harun_site.components.footer import footer
 from harun_site.components.floating_chat import floating_chat
 from harun_site.state.case_study_state import CaseStudyState
+from harun_site.state.language_state import LanguageState
 from harun_site.theme import (
     BG,
     BG_CARD,
@@ -63,7 +64,7 @@ from harun_site.theme import (
 
 def _back_link() -> rx.Component:
     return rx.link(
-        "← Portfolyo",
+        rx.cond(LanguageState.language == "en", "← Back to Projects", "← Projelere Dön"),
         href="/portfolio",
         font_family=FONT_MONO,
         font_size="0.8em",
@@ -162,7 +163,7 @@ def cs_not_found() -> rx.Component:
                     style={"letter_spacing": "-2px"},
                 ),
                 rx.text(
-                    "Proje bulunamadı",
+                    rx.cond(LanguageState.language == "en", "Project not found", "Proje bulunamadı"),
                     font_family=FONT_SANS,
                     font_size="1.3em",
                     font_weight="700",
@@ -170,8 +171,11 @@ def cs_not_found() -> rx.Component:
                     style={"margin_top": "-0.3em"},
                 ),
                 rx.text(
-                    "Bu adrese karşılık gelen bir proje yok. "
-                    "Slug yanlış yazılmış olabilir ya da proje kaldırılmış olabilir.",
+                    rx.cond(
+                        LanguageState.language == "en",
+                        "There is no project matching this address. The slug might be mistyped or the project was removed.",
+                        "Bu adrese karşılık gelen bir proje yok. Slug yanlış yazılmış olabilir ya da proje kaldırılmış olabilir.",
+                    ),
                     font_family=FONT_SANS,
                     color=TEXT_MUTED,
                     font_size="0.9em",
@@ -182,7 +186,7 @@ def cs_not_found() -> rx.Component:
                     rx.hstack(
                         rx.text("←", font_family=FONT_MONO, color=PRIMARY),
                         rx.text(
-                            "Tüm projeleri gör",
+                            rx.cond(LanguageState.language == "en", "See all projects", "Tüm projeleri gör"),
                             font_family=FONT_MONO,
                             font_size="0.85em",
                             color=PRIMARY,
@@ -226,7 +230,7 @@ def cs_empty_content() -> rx.Component:
             rx.hstack(
                 rx.text("📋", font_size="1.4em"),
                 rx.text(
-                    "Case Study Hazırlanıyor",
+                    rx.cond(LanguageState.language == "en", "Case Study in Preparation", "Case Study Hazırlanıyor"),
                     font_family=FONT_SANS,
                     font_weight="700",
                     color=TEXT,
@@ -236,15 +240,18 @@ def cs_empty_content() -> rx.Component:
                 gap="0.7em",
             ),
             rx.text(
-                "Bu projenin detaylı case study içeriği yakında eklenecek. "
-                "Proje hakkında soru sormak için sohbet asistanını kullanabilirsin.",
+                rx.cond(
+                    LanguageState.language == "en",
+                    "Detailed case study content for this project will be added soon. You can use the chat assistant to ask questions about the project.",
+                    "Bu projenin detaylı case study içeriği yakında eklenecek. Proje hakkında soru sormak için sohbet asistanını kullanabilirsin.",
+                ),
                 font_family=FONT_SANS,
                 color=TEXT_MUTED,
                 font_size="0.88em",
                 line_height="1.7",
             ),
             rx.link(
-                "Projeyi AI ile tartış →",
+                rx.cond(LanguageState.language == "en", "Discuss project with AI →", "Projeyi AI ile tartış →"),
                 href="/chat",
                 font_family=FONT_MONO,
                 font_size="0.8em",
@@ -351,12 +358,12 @@ def cs_content() -> rx.Component:
             rx.vstack(
                 rx.cond(
                     CaseStudyState.cs_problem_html != "",
-                    cs_section("Problem", CaseStudyState.cs_problem_html),
+                    cs_section(rx.cond(LanguageState.language == "en", "Problem", "Problem"), CaseStudyState.cs_problem_html),
                     rx.fragment(),
                 ),
                 rx.cond(
                     CaseStudyState.cs_architecture_html != "",
-                    cs_section("Mimari", CaseStudyState.cs_architecture_html),
+                    cs_section(rx.cond(LanguageState.language == "en", "Architecture", "Mimari"), CaseStudyState.cs_architecture_html),
                     rx.fragment(),
                 ),
                 rx.cond(
@@ -374,17 +381,17 @@ def cs_content() -> rx.Component:
                 ),
                 rx.cond(
                     CaseStudyState.cs_stack_reason_html != "",
-                    cs_section("Neden Bu Stack?", CaseStudyState.cs_stack_reason_html),
+                    cs_section(rx.cond(LanguageState.language == "en", "Why This Stack?", "Neden Bu Stack?"), CaseStudyState.cs_stack_reason_html),
                     rx.fragment(),
                 ),
                 rx.cond(
                     CaseStudyState.cs_challenges_html != "",
-                    cs_section("Zorluklar", CaseStudyState.cs_challenges_html),
+                    cs_section(rx.cond(LanguageState.language == "en", "Challenges", "Zorluklar"), CaseStudyState.cs_challenges_html),
                     rx.fragment(),
                 ),
                 rx.cond(
                     CaseStudyState.cs_learnings_html != "",
-                    cs_section("Öğrendiklerim", CaseStudyState.cs_learnings_html),
+                    cs_section(rx.cond(LanguageState.language == "en", "Learnings", "Öğrendiklerim"), CaseStudyState.cs_learnings_html),
                     rx.fragment(),
                 ),
                 width="100%",
@@ -397,7 +404,7 @@ def cs_content() -> rx.Component:
         # ── Bottom CTA — back to all projects ──────────────────────────
         rx.box(
             rx.link(
-                "← Tüm projelere dön",
+                rx.cond(LanguageState.language == "en", "← Back to all projects", "← Tüm projelere dön"),
                 href="/portfolio",
                 font_family=FONT_MONO,
                 font_size="0.8em",
@@ -475,7 +482,7 @@ def portfolio_slug_redirect() -> rx.Component:
     """
     return rx.box(
         rx.text(
-            "Yönlendiriliyor...",
+            rx.cond(LanguageState.language == "en", "Redirecting...", "Yönlendiriliyor..."),
             color=TEXT_MUTED,
             font_family=FONT_MONO,
             font_size="0.85em",

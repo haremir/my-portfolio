@@ -16,6 +16,8 @@ from harun_site.theme import (
     FONT_SANS,
 )
 from harun_site.state.about_state import AboutState
+from harun_site.state.language_state import LanguageState
+from harun_site.utils.i18n import TXT
 
 
 def skill_tag(name: str) -> rx.Component:
@@ -65,7 +67,11 @@ def experience_card(exp: dict) -> rx.Component:
                         font_size="1.05em",
                     ),
                     rx.text(
-                        exp["role"],
+                        rx.cond(
+                            LanguageState.language == "en",
+                            exp["role_en"],
+                            exp["role"],
+                        ),
                         font_family=FONT_MONO,
                         color=PRIMARY,
                         font_size="0.82em",
@@ -74,7 +80,11 @@ def experience_card(exp: dict) -> rx.Component:
                     gap="0.1em",
                 ),
                 rx.text(
-                    f"{exp['start_date']} – {exp['end_date']}",
+                    rx.cond(
+                        LanguageState.language == "en",
+                        exp["start_date_en"] + " – " + exp["end_date_en"],
+                        exp["start_date"] + " – " + exp["end_date"],
+                    ),
                     font_family=FONT_MONO,
                     font_size="0.75em",
                     color=TEXT_MUTED,
@@ -85,7 +95,11 @@ def experience_card(exp: dict) -> rx.Component:
                 width="100%",
             ),
             rx.text(
-                exp["description"],
+                rx.cond(
+                    LanguageState.language == "en",
+                    exp["description_en"],
+                    exp["description"],
+                ),
                 font_family=FONT_SANS,
                 color=TEXT_MUTED,
                 font_size="0.87em",
@@ -137,7 +151,11 @@ def education_card(edu: dict) -> rx.Component:
                         font_size="1.05em",
                     ),
                     rx.text(
-                        edu["department"],
+                        rx.cond(
+                            LanguageState.language == "en",
+                            edu["department_en"],
+                            edu["department"],
+                        ),
                         font_family=FONT_MONO,
                         color=PRIMARY,
                         font_size="0.82em",
@@ -146,7 +164,7 @@ def education_card(edu: dict) -> rx.Component:
                     gap="0.1em",
                 ),
                 rx.text(
-                    f"{edu['start_year']} – {edu['end_year']}",
+                    edu["start_year"] + " – " + edu["end_year"],
                     font_family=FONT_MONO,
                     font_size="0.75em",
                     color=TEXT_MUTED,
@@ -157,7 +175,11 @@ def education_card(edu: dict) -> rx.Component:
                 width="100%",
             ),
             rx.badge(
-                edu["degree"],
+                rx.cond(
+                    LanguageState.language == "en",
+                    edu["degree_en"],
+                    edu["degree"],
+                ),
                 font_family=FONT_MONO,
                 font_size="0.72em",
                 background=f"{PRIMARY}15",
@@ -168,7 +190,11 @@ def education_card(edu: dict) -> rx.Component:
                 margin_top="0.8em",
             ),
             rx.text(
-                edu["description"],
+                rx.cond(
+                    LanguageState.language == "en",
+                    edu["description_en"],
+                    edu["description"],
+                ),
                 font_family=FONT_SANS,
                 color=TEXT_MUTED,
                 font_size="0.87em",
@@ -190,7 +216,7 @@ def education_card(edu: dict) -> rx.Component:
 def skill_category_view(cat: rx.Var) -> rx.Component:
     return rx.vstack(
         rx.text(
-            cat["category"],
+            rx.cond(LanguageState.language == "en", cat["category_en"], cat["category"]),
             font_family=FONT_MONO,
             font_size="0.8em",
             font_weight="bold",
@@ -242,7 +268,11 @@ def about_page() -> rx.Component:
                             font_size="0.85em",
                         ),
                         rx.text(
-                            "Erzurum Teknik Üniversitesi mezunu bir bilgisayar mühendisi olarak yapay zeka, makine öğrenmesi ve veri mühendisliği alanlarında çalışıyorum. Özellikle RAG mimarileri, büyük dil modelleri (LLM), veri işleme sistemleri ve üretim odaklı AI uygulamaları üzerine yoğunlaşıyorum. Python tabanlı ölçeklenebilir yapay zeka çözümleri, veri pipeline’ları ve uçtan uca AI sistemleri geliştiriyor; siber güvenlik alanında faaliyet gösteren bir girişimde yapay zeka ürünlerinin geliştirme süreçlerinde aktif rol alıyorum.",
+                            rx.cond(
+                                LanguageState.language == "en",
+                                "As a computer engineering graduate from Erzurum Technical University, I focus on artificial intelligence, machine learning, and data engineering. I specialize in large language models (LLMs), data processing systems, and production-oriented AI applications, building scalable Python-based AI solutions, data pipelines, and end-to-end systems. Currently, I play an active role in developing AI products at a cybersecurity startup.",
+                                "Erzurum Teknik Üniversitesi mezunu bir bilgisayar mühendisi olarak yapay zeka, makine öğrenmesi ve veri mühendisliği alanlarında çalışıyorum. Büyük dil modelleri (LLM), veri işleme sistemleri ve üretim odaklı AI uygulamaları üzerine yoğunlaşıyorum. Python tabanlı ölçeklenebilir yapay zeka çözümleri, veri pipeline’ları ve uçtan uca AI sistemleri geliştiriyor; siber güvenlik alanında faaliyet gösteren bir girişimde yapay zeka ürünlerinin geliştirme süreçlerinde aktif rol alıyorum.",
+                            ),
                             color=TEXT_MUTED,
                             font_family=FONT_SANS,
                             style={"font_size": "0.9em", "line_height": "1.6", "margin_top": "0.5em"},
@@ -255,30 +285,31 @@ def about_page() -> rx.Component:
                     margin_bottom="3em",
                     width="100%",
                 ),
-                section_title("Beceriler"),
+
+                section_title(rx.cond(LanguageState.language == "en", "Skills", "Beceriler")),
                 rx.vstack(
                     rx.foreach(AboutState.skills, skill_category_view),
                     width="100%",
                     spacing="3",
-                    align_items="start",
+                                        align_items="start",
                 ),
-                section_title("DENEYİM"),
+                section_title(rx.cond(LanguageState.language == "en", "EXPERIENCE", "DENEYİM")),
                 rx.vstack(
                     rx.foreach(AboutState.experience, experience_card),
                     width="100%",
                 ),
-                section_title("EĞİTİM"),
+                section_title(rx.cond(LanguageState.language == "en", "EDUCATION", "EĞİTİM")),
                 rx.vstack(
                     rx.foreach(AboutState.education, education_card),
                     width="100%",
                 ),
-                section_title("Projeler"),
+                section_title(rx.cond(LanguageState.language == "en", "Projects", "Projeler")),
                 rx.vstack(
                     rx.text("PORTFOLYO", font_family=FONT_MONO, font_size="0.75em",
                             letter_spacing="0.2em", color=PRIMARY, text_shadow=GLOW_PRIMARY),
-                    rx.text("Projeler, yarışmalar ve başarılar için portfolyo sayfasına göz at.",
+                    rx.text(rx.cond(LanguageState.language == "en", "Check out the portfolio for projects, competitions, and achievements.", "Projeler, yarışmalar ve başarılar için portfolyo sayfasına göz at."),
                             font_family=FONT_SANS, color=TEXT_MUTED, font_size="0.87em"),
-                    rx.link("Portfolyo'ya git →", href="/portfolio",
+                    rx.link(rx.cond(LanguageState.language == "en", "Go to Portfolio →", "Portfolyo'ya git →"), href="/portfolio",
                             font_family=FONT_MONO, font_size="0.85em", color=PRIMARY,
                             _hover={"text_shadow": GLOW_PRIMARY}, text_decoration="none"),
                     align_items="start", gap="0.5em",
@@ -289,7 +320,7 @@ def about_page() -> rx.Component:
                     width="100%",
                     margin_top="1em",
                 ),
-                section_title("İletişim"),
+                section_title(rx.cond(LanguageState.language == "en", "Contact", "İletişim")),
                 rx.hstack(
                     rx.link(
                         "GitHub",
@@ -315,7 +346,7 @@ def about_page() -> rx.Component:
                     rx.cond(
                         AboutState.cv_path != "",
                         rx.button(
-                            "CV İndir ↓",
+                            rx.cond(LanguageState.language == "en", "Download CV ↓", "CV İndir ↓"),
                             on_click=rx.download(AboutState.cv_path),
                             font_family=FONT_MONO,
                             font_size="0.85em",

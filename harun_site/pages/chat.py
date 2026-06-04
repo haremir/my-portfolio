@@ -4,7 +4,9 @@ from harun_site.components.navbar import navbar
 from harun_site.components.footer import footer
 from harun_site.components.floating_chat import floating_chat
 from harun_site.state.chat_state import ChatState, MessageDict
-from harun_site.utils.groq_client import MODEL_FAST
+from harun_site.state.language_state import LanguageState
+from harun_site.utils.i18n import TXT
+from harun_site.utils.groq_client import MODEL_FAST, PRIMARY_PROVIDER_NAME, LLM_PROVIDER
 from harun_site.theme import (
     BG,
     BG_CARD,
@@ -47,27 +49,44 @@ def message_row(message: MessageDict) -> rx.Component:
             justify="end",
         ),
         rx.hstack(
-            rx.box(
-                rx.cond(
-                    message["content"] != "",
-                    rx.markdown(message["content"]),
-                    rx.text(
-                        "●●●",
-                        color=TEXT_MUTED,
-                        font_size="0.8em",
-                        letter_spacing="0.15em",
+            rx.vstack(
+                rx.box(
+                    rx.cond(
+                        message["content"] != "",
+                        rx.markdown(message["content"]),
+                        rx.text(
+                            "●●●",
+                            color=TEXT_MUTED,
+                            font_size="0.8em",
+                            letter_spacing="0.15em",
+                        ),
                     ),
+                    background_color=BG_CARD,
+                    color=TEXT,
+                    style={
+                        "padding": "0.6em 1em",
+                        "border_radius": "18px 18px 18px 4px",
+                        "border": f"1px solid {BORDER}",
+                        "font_family": FONT_SANS,
+                        "font_size": "0.9em",
+                        "word_break": "break-word",
+                    },
                 ),
-                background_color=BG_CARD,
-                color=TEXT,
-                style={
-                    "padding": "0.6em 1em",
-                    "border_radius": "18px 18px 18px 4px",
-                    "border": f"1px solid {BORDER}",
-                    "font_family": FONT_SANS,
-                    "font_size": "0.9em",
-                    "word_break": "break-word",
-                },
+                rx.cond(
+                    message["provider"] != "",
+                    rx.text(
+                        message["provider"] + " · " + message["model"],
+                        font_family=FONT_MONO,
+                        font_size="0.68em",
+                        color=TEXT_MUTED,
+                        opacity="0.75",
+                        margin_left="0.8em",
+                        margin_top="0.2em",
+                    ),
+                    rx.fragment(),
+                ),
+                align_items="start",
+                gap="0.1em",
                 max_width="80%",
             ),
             width="100%",
@@ -83,7 +102,7 @@ def chat_page() -> rx.Component:
             rx.vstack(
                 rx.hstack(
                     rx.heading(
-                        "HARUN İLE SOHBET",
+                        rx.cond(LanguageState.language == "en", "CHAT WITH HARUN", "HARUN İLE SOHBET"),
                         size="4",
                         color=PRIMARY,
                         font_family=FONT_MONO,
@@ -96,7 +115,7 @@ def chat_page() -> rx.Component:
                     ),
                     rx.spacer(),
                     rx.button(
-                        "+ Yeni Sohbet",
+                        rx.cond(LanguageState.language == "en", "+ New Chat", "+ Yeni Sohbet"),
                         on_click=ChatState.new_conversation,
                         font_family=FONT_MONO,
                         font_size="0.75em",
@@ -114,7 +133,7 @@ def chat_page() -> rx.Component:
                     justify="between",
                 ),
                 rx.text(
-                    "Portfolyo, projeler ve teknik beceriler hakkinda soru sorabilirsiniz.",
+                    rx.cond(LanguageState.language == "en", "You can ask about the portfolio, projects, and technical skills.", "Portfolyo, projeler ve teknik beceriler hakkında soru sorabilirsiniz."),
                     color=TEXT_MUTED,
                     font_family=FONT_SANS,
                     style={"font_size": "0.85em", "margin_bottom": "1.5em"},
@@ -122,11 +141,19 @@ def chat_page() -> rx.Component:
                 rx.box(
                     rx.hstack(
                         rx.text("⚙", font_size="0.8em"),
-                        rx.text("Nasıl çalışır?", font_family=FONT_MONO,
+                        rx.text(rx.cond(LanguageState.language == "en", "How it works?", "Nasıl çalışır?"), font_family=FONT_MONO,
                                 font_size="0.75em", color=PRIMARY, font_weight="600"),
                         rx.text("·", color=BORDER),
-                        rx.text(f"Groq API · {MODEL_FAST} · Dinamik context · Streaming",
-                                font_family=FONT_MONO, font_size="0.72em", color=TEXT_MUTED),
+                        rx.text(
+                            (
+                                f"DeepSeek API (Groq Fallback) · {MODEL_FAST} · Dinamik context · Streaming"
+                                if LLM_PROVIDER == "deepseek"
+                                else f"Groq API · {MODEL_FAST} · Dinamik context · Streaming"
+                            ),
+                            font_family=FONT_MONO,
+                            font_size="0.72em",
+                            color=TEXT_MUTED,
+                        ),
                         gap="0.5em",
                         align="center",
                         flex_wrap="wrap",
@@ -141,7 +168,7 @@ def chat_page() -> rx.Component:
                 rx.cond(
                     ChatState.show_suggestions & (ChatState.messages.length() == 0),
                     rx.vstack(
-                        rx.text("Başlamak için bir soru seç:", font_family=FONT_MONO,
+                        rx.text(rx.cond(LanguageState.language == "en", "Choose a question to start:", "Başlamak için bir soru seç:"), font_family=FONT_MONO,
                                 font_size="0.75em", color=TEXT_MUTED),
                         rx.hstack(
                             rx.foreach(
@@ -157,6 +184,9 @@ def chat_page() -> rx.Component:
                                     padding="0.4em 0.9em",
                                     border_radius="20px",
                                     cursor="pointer",
+                                    height="auto",
+                                    white_space="normal",
+                                    line_height="1.3",
                                     transition="all 150ms",
                                     _hover={"color": PRIMARY, "border_color": PRIMARY},
                                 )
@@ -210,7 +240,7 @@ def chat_page() -> rx.Component:
                         _placeholder={"color": TEXT_MUTED},
                     ),
                     rx.button(
-                        "gönder",
+                        rx.cond(LanguageState.language == "en", "send", "gönder"),
                         background_color=PRIMARY,
                         color=BG,
                         font_family=FONT_MONO,

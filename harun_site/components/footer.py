@@ -1,13 +1,22 @@
 import reflex as rx
 
 from harun_site.theme import BG, BORDER, PRIMARY, TEXT_MUTED, FONT_MONO
+from harun_site.state.language_state import LanguageState
+from harun_site.utils.i18n import TXT
+
+
+
 
 
 def footer() -> rx.Component:
     return rx.box(
         rx.hstack(
-            rx.text(
-                "© 2026 Harun Emirhan Bostancı",
+                        rx.text(
+                rx.cond(
+                    LanguageState.language == "en",
+                    "© 2026 Harun Emirhan Bostancı",
+                    "© 2026 Harun Emirhan Bostancı",
+                ),
                 font_family=FONT_MONO,
                 font_size="0.75em",
                 color=TEXT_MUTED,

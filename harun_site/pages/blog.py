@@ -3,6 +3,8 @@ from harun_site.components.navbar import navbar
 from harun_site.components.footer import footer
 from harun_site.components.floating_chat import floating_chat
 from harun_site.state.blog_state import BlogState
+from harun_site.state.language_state import LanguageState
+from harun_site.utils.i18n import TXT
 from harun_site.theme import (
 	BG,
 	BG_CARD,
@@ -34,14 +36,22 @@ def blog_card(post: dict) -> rx.Component:
             ),
             rx.vstack(
                 rx.text(
-                    post["title"],
+                    rx.cond(
+                        (LanguageState.language == "en") & (post["title_en"] != ""),
+                        post["title_en"],
+                        post["title"],
+                    ),
                     font_family=FONT_SANS,
                     font_weight="700",
                     color=TEXT,
                     font_size="1.2em",
                 ),
                 rx.text(
-                    post["description"],
+                    rx.cond(
+                        (LanguageState.language == "en") & (post["description_en"] != ""),
+                        post["description_en"],
+                        post["description"],
+                    ),
                     font_family=FONT_SANS,
                     color=TEXT_MUTED,
                     font_size="0.9em",
@@ -65,7 +75,11 @@ def blog_card(post: dict) -> rx.Component:
                 ),
                 rx.spacer(),
                 rx.text(
-                    f"{post['day']} {post['month']} {post['year']}",
+                    rx.cond(
+                        LanguageState.language == "en",
+                        post["day"] + " " + post["month_en"] + " " + post["year"],
+                        post["day"] + " " + post["month"] + " " + post["year"],
+                    ),
                     font_size="0.7em",
                     font_family=FONT_MONO,
                     color=TEXT_MUTED,
@@ -92,10 +106,6 @@ def blog_card(post: dict) -> rx.Component:
                 "transform": "translateY(-2px)",
             },
         ),
-        # Use Var string concatenation — NOT an f-string.
-        # f"/blog/{post['slug']}" produces a static Python str with a
-        # <reflex.Var> tag that may not be processed correctly in all
-        # prop contexts; explicit concat is guaranteed reactive.
         href="/blog/" + post["slug"],
         text_decoration="none",
         width="100%",
@@ -110,7 +120,7 @@ def blog() -> rx.Component:
 			rx.vstack(
 				rx.hstack(
 					rx.text(
-						"BLOG",
+						rx.cond(LanguageState.language == "en", "BLOG", "BLOG"),
 						font_family=FONT_MONO,
 						font_size="0.75em",
 						letter_spacing="0.2em",
@@ -149,7 +159,7 @@ def blog() -> rx.Component:
 						rx.cond(
 							BlogState.has_filter,
 							rx.button(
-								"✕ temizle",
+								rx.cond(LanguageState.language == "en", "✕ clear", "✕ temizle"),
 								on_click=BlogState.clear_tags,
 								font_family=FONT_MONO,
 								font_size="0.72em",

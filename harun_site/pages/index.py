@@ -1,5 +1,6 @@
 import reflex as rx
 
+
 from harun_site.components.navbar import navbar
 from harun_site.components.footer import footer
 from harun_site.components.floating_chat import floating_chat
@@ -15,6 +16,8 @@ from harun_site.theme import (
     FONT_MONO,
 )
 from harun_site.state.index_state import IndexState
+from harun_site.state.language_state import LanguageState
+from harun_site.utils.i18n import TXT
 
 
 def section_divider() -> rx.Component:
@@ -39,7 +42,11 @@ def hero_section() -> rx.Component:
             margin_bottom="1.2em",
         ),
         rx.text(
+            rx.cond(
+            LanguageState.language == "en",
             "── DATA SCIENCE & AI ENGINEER | LLM ORCHESTRATOR ──",
+            "── DATA SCIENCE & AI ENGINEER | LLM ORCHESTRATOR ──",
+        ),
             color=PRIMARY,
             font_family=FONT_MONO,
             style={
@@ -78,7 +85,11 @@ def hero_section() -> rx.Component:
             text_align="center",
         ),
         rx.text(
+            rx.cond(
+            LanguageState.language == "en",
+            "I work on RAG architectures, LLMs, and production-focused AI systems.",
             "RAG mimarileri, LLM'ler ve üretim odaklı AI sistemleri üzerinde çalışıyorum.",
+        ),
             color=TEXT_MUTED,
             font_family=FONT_SANS,
             style={"font_size": "0.95em", "margin_bottom": "2em"},
@@ -86,7 +97,7 @@ def hero_section() -> rx.Component:
         rx.hstack(
             rx.link(
                 rx.button(
-                    "Hakkımda",
+                    rx.cond(LanguageState.language == "en", "About Me", "Hakkımda"),
                     color=PRIMARY,
                     background="transparent",
                     border=f"1px solid {PRIMARY}",
@@ -120,7 +131,11 @@ def hero_section() -> rx.Component:
         ),
         rx.box(
             rx.input(
-                placeholder="bir şey sor... · dent-bot nedir?",
+                placeholder=rx.cond(
+                    LanguageState.language == "en",
+                    "ask something... · what is dent-bot?",
+                    "bir şey sor... · dent-bot nedir?",
+                ),
                 width="100%",
                 background=BG_CARD,
                 border=f"1px solid {BORDER}",
@@ -167,7 +182,11 @@ def hero_section() -> rx.Component:
             position="relative",
         ),
         rx.text(
+            rx.cond(
+            LanguageState.language == "en",
+            "↑ ask about me",
             "↑ hakkımda soru sor",
+        ),
             font_family=FONT_MONO,
             font_size="0.7em",
             color=TEXT_MUTED,
@@ -190,7 +209,7 @@ def about_preview() -> rx.Component:
         rx.box(
             rx.hstack(
                 rx.text(
-                    "HAKKIMDA",
+                    rx.cond(LanguageState.language == "en", "ABOUT", "HAKKIMDA"),
                     font_family=FONT_MONO,
                     font_size="0.75em",
                     letter_spacing="0.2em",
@@ -198,7 +217,7 @@ def about_preview() -> rx.Component:
                     text_shadow=GLOW_PRIMARY,
                 ),
                 rx.link(
-                    "Devamını gör →",
+                    rx.cond(LanguageState.language == "en", "View more →", "Devamını gör →"),
                     href="/about",
                     font_family=FONT_MONO,
                     font_size="0.78em",
@@ -235,7 +254,11 @@ def about_preview() -> rx.Component:
                         font_size="0.78em",
                     ),
                     rx.text(
-                        "Python, Yapay Zeka ve backend sistemleri; büyük ölçekli veri ardışık düzenleri ve üretime hazır ML sistemleri geliştiriyorum.",
+                        rx.cond(
+                            LanguageState.language == "en",
+                            "Python, AI, and backend systems — building large-scale data pipelines and production-ready ML systems.",
+                            "Python, Yapay Zeka ve backend sistemleri; büyük ölçekli veri ardışık düzenleri ve üretime hazır ML sistemleri geliştiriyorum.",
+                        ),
                         font_family=FONT_SANS,
                         color=TEXT_MUTED,
                         font_size="0.87em",
@@ -266,13 +289,17 @@ def about_preview() -> rx.Component:
                                     font_size="0.95em",
                                 ),
                                 rx.text(
-                                    exp["role"],
+                                    rx.cond(LanguageState.language == "en", exp["role_en"], exp["role"]),
                                     font_family=FONT_MONO,
                                     color=PRIMARY,
                                     font_size="0.78em",
                                 ),
                                 rx.text(
-                                    exp["description"][:120] + "...",
+                                    rx.cond(
+                                        LanguageState.language == "en",
+                                        exp["description_en"].to(str)[:120] + "...",
+                                        exp["description"].to(str)[:120] + "...",
+                                    ),
                                     font_family=FONT_SANS,
                                     color=TEXT_MUTED,
                                     font_size="0.82em",
@@ -332,8 +359,8 @@ def project_preview_card(project: dict) -> rx.Component:
                     color=TEXT,
                     font_size="0.95em",
                 ),
-                rx.text(
-                    project["desc"],
+                                rx.text(
+                    rx.cond(LanguageState.language == "en", project["desc_en"], project["desc_tr"]),
                     font_family=FONT_SANS,
                     color=TEXT_MUTED,
                     font_size="0.82em",
@@ -381,7 +408,7 @@ def skills_preview() -> rx.Component:
         rx.box(
             rx.hstack(
                 rx.text(
-                    "BECERİLER",
+                    rx.cond(LanguageState.language == "en", "SKILLS", "BECERİLER"),
                     font_family=FONT_MONO,
                     font_size="0.75em",
                     letter_spacing="0.2em",
@@ -398,7 +425,7 @@ def skills_preview() -> rx.Component:
                     IndexState.skills_list,
                     lambda cat: rx.vstack(
                         rx.text(
-                            cat["category"],
+                            rx.cond(LanguageState.language == "en", cat["category_en"], cat["category"]),
                             font_family=FONT_MONO,
                             color=PRIMARY,
                             font_size="0.85em",
@@ -446,7 +473,7 @@ def portfolio_preview() -> rx.Component:
         rx.box(
             rx.hstack(
                 rx.text(
-                    "PORTFOLYO",
+                    rx.cond(LanguageState.language == "en", "PROJECTS", "PORTFOLYO"),
                     font_family=FONT_MONO,
                     font_size="0.75em",
                     letter_spacing="0.2em",
@@ -454,7 +481,7 @@ def portfolio_preview() -> rx.Component:
                     text_shadow=GLOW_PRIMARY,
                 ),
                 rx.link(
-                    "Tümünü gör →",
+                    rx.cond(LanguageState.language == "en", "View all →", "Tümünü gör →"),
                     href="/portfolio",
                     font_family=FONT_MONO,
                     font_size="0.78em",
@@ -495,14 +522,22 @@ def blog_preview_card(post: dict) -> rx.Component:
             rx.box(width="1px", height="30px", background=BORDER),
             rx.vstack(
                 rx.text(
-                    post["title"],
+                    rx.cond(
+                        (LanguageState.language == "en") & (post["title_en"] != ""),
+                        post["title_en"],
+                        post["title"],
+                    ),
                     font_family=FONT_SANS,
                     font_weight="600",
                     color=TEXT,
                     font_size="0.95em",
                 ),
                 rx.text(
-                    post["description"],
+                    rx.cond(
+                        (LanguageState.language == "en") & (post["description_en"] != ""),
+                        post["description_en"],
+                        post["description"],
+                    ),
                     font_family=FONT_SANS,
                     color=TEXT_MUTED,
                     font_size="0.82em",
@@ -535,7 +570,7 @@ def blog_preview() -> rx.Component:
         rx.box(
             rx.hstack(
                 rx.text(
-                    "SON YAZILAR",
+                    rx.cond(LanguageState.language == "en", "RECENT POSTS", "SON YAZILAR"),
                     font_family=FONT_MONO,
                     font_size="0.75em",
                     letter_spacing="0.2em",
@@ -543,7 +578,7 @@ def blog_preview() -> rx.Component:
                     text_shadow=GLOW_PRIMARY,
                 ),
                 rx.link(
-                    "Tüm yazılar →",
+                    rx.cond(LanguageState.language == "en", "All posts →", "Tüm yazılar →"),
                     href="/blog",
                     font_family=FONT_MONO,
                     font_size="0.78em",

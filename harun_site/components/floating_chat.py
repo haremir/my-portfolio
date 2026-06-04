@@ -9,6 +9,8 @@ class MessageDict(TypedDict):
     as a JS string and never passes [object Object] to rx.markdown()."""
     role: str
     content: str
+    provider: str
+    model: str
 
 from harun_site.theme import (
     BG,
@@ -22,6 +24,8 @@ from harun_site.theme import (
     FONT_MONO,
     FONT_SANS,
 )
+from harun_site.state.language_state import LanguageState
+from harun_site.utils.i18n import TXT
 from harun_site.utils.chat_enrich import finalize_streamed_project_references
 from harun_site.utils.groq_client import (
     complete_chat,
@@ -54,16 +58,17 @@ class FloatingChatState(rx.State):
         self.show_greeting = False
 
     @rx.event
-    def on_load(self):
+    async def on_load(self):
         from harun_site.utils.data_manager import load_suggestions, load_chat_log_messages
+        from harun_site.state.language_state import LanguageState
+        lang_state = await self.get_state(LanguageState)
 
-        self.suggestions = load_suggestions()
+        self.suggestions = load_suggestions(lang_state.language)
         if not self.messages and self.current_log_filename:
             restored = load_chat_log_messages(self.current_log_filename)
             if restored:
                 self.messages = restored
-        
-        return FloatingChatState.start_greeting_timer
+        yield FloatingChatState.start_greeting_timer
 
     @rx.event
     def toggle(self):
@@ -94,10 +99,10 @@ class FloatingChatState(rx.State):
             return
 
         user_input = self.input_value
-        history = [*self.messages, {"role": "user", "content": user_input}]
+        history = [*self.messages, {"role": "user", "content": user_input, "provider": "", "model": ""}]
         self.messages = [
             *self.messages,
-            {"role": "user", "content": user_input},
+            {"role": "user", "content": user_input, "provider": "", "model": ""},
         ]
         self.input_value = ""
         self.is_loading = True
@@ -105,33 +110,44 @@ class FloatingChatState(rx.State):
 
         self.messages = [
             *self.messages,
-            {"role": "assistant", "content": ""},
+            {"role": "assistant", "content": "", "provider": "", "model": ""},
         ]
         yield
 
         try:
             raw_assistant_content = ""
             streamed_any_chunk = False
-            async for chunk in stream_chat(history):
+            info = {"provider": "", "model": ""}
+            async for chunk in stream_chat(history, info):
                 streamed_any_chunk = True
                 raw_assistant_content += chunk
+                self.messages[-1]["content"] = raw_assistant_content
+                if info.get("provider"):
+                    self.messages[-1]["provider"] = info["provider"]
+                    self.messages[-1]["model"] = info["model"]
+                self.messages = list(self.messages)  # Force dirty tracking
+                yield
 
             if not streamed_any_chunk and not raw_assistant_content:
-                fallback_content = await complete_chat(history)
+                fallback_content = await complete_chat(history, info)
                 raw_assistant_content = fallback_content
+                if info.get("provider"):
+                    self.messages[-1]["provider"] = info["provider"]
+                    self.messages[-1]["model"] = info["model"]
 
             if raw_assistant_content:
                 final_content = finalize_streamed_project_references([raw_assistant_content], user_input)
-                self.messages = [
-                    *self.messages[:-1],
-                    {"role": "assistant", "content": final_content},
-                ]
+                self.messages[-1]["content"] = final_content
+                self.messages[-1]["provider"] = info.get("provider", "")
+                self.messages[-1]["model"] = info.get("model", "")
+                self.messages = list(self.messages)  # Force dirty tracking
                 yield
         except Exception as exc:
             if is_rate_limit_error(exc):
                 import sys
                 print("[GROQ] Rate limit (429): daily token quota exceeded.", file=sys.stderr)
             self.messages[-1]["content"] = user_message_for_groq_error(exc)
+            self.messages = list(self.messages)  # Force dirty tracking
             yield
 
         self.is_loading = False
@@ -147,10 +163,13 @@ class FloatingChatState(rx.State):
         yield
 
     @rx.event
-    def reset_chat(self):
+    async def reset_chat(self):
         self.messages = []
         self.show_suggestions = True
-        return rx.window_alert("Sohbet sıfırlandı.")
+        lang_state = await self.get_state(LanguageState)
+        lang = lang_state.language
+        alert_msg = "Chat reset." if lang == "en" else "Sohbet sıfırlandı."
+        return rx.window_alert(alert_msg)
 
     @rx.event
     def clear_chat(self):
@@ -182,28 +201,48 @@ def _message_bubble(message: MessageDict) -> rx.Component:
             padding="0.4em 0.8em",
             border_radius="18px 18px 4px 18px",
             font_size="0.8em",
-            max_width="85%",
+                        max_width="85%",
             font_family=FONT_SANS,
+            overflow_wrap="break-word",
+            word_break="break-word",
+            white_space="pre-wrap",
         ),
-        rx.box(
-            rx.cond(
-                message["content"] != "",
-                rx.markdown(message["content"]),
-                rx.text(
-                    "●●●",
-                    color=TEXT_MUTED,
-                    font_size="0.75em",
-                    letter_spacing="0.15em",
+        rx.vstack(
+            rx.box(
+                rx.cond(
+                    message["content"] != "",
+                    rx.markdown(message["content"]),
+                    rx.text(
+                        "●●●",
+                        color=TEXT_MUTED,
+                        font_size="0.75em",
+                        letter_spacing="0.15em",
+                    ),
                 ),
+                background_color=BG,
+                border=f"1px solid {BORDER}",
+                padding="0.4em 0.8em",
+                border_radius="18px 18px 18px 4px",
+                font_size="0.8em",
+                width="100%",
+                font_family=FONT_SANS,
+            ),
+            rx.cond(
+                message["provider"] != "",
+                rx.text(
+                    message["provider"] + " · " + message["model"],
+                    font_family=FONT_MONO,
+                    font_size="0.65em",
+                    color=TEXT_MUTED,
+                    opacity="0.75",
+                    margin_left="0.6em",
+                ),
+                rx.fragment(),
             ),
             align_self="flex-start",
-            background_color=BG,
-            border=f"1px solid {BORDER}",
-            padding="0.4em 0.8em",
-            border_radius="18px 18px 18px 4px",
-            font_size="0.8em",
+            align_items="start",
+            gap="0.1em",
             max_width="85%",
-            font_family=FONT_SANS,
         ),
     )
 
@@ -265,9 +304,8 @@ def floating_chat(show: bool = True) -> rx.Component:
             ),
             rx.cond(
                 FloatingChatState.show_suggestions & (FloatingChatState.messages.length() == 0),
-                rx.vstack(
-                    rx.text("Bir soru seç:", font_family=FONT_MONO,
-                            font_size="0.72em", color=TEXT_MUTED),
+                                rx.vstack(
+                    rx.cond(LanguageState.language == "en", rx.text("Choose a question:", font_family=FONT_MONO, font_size="0.72em", color=TEXT_MUTED), rx.text("Bir soru seç:", font_family=FONT_MONO, font_size="0.72em", color=TEXT_MUTED)),
                     rx.vstack(
                         rx.foreach(
                             FloatingChatState.suggestions,
@@ -279,11 +317,15 @@ def floating_chat(show: bool = True) -> rx.Component:
                                 background="transparent",
                                 color=TEXT_MUTED,
                                 border=f"1px solid {BORDER}",
-                                padding="0.3em 0.8em",
+                                padding="0.5em 0.8em",
                                 border_radius="16px",
                                 cursor="pointer",
                                 width="100%",
-                                text_align="left",
+                                height="auto",
+                                white_space="normal",
+                                text_align="center",
+                                display="block",
+                                line_height="1.3",
                                 transition="all 150ms",
                                 _hover={"color": PRIMARY, "border_color": PRIMARY},
                             )
@@ -313,13 +355,13 @@ def floating_chat(show: bool = True) -> rx.Component:
         rx.box(
             rx.hstack(
                 rx.text(
-                    "Daha derin sohbet için →",
+                    rx.cond(LanguageState.language == "en", "For deeper chat →", "Daha derin sohbet için →"),
                     font_family=FONT_MONO,
                     font_size="0.75em",
                     color=TEXT_MUTED,
                 ),
                 rx.button(
-                    "Tam ekran aç",
+                    rx.cond(LanguageState.language == "en", "Open fullscreen", "Tam ekran aç"),
                     on_click=FloatingChatState.go_fullscreen_chat,
                     background="transparent",
                     color=PRIMARY,
@@ -344,7 +386,7 @@ def floating_chat(show: bool = True) -> rx.Component:
     input_bar = rx.hstack(
         rx.input(
             flex="1",
-            placeholder="sor...",
+            placeholder=rx.cond(LanguageState.language == "en", "ask...", "sor..."),
             background=BG,
             border=f"1px solid {BORDER}",
             color=TEXT,
@@ -417,7 +459,11 @@ def floating_chat(show: bool = True) -> rx.Component:
         rx.box(
             rx.hstack(
                 rx.text(
-                    "Merhaba! Harun Emirhan ve projeleri hakkında merak ettiklerini bana sorabilirsin. 💬",
+                    rx.cond(
+                        LanguageState.language == "en",
+                        TXT["chat_greeting"]["en"],
+                        TXT["chat_greeting"]["tr"],
+                    ),
                     font_family=FONT_SANS,
                     font_size="0.78em",
                     color=TEXT,
