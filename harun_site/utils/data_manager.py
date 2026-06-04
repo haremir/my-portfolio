@@ -9,6 +9,63 @@ from uuid import uuid4
 from harun_site.utils.project_registry import canonicalize_project_record, resolve_project
 
 
+# ---- LOCALIZATION HELPERS ----
+
+def get_localized(record: dict, field: str, lang: str = "tr") -> str:
+    """
+    Get a localized value from a bilingual record.
+    The field can be either:
+      - A plain string (single language, e.g. desc="...")
+      - A dict with 'tr' and 'en' keys (e.g. desc={...})
+    Falls back to TR if the requested language is missing.
+    """
+    value = record.get(field, "")
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        return value.get(lang, value.get("tr", value.get("en", "")))
+    return str(value) if value else ""
+
+
+def localize_project(project: dict, lang: str = "tr") -> dict:
+    """
+    Return a project dict with all bilingual fields resolved for the given language.
+    """
+    result = dict(project)
+    result["desc"] = get_localized(project, "desc", lang)
+    cs = project.get("case_study")
+    if isinstance(cs, dict):
+        localized_cs = {}
+        for key in ("problem", "architecture", "stack_reason", "challenges", "learnings"):
+            val = cs.get(key, "")
+            if isinstance(val, dict):
+                localized_cs[key] = val.get(lang, val.get("tr", val.get("en", "")))
+            else:
+                localized_cs[key] = val
+        result["case_study"] = localized_cs
+    return result
+
+
+def migrate_project_to_bilingual(project: dict) -> dict:
+    """
+    Migrate a flat project record to bilingual format if needed.
+    Converts desc and case_study subfields to TR/EN dict format.
+    Safe to call repeatedly (idempotent).
+    """
+    from copy import deepcopy
+    result = deepcopy(project)
+    desc = result.get("desc", "")
+    if isinstance(desc, str) and desc:
+        result["desc"] = {"tr": desc, "en": desc}
+    cs = result.get("case_study")
+    if isinstance(cs, dict):
+        for key in ("problem", "architecture", "stack_reason", "challenges", "learnings"):
+            val = cs.get(key, "")
+            if isinstance(val, str) and val:
+                cs[key] = {"tr": val, "en": val}
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Atomic JSON write helper
 # ---------------------------------------------------------------------------
@@ -92,9 +149,31 @@ def load_projects() -> list[dict]:
             raw_projects = json.load(f)
         if not isinstance(raw_projects, list):
             return []
-        return [canonicalize_project_record(project) for project in raw_projects if isinstance(project, dict)]
+        # Canonicalize AND migrate flat records to bilingual format
+        canonical = [canonicalize_project_record(project) for project in raw_projects if isinstance(project, dict)]
+        return [migrate_project_to_bilingual(proj) for proj in canonical]
     except Exception:
         return []
+
+
+def load_projects_raw() -> list[dict]:
+    """Load projects WITHOUT bilingual migration (for editing/saving)."""
+    if not PROJECTS_FILE.exists():
+        return []
+    try:
+        with open(PROJECTS_FILE, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+        if not isinstance(raw, list):
+            return []
+        return [canonicalize_project_record(r) for r in raw if isinstance(r, dict)]
+    except Exception:
+        return []
+
+
+def load_projects_localized(lang: str = "tr") -> list[dict]:
+    """Load projects with all fields resolved for the given language."""
+    return [localize_project(p, lang) for p in load_projects()]
+
 
 def save_projects(projects: list[dict]):
     canonical_projects = [canonicalize_project_record(project) for project in projects if isinstance(project, dict)]
@@ -128,24 +207,35 @@ def delete_blog_post(slug: str):
     if post_path.exists():
         post_path.unlink()
 
-def save_blog_post(slug: str, title: str, date: str, description: str, tags: list[str], content: str, cover: str = ""):
+def save_blog_post(slug: str, title: str, title_en: str, date: str, description: str, description_en: str, tags: list[str], content: str, content_en: str, cover: str = ""):
     post_path = POSTS_DIR / f"{slug}.md"
 
     # Escape quotes for YAML frontmatter
     title_escaped = title.replace('"', "'")
+    title_en_escaped = title_en.replace('"', "'")
     description_escaped = description.replace('"', "'")
+    description_en_escaped = description_en.replace('"', "'")
     
+    # We should escape/format content_en for YAML block style
+    content_en_yaml = 'content_en: ""\n'
+    if content_en.strip():
+        # Indent each line by 2 spaces for block scalar formatting
+        content_en_indented = "\n".join([f"  {line}" for line in content_en.splitlines()])
+        content_en_yaml = f"content_en: |\n{content_en_indented}\n"
+
     # YAML Frontmatter
     tags_formatted = "\n".join([f"  - {tag}" for tag in tags])
     
     frontmatter = f"""---
 title: "{title_escaped}"
+title_en: "{title_en_escaped}"
 date: "{date}"
 description: "{description_escaped}"
+description_en: "{description_en_escaped}"
 tags:
 {tags_formatted}
 cover: "{cover}"
----
+{content_en_yaml}---
 """
 
     # Blog posts are markdown so we can't use _atomic_write_json (non-JSON).
@@ -230,7 +320,12 @@ def load_chat_log_messages(filename: str) -> list[dict]:
                     content = "\n".join(str(item) for item in content if item is not None)
                 elif not isinstance(content, str):
                     content = str(content)
-                normalized_messages.append({"role": str(role), "content": content})
+                normalized_messages.append({
+                    "role": str(role),
+                    "content": content,
+                    "provider": str(message.get("provider", "") or ""),
+                    "model": str(message.get("model", "") or ""),
+                })
             return normalized_messages
     except Exception:
         return []
@@ -364,12 +459,17 @@ def delete_tag(tag: str):
 
 # ---- CHAT SUGGESTIONS ----
 
-def load_suggestions() -> list[str]:
+def load_suggestions(lang: str = "tr") -> list[str]:
     path = _BASE_DIR / "data" / "suggestions.json"
     if not path.exists():
         return []
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not data:
+            return []
+        if isinstance(data[0], dict):
+            return [item.get(lang, item.get("tr", "")) for item in data]
+        return data
     except Exception:
         return []
 

@@ -137,6 +137,49 @@ def _form_field(label: str, hint: str, field: rx.Component, required: bool = Fal
         gap="0.3em",
     )
 
+def bilingual_textarea(
+    placeholder_tr: str,
+    placeholder_en: str,
+    value_tr: rx.Var,
+    value_en: rx.Var,
+    on_change_tr,
+    on_change_en,
+    height: str = "120px",
+) -> rx.Component:
+    return rx.tabs.root(
+        rx.tabs.list(
+            rx.tabs.trigger("Türkçe (TR)", value="tr", style={"font_size": "0.75em"}),
+            rx.tabs.trigger("English (EN)", value="en", style={"font_size": "0.75em"}),
+            background=BG_CARD,
+        ),
+        rx.tabs.content(
+            rx.text_area(
+                placeholder=placeholder_tr,
+                value=value_tr,
+                on_change=on_change_tr,
+                width="100%",
+                height=height,
+                background=BG,
+            ),
+            value="tr",
+            padding_top="0.5em",
+        ),
+        rx.tabs.content(
+            rx.text_area(
+                placeholder=placeholder_en,
+                value=value_en,
+                on_change=on_change_en,
+                width="100%",
+                height=height,
+                background=BG,
+            ),
+            value="en",
+            padding_top="0.5em",
+        ),
+        default_value="tr",
+        width="100%",
+    )
+
 def blog_tab() -> rx.Component:
     return rx.vstack(
         rx.heading("Yeni Blog Yazısı", size="4", color=TEXT),
@@ -144,7 +187,11 @@ def blog_tab() -> rx.Component:
             _form_field(
                 "Yazı Başlığı",
                 "Blog listesinde ve sayfa başlığında görünür",
-                rx.input(placeholder="Başlık (örn: Merhaba Dünya)", value=AdminBlogState.blog_title, on_change=AdminBlogState.set_blog_title, width="100%", background=BG),
+                rx.hstack(
+                    rx.input(placeholder="Başlık (TR)", value=AdminBlogState.blog_title, on_change=AdminBlogState.set_blog_title, width="100%", background=BG),
+                    rx.input(placeholder="Title (EN)", value=AdminBlogState.blog_title_en, on_change=AdminBlogState.set_blog_title_en, width="100%", background=BG),
+                    width="100%",
+                ),
                 required=True
             ),
             _form_field(
@@ -168,7 +215,15 @@ def blog_tab() -> rx.Component:
         _form_field(
             "Kısa Özet",
             "Blog listesinde başlığın altında görünen açıklama",
-            rx.text_area(placeholder="Kısa Açıklama", value=AdminBlogState.blog_description, on_change=AdminBlogState.set_blog_description, width="100%", background=BG),
+            bilingual_textarea(
+                "Kısa Açıklama (TR)",
+                "Short Description (EN)",
+                AdminBlogState.blog_description,
+                AdminBlogState.blog_description_en,
+                AdminBlogState.set_blog_description,
+                AdminBlogState.set_blog_description_en,
+                height="100px",
+            ),
         ),
 
         rx.vstack(
@@ -203,7 +258,15 @@ def blog_tab() -> rx.Component:
         _form_field(
             "İçerik (Markdown)",
             "Yazının tam metni — Markdown formatı desteklenir",
-            rx.text_area(placeholder="Markdown İçerik...", value=AdminBlogState.blog_content, on_change=AdminBlogState.set_blog_content, width="100%", height="300px", background=BG),
+            bilingual_textarea(
+                "İçerik (TR) (Markdown)...",
+                "Content (EN) (Markdown)...",
+                AdminBlogState.blog_content,
+                AdminBlogState.blog_content_en,
+                AdminBlogState.set_blog_content,
+                AdminBlogState.set_blog_content_en,
+                height="300px",
+            ),
         ),
         rx.button("Yazıyı Kaydet", on_click=AdminBlogState.save_post, background=PRIMARY, color=BG, width="100%"),
 
@@ -270,7 +333,15 @@ def project_tab() -> rx.Component:
             _form_field(
                 "Açıklama",
                 "Portfolyo kartında başlığın altında görünen kısa metin",
-                rx.text_area(placeholder="Açıklama", value=AdminProjectState.project_desc, on_change=AdminProjectState.set_project_desc, width="100%", background=BG),
+                bilingual_textarea(
+                    "Açıklama (TR)",
+                    "Description (EN)",
+                    AdminProjectState.project_desc_tr,
+                    AdminProjectState.project_desc_en,
+                    AdminProjectState.set_project_desc_tr,
+                    AdminProjectState.set_project_desc_en,
+                    height="100px",
+                ),
                 required=True
             ),
             _form_field(
@@ -308,27 +379,67 @@ def project_tab() -> rx.Component:
             _form_field(
                 "Problem",
                 "Hangi sorunu çözdün? Neden bu projeye ihtiyaç duyuldu?",
-                rx.text_area(placeholder="Problem (markdown destekli)", value=AdminProjectState.cs_problem, on_change=AdminProjectState.set_cs_problem, width="100%", height="120px", background=BG),
+                bilingual_textarea(
+                    "Problem (TR)",
+                    "Problem (EN)",
+                    AdminProjectState.cs_problem_tr,
+                    AdminProjectState.cs_problem_en,
+                    AdminProjectState.set_cs_problem_tr,
+                    AdminProjectState.set_cs_problem_en,
+                    height="120px",
+                ),
             ),
             _form_field(
                 "Mimari",
                 "Sistem nasıl çalışıyor? Bileşenler arası ilişkiler",
-                rx.text_area(placeholder="Mimari (markdown destekli)", value=AdminProjectState.cs_architecture, on_change=AdminProjectState.set_cs_architecture, width="100%", height="120px", background=BG),
+                bilingual_textarea(
+                    "Mimari (TR)",
+                    "Architecture (EN)",
+                    AdminProjectState.cs_architecture_tr,
+                    AdminProjectState.cs_architecture_en,
+                    AdminProjectState.set_cs_architecture_tr,
+                    AdminProjectState.set_cs_architecture_en,
+                    height="120px",
+                ),
             ),
             _form_field(
                 "Neden Bu Stack?",
                 "Teknoloji tercihlerinin arkasındaki mantık",
-                rx.text_area(placeholder="Why This Stack? (markdown destekli)", value=AdminProjectState.cs_stack_reason, on_change=AdminProjectState.set_cs_stack_reason, width="100%", height="100px", background=BG),
+                bilingual_textarea(
+                    "Neden bu stack? (TR)",
+                    "Why this stack? (EN)",
+                    AdminProjectState.cs_stack_reason_tr,
+                    AdminProjectState.cs_stack_reason_en,
+                    AdminProjectState.set_cs_stack_reason_tr,
+                    AdminProjectState.set_cs_stack_reason_en,
+                    height="100px",
+                ),
             ),
             _form_field(
                 "Zorluklar",
                 "Geliştirme sürecinde karşılaştığın engeller",
-                rx.text_area(placeholder="Challenges (markdown destekli)", value=AdminProjectState.cs_challenges, on_change=AdminProjectState.set_cs_challenges, width="100%", height="100px", background=BG),
+                bilingual_textarea(
+                    "Zorluklar (TR)",
+                    "Challenges (EN)",
+                    AdminProjectState.cs_challenges_tr,
+                    AdminProjectState.cs_challenges_en,
+                    AdminProjectState.set_cs_challenges_tr,
+                    AdminProjectState.set_cs_challenges_en,
+                    height="100px",
+                ),
             ),
             _form_field(
                 "Öğrendiklerim",
                 "Bu projeden çıkardığın dersler ve kazanımlar",
-                rx.text_area(placeholder="Lessons Learned (markdown destekli)", value=AdminProjectState.cs_learnings, on_change=AdminProjectState.set_cs_learnings, width="100%", height="100px", background=BG),
+                bilingual_textarea(
+                    "Öğrendiklerim (TR)",
+                    "Learnings (EN)",
+                    AdminProjectState.cs_learnings_tr,
+                    AdminProjectState.cs_learnings_en,
+                    AdminProjectState.set_cs_learnings_tr,
+                    AdminProjectState.set_cs_learnings_en,
+                    height="100px",
+                ),
             ),
             width="100%",
             spacing="4",
@@ -1505,13 +1616,25 @@ def edu_exp_tab() -> rx.Component:
             rx.vstack(
                 rx.text("Deneyim Ekle", font_weight="bold", color=PRIMARY),
                 rx.input(placeholder="Sirket", value=AdminEduExpState.exp_company, on_change=AdminEduExpState.set_exp_company, width="100%", background=BG),
-                rx.input(placeholder="Rol", value=AdminEduExpState.exp_role, on_change=AdminEduExpState.set_exp_role, width="100%", background=BG),
+                rx.hstack(
+                    rx.input(placeholder="Rol (TR)", value=AdminEduExpState.exp_role, on_change=AdminEduExpState.set_exp_role, width="100%", background=BG),
+                    rx.input(placeholder="Role (EN)", value=AdminEduExpState.exp_role_en, on_change=AdminEduExpState.set_exp_role_en, width="100%", background=BG),
+                    width="100%",
+                ),
                 rx.hstack(
                     rx.input(placeholder="Baslangic", value=AdminEduExpState.exp_start, on_change=AdminEduExpState.set_exp_start, width="100%", background=BG),
                     rx.input(placeholder="Bitis", value=AdminEduExpState.exp_end, on_change=AdminEduExpState.set_exp_end, width="100%", background=BG),
                     width="100%",
                 ),
-                rx.text_area(placeholder="Aciklama", value=AdminEduExpState.exp_desc, on_change=AdminEduExpState.set_exp_desc, width="100%", background=BG),
+                bilingual_textarea(
+                    "Açıklama (TR)",
+                    "Description (EN)",
+                    AdminEduExpState.exp_desc,
+                    AdminEduExpState.exp_desc_en,
+                    AdminEduExpState.set_exp_desc,
+                    AdminEduExpState.set_exp_desc_en,
+                    height="120px",
+                ),
                 rx.vstack(
                     rx.text("Etiketler", color=TEXT_MUTED, font_size="0.9em"),
                     rx.flex(
@@ -1577,14 +1700,30 @@ def edu_exp_tab() -> rx.Component:
             rx.vstack(
                 rx.text("Egitim Ekle", font_weight="bold", color=PRIMARY),
                 rx.input(placeholder="Okul", value=AdminEduExpState.edu_school, on_change=AdminEduExpState.set_edu_school, width="100%", background=BG),
-                rx.input(placeholder="Bolum", value=AdminEduExpState.edu_dept, on_change=AdminEduExpState.set_edu_dept, width="100%", background=BG),
-                rx.input(placeholder="Derece", value=AdminEduExpState.edu_degree, on_change=AdminEduExpState.set_edu_degree, width="100%", background=BG),
+                rx.hstack(
+                    rx.input(placeholder="Bölüm (TR)", value=AdminEduExpState.edu_dept, on_change=AdminEduExpState.set_edu_dept, width="100%", background=BG),
+                    rx.input(placeholder="Department (EN)", value=AdminEduExpState.edu_dept_en, on_change=AdminEduExpState.set_edu_dept_en, width="100%", background=BG),
+                    width="100%",
+                ),
+                rx.hstack(
+                    rx.input(placeholder="Derece (TR)", value=AdminEduExpState.edu_degree, on_change=AdminEduExpState.set_edu_degree, width="100%", background=BG),
+                    rx.input(placeholder="Degree (EN)", value=AdminEduExpState.edu_degree_en, on_change=AdminEduExpState.set_edu_degree_en, width="100%", background=BG),
+                    width="100%",
+                ),
                 rx.hstack(
                     rx.input(placeholder="Baslangic", value=AdminEduExpState.edu_start, on_change=AdminEduExpState.set_edu_start, width="100%", background=BG),
                     rx.input(placeholder="Bitis", value=AdminEduExpState.edu_end, on_change=AdminEduExpState.set_edu_end, width="100%", background=BG),
                     width="100%",
                 ),
-                rx.text_area(placeholder="Aciklama", value=AdminEduExpState.edu_desc, on_change=AdminEduExpState.set_edu_desc, width="100%", background=BG),
+                bilingual_textarea(
+                    "Açıklama (TR)",
+                    "Description (EN)",
+                    AdminEduExpState.edu_desc,
+                    AdminEduExpState.edu_desc_en,
+                    AdminEduExpState.set_edu_desc,
+                    AdminEduExpState.set_edu_desc_en,
+                    height="120px",
+                ),
                 rx.hstack(
                     rx.cond(
                         AdminEduExpState.editing_edu_index >= 0,

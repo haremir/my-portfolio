@@ -61,18 +61,31 @@ class ChatSummaryDict(TypedDict):
 class ExperienceEntry(TypedDict):
     company: str
     role: str
+    role_en: str
     start_date: str
     end_date: str
     description: str
+    description_en: str
     tags: list[str]
 
 class EducationEntry(TypedDict):
     school: str
     department: str
+    department_en: str
     degree: str
+    degree_en: str
     start_year: str
     end_year: str
     description: str
+    description_en: str
+
+
+def get_field_localized(val, lang="tr"):
+    if isinstance(val, dict):
+        return val.get(lang, "") or ""
+    if lang == "tr":
+        return val or ""
+    return ""
 
 
 # ── Flat TypedDicts for AdminCareerState ──────────────────────────────────────────────
@@ -135,11 +148,14 @@ class AdminBlogState(rx.State):
 
     # Form fields
     blog_title: str = ""
+    blog_title_en: str = ""
     blog_slug: str = ""
     blog_date: str = ""
     blog_description: str = ""
+    blog_description_en: str = ""
     blog_tags_str: str = ""
     blog_content: str = ""
+    blog_content_en: str = ""
     blog_cover_path: str = ""
 
     available_tags: list[str] = []
@@ -194,6 +210,10 @@ class AdminBlogState(rx.State):
         self.blog_title = value
 
     @rx.event
+    def set_blog_title_en(self, value: str):
+        self.blog_title_en = value
+
+    @rx.event
     def set_blog_slug(self, value: str):
         self.blog_slug = value
 
@@ -206,12 +226,20 @@ class AdminBlogState(rx.State):
         self.blog_description = value
 
     @rx.event
+    def set_blog_description_en(self, value: str):
+        self.blog_description_en = value
+
+    @rx.event
     def set_blog_tags_str(self, value: str):
         self.blog_tags_str = value
 
     @rx.event
     def set_blog_content(self, value: str):
         self.blog_content = value
+
+    @rx.event
+    def set_blog_content_en(self, value: str):
+        self.blog_content_en = value
 
     @rx.event
     def set_new_tag_name(self, value: str):
@@ -263,10 +291,13 @@ class AdminBlogState(rx.State):
             return
         self.blog_slug = post.slug
         self.blog_title = post.title
+        self.blog_title_en = post.title_en or ""
         self.blog_date = post.date
         self.blog_description = post.description
+        self.blog_description_en = post.description_en or ""
         self.selected_tags = post.tags
         self.blog_content = post.content
+        self.blog_content_en = post.content_en or ""
         self.blog_cover_path = post.cover or ""
         self.editing_blog_slug = slug
 
@@ -307,20 +338,26 @@ class AdminBlogState(rx.State):
         data_manager.save_blog_post(
             slug=slug,
             title=self.blog_title,
+            title_en=self.blog_title_en,
             date=self.blog_date,
             description=self.blog_description,
+            description_en=self.blog_description_en,
             tags=self.selected_tags,
             content=self.blog_content,
+            content_en=self.blog_content_en,
             cover=self.blog_cover_path
         )
 
         # Clear form
         self.blog_title = ""
+        self.blog_title_en = ""
         self.blog_slug = ""
         self.blog_date = ""
         self.blog_description = ""
+        self.blog_description_en = ""
         self.selected_tags = []
         self.blog_content = ""
+        self.blog_content_en = ""
         self.blog_cover_path = ""
 
         self.load_posts()
@@ -336,10 +373,13 @@ class AdminBlogState(rx.State):
     def cancel_edit_post(self):
         self.blog_slug = ""
         self.blog_title = ""
+        self.blog_title_en = ""
         self.blog_date = ""
         self.blog_description = ""
+        self.blog_description_en = ""
         self.selected_tags = []
         self.blog_content = ""
+        self.blog_content_en = ""
         self.blog_cover_path = ""
         self.editing_blog_slug = ""
 
@@ -350,14 +390,20 @@ class AdminProjectState(rx.State):
     project_name: str = ""
     project_slug: str = ""
     project_aliases_str: str = ""
-    project_desc: str = ""
+    project_desc_tr: str = ""
+    project_desc_en: str = ""
     editing_project_index: int = -1
     # Case study fields
-    cs_problem: str = ""
-    cs_architecture: str = ""
-    cs_stack_reason: str = ""
-    cs_challenges: str = ""
-    cs_learnings: str = ""
+    cs_problem_tr: str = ""
+    cs_problem_en: str = ""
+    cs_architecture_tr: str = ""
+    cs_architecture_en: str = ""
+    cs_stack_reason_tr: str = ""
+    cs_stack_reason_en: str = ""
+    cs_challenges_tr: str = ""
+    cs_challenges_en: str = ""
+    cs_learnings_tr: str = ""
+    cs_learnings_en: str = ""
     architecture_image: str = ""
 
     available_tags: list[str] = []
@@ -377,28 +423,52 @@ class AdminProjectState(rx.State):
         self.project_aliases_str = value
 
     @rx.event
-    def set_project_desc(self, value: str):
-        self.project_desc = value
+    def set_project_desc_tr(self, value: str):
+        self.project_desc_tr = value
 
     @rx.event
-    def set_cs_problem(self, value: str):
-        self.cs_problem = value
+    def set_project_desc_en(self, value: str):
+        self.project_desc_en = value
 
     @rx.event
-    def set_cs_architecture(self, value: str):
-        self.cs_architecture = value
+    def set_cs_problem_tr(self, value: str):
+        self.cs_problem_tr = value
 
     @rx.event
-    def set_cs_stack_reason(self, value: str):
-        self.cs_stack_reason = value
+    def set_cs_problem_en(self, value: str):
+        self.cs_problem_en = value
 
     @rx.event
-    def set_cs_challenges(self, value: str):
-        self.cs_challenges = value
+    def set_cs_architecture_tr(self, value: str):
+        self.cs_architecture_tr = value
 
     @rx.event
-    def set_cs_learnings(self, value: str):
-        self.cs_learnings = value
+    def set_cs_architecture_en(self, value: str):
+        self.cs_architecture_en = value
+
+    @rx.event
+    def set_cs_stack_reason_tr(self, value: str):
+        self.cs_stack_reason_tr = value
+
+    @rx.event
+    def set_cs_stack_reason_en(self, value: str):
+        self.cs_stack_reason_en = value
+
+    @rx.event
+    def set_cs_challenges_tr(self, value: str):
+        self.cs_challenges_tr = value
+
+    @rx.event
+    def set_cs_challenges_en(self, value: str):
+        self.cs_challenges_en = value
+
+    @rx.event
+    def set_cs_learnings_tr(self, value: str):
+        self.cs_learnings_tr = value
+
+    @rx.event
+    def set_cs_learnings_en(self, value: str):
+        self.cs_learnings_en = value
 
     @rx.event
     def set_architecture_image(self, value: str):
@@ -437,10 +507,6 @@ class AdminProjectState(rx.State):
     @rx.event
     def load_projects(self):
         self.load_tags()
-        # Strip every project to only the fields AdminProjectDict declares.
-        # load_projects() returns canonical dicts that include a nested
-        # case_study object — that nested dict must never reach the frontend
-        # state delta.
         self.all_admin_projects = [
             {
                 "id": p.get("id", ""),
@@ -449,7 +515,7 @@ class AdminProjectState(rx.State):
                 "url": p.get("url", ""),
                 "aliases": [str(a) for a in (p.get("aliases") or [])],
                 "name": p.get("name", ""),
-                "desc": p.get("desc", ""),
+                "desc": get_field_localized(p.get("desc", ""), "tr"),
                 "tags": [str(t) for t in (p.get("tags") or [])],
             }
             for p in data_manager.load_projects()
@@ -466,13 +532,11 @@ class AdminProjectState(rx.State):
             if not slug:
                 return rx.window_alert("Başlıktan geçerli bir slug üretilemedi. Lütfen elle girin.")
         
-        # If editing an existing project, replace it
         projects = data_manager.load_projects()
         
         if self.project_aliases_str.strip():
             aliases = [alias.strip().lower() for alias in self.project_aliases_str.split(",") if alias.strip()]
         else:
-            # Auto-generate aliases based on project name
             aliases = []
             title_clean = self.project_name.strip().lower()
             aliases.append(title_clean)
@@ -489,15 +553,35 @@ class AdminProjectState(rx.State):
                 if with_spaces not in aliases:
                     aliases.append(with_spaces)
                     
-        # Build case_study dict with both legacy and new keys for compatibility
         case_study = {
-            "problem": self.cs_problem or "",
-            "architecture": self.cs_architecture or "",
-            "stack_reason": self.cs_stack_reason or "",
-            "why_this_stack": self.cs_stack_reason or self.cs_stack_reason or "",
-            "challenges": self.cs_challenges or "",
-            "learnings": self.cs_learnings or "",
-            "lessons_learned": self.cs_learnings or self.cs_learnings or "",
+            "problem": {
+                "tr": self.cs_problem_tr,
+                "en": self.cs_problem_en
+            },
+            "architecture": {
+                "tr": self.cs_architecture_tr,
+                "en": self.cs_architecture_en
+            },
+            "stack_reason": {
+                "tr": self.cs_stack_reason_tr,
+                "en": self.cs_stack_reason_en
+            },
+            "why_this_stack": {
+                "tr": self.cs_stack_reason_tr,
+                "en": self.cs_stack_reason_en
+            },
+            "challenges": {
+                "tr": self.cs_challenges_tr,
+                "en": self.cs_challenges_en
+            },
+            "learnings": {
+                "tr": self.cs_learnings_tr,
+                "en": self.cs_learnings_en
+            },
+            "lessons_learned": {
+                "tr": self.cs_learnings_tr,
+                "en": self.cs_learnings_en
+            },
             "architecture_image": self.architecture_image or "",
         }
 
@@ -508,7 +592,10 @@ class AdminProjectState(rx.State):
             "slug": slug,
             "url": project_url_from_slug(slug),
             "aliases": aliases,
-            "desc": self.project_desc,
+            "desc": {
+                "tr": self.project_desc_tr,
+                "en": self.project_desc_en
+            },
             "tags": self.selected_tags,
             "case_study": case_study,
         }
@@ -523,21 +610,33 @@ class AdminProjectState(rx.State):
         self.project_name = ""
         self.project_slug = ""
         self.project_aliases_str = ""
-        self.project_desc = ""
+        self.project_desc_tr = ""
+        self.project_desc_en = ""
+        self.cs_problem_tr = ""
+        self.cs_problem_en = ""
+        self.cs_architecture_tr = ""
+        self.cs_architecture_en = ""
+        self.cs_stack_reason_tr = ""
+        self.cs_stack_reason_en = ""
+        self.cs_challenges_tr = ""
+        self.cs_challenges_en = ""
+        self.cs_learnings_tr = ""
+        self.cs_learnings_en = ""
         self.selected_tags = []
         self.editing_project_index = -1
+        self.architecture_image = ""
 
         self.load_projects()
 
     @rx.event
     def start_edit_project(self, index: int):
         projects = data_manager.load_projects()
-        # index may be an integer index or a project dict passed from the UI.
         idx = None
         if isinstance(index, dict):
-            # try to find matching project by name+desc
             for i, p in enumerate(projects):
-                if p.get("name") == index.get("name") and p.get("desc") == index.get("desc"):
+                p_desc_tr = get_field_localized(p.get("desc"), "tr")
+                index_desc_tr = get_field_localized(index.get("desc"), "tr")
+                if p.get("name") == index.get("name") and p_desc_tr == index_desc_tr:
                     idx = i
                     break
         else:
@@ -554,15 +653,34 @@ class AdminProjectState(rx.State):
             self.project_name = p.get("title", p.get("name", ""))
             self.project_slug = p.get("slug", "")
             self.project_aliases_str = ", ".join(p.get("aliases") or [])
-            self.project_desc = p.get("desc", "")
+            
+            desc_val = p.get("desc", "")
+            self.project_desc_tr = get_field_localized(desc_val, "tr")
+            self.project_desc_en = get_field_localized(desc_val, "en")
+            
             self.selected_tags = p.get("tags", []) or []
             cs = p.get("case_study", {}) or {}
-            # support both legacy and new keys
-            self.cs_problem = cs.get("problem", "")
-            self.cs_architecture = cs.get("architecture", "")
-            self.cs_stack_reason = cs.get("why_this_stack") or cs.get("stack_reason", "")
-            self.cs_challenges = cs.get("challenges", "")
-            self.cs_learnings = cs.get("lessons_learned") or cs.get("learnings", "")
+            
+            prob_val = cs.get("problem", "")
+            self.cs_problem_tr = get_field_localized(prob_val, "tr")
+            self.cs_problem_en = get_field_localized(prob_val, "en")
+            
+            arch_val = cs.get("architecture", "")
+            self.cs_architecture_tr = get_field_localized(arch_val, "tr")
+            self.cs_architecture_en = get_field_localized(arch_val, "en")
+            
+            stack_val = cs.get("why_this_stack") or cs.get("stack_reason", "")
+            self.cs_stack_reason_tr = get_field_localized(stack_val, "tr")
+            self.cs_stack_reason_en = get_field_localized(stack_val, "en")
+            
+            chall_val = cs.get("challenges", "")
+            self.cs_challenges_tr = get_field_localized(chall_val, "tr")
+            self.cs_challenges_en = get_field_localized(chall_val, "en")
+            
+            learn_val = cs.get("lessons_learned") or cs.get("learnings", "")
+            self.cs_learnings_tr = get_field_localized(learn_val, "tr")
+            self.cs_learnings_en = get_field_localized(learn_val, "en")
+            
             self.architecture_image = cs.get("architecture_image", "")
             self.editing_project_index = idx
 
@@ -571,9 +689,21 @@ class AdminProjectState(rx.State):
         self.project_name = ""
         self.project_slug = ""
         self.project_aliases_str = ""
-        self.project_desc = ""
+        self.project_desc_tr = ""
+        self.project_desc_en = ""
+        self.cs_problem_tr = ""
+        self.cs_problem_en = ""
+        self.cs_architecture_tr = ""
+        self.cs_architecture_en = ""
+        self.cs_stack_reason_tr = ""
+        self.cs_stack_reason_en = ""
+        self.cs_challenges_tr = ""
+        self.cs_challenges_en = ""
+        self.cs_learnings_tr = ""
+        self.cs_learnings_en = ""
         self.selected_tags = []
         self.editing_project_index = -1
+        self.architecture_image = ""
 
     @rx.event
     def delete_project(self, index: int):
@@ -581,7 +711,9 @@ class AdminProjectState(rx.State):
         idx = None
         if isinstance(index, dict):
             for i, p in enumerate(projects):
-                if p.get("name") == index.get("name") and p.get("desc") == index.get("desc"):
+                p_desc_tr = get_field_localized(p.get("desc"), "tr")
+                index_desc_tr = get_field_localized(index.get("desc"), "tr")
+                if p.get("name") == index.get("name") and p_desc_tr == index_desc_tr:
                     idx = i
                     break
         else:
@@ -916,9 +1048,11 @@ class AdminEduExpState(rx.State):
     # Deneyim form
     exp_company: str = ""
     exp_role: str = ""
+    exp_role_en: str = ""
     exp_start: str = ""
     exp_end: str = ""
     exp_desc: str = ""
+    exp_desc_en: str = ""
     exp_tags_selected: list[str] = []
     experiences: list[ExperienceEntry] = []
     exp_tags_options: list[str] = []
@@ -927,10 +1061,13 @@ class AdminEduExpState(rx.State):
     # Egitim form
     edu_school: str = ""
     edu_dept: str = ""
+    edu_dept_en: str = ""
     edu_degree: str = ""
+    edu_degree_en: str = ""
     edu_start: str = ""
     edu_end: str = ""
     edu_desc: str = ""
+    edu_desc_en: str = ""
     education: list[EducationEntry] = []
     editing_edu_index: int = -1
     # UI helpers
@@ -947,6 +1084,10 @@ class AdminEduExpState(rx.State):
         self.exp_role = value
 
     @rx.event
+    def set_exp_role_en(self, value: str):
+        self.exp_role_en = value
+
+    @rx.event
     def set_exp_start(self, value: str):
         self.exp_start = value
 
@@ -959,6 +1100,10 @@ class AdminEduExpState(rx.State):
         self.exp_desc = value
 
     @rx.event
+    def set_exp_desc_en(self, value: str):
+        self.exp_desc_en = value
+
+    @rx.event
     def set_edu_school(self, value: str):
         self.edu_school = value
 
@@ -967,8 +1112,16 @@ class AdminEduExpState(rx.State):
         self.edu_dept = value
 
     @rx.event
+    def set_edu_dept_en(self, value: str):
+        self.edu_dept_en = value
+
+    @rx.event
     def set_edu_degree(self, value: str):
         self.edu_degree = value
+
+    @rx.event
+    def set_edu_degree_en(self, value: str):
+        self.edu_degree_en = value
 
     @rx.event
     def set_edu_start(self, value: str):
@@ -983,40 +1136,8 @@ class AdminEduExpState(rx.State):
         self.edu_desc = value
 
     @rx.event
-    def set_project_name(self, value: str):
-        self.project_name = value
-
-    @rx.event
-    def set_project_desc(self, value: str):
-        self.project_desc = value
-
-    @rx.event
-    def set_cs_problem(self, value: str):
-        self.cs_problem = value
-
-    @rx.event
-    def set_cs_architecture(self, value: str):
-        self.cs_architecture = value
-
-    @rx.event
-    def set_cs_stack_reason(self, value: str):
-        self.cs_stack_reason = value
-
-    @rx.event
-    def set_cs_challenges(self, value: str):
-        self.cs_challenges = value
-
-    @rx.event
-    def set_cs_learnings(self, value: str):
-        self.cs_learnings = value
-
-    @rx.event
-    def set_architecture_image(self, value: str):
-        self.architecture_image = value
-
-    @rx.event
-    def set_new_tag_name(self, value: str):
-        self.new_tag_name = value
+    def set_edu_desc_en(self, value: str):
+        self.edu_desc_en = value
 
     @rx.event
     def start_edit_experience(self, index: int):
@@ -1024,15 +1145,23 @@ class AdminEduExpState(rx.State):
             e = self.experiences[index]
             self.exp_company = e.get("company", "")
             self.exp_role = e.get("role", "")
+            self.exp_role_en = e.get("role_en", "")
             self.exp_start = e.get("start_date", "")
             self.exp_end = e.get("end_date", "")
             self.exp_desc = e.get("description", "")
+            self.exp_desc_en = e.get("description_en", "")
             self.exp_tags_selected = e.get("tags", []) or []
             self.editing_exp_index = index
 
     @rx.event
     def cancel_edit_experience(self):
-        self.exp_company = self.exp_role = self.exp_start = self.exp_end = self.exp_desc = ""
+        self.exp_company = ""
+        self.exp_role = ""
+        self.exp_role_en = ""
+        self.exp_start = ""
+        self.exp_end = ""
+        self.exp_desc = ""
+        self.exp_desc_en = ""
         self.exp_tags_selected = []
         self.editing_exp_index = -1
 
@@ -1042,15 +1171,26 @@ class AdminEduExpState(rx.State):
             ed = self.education[index]
             self.edu_school = ed.get("school", "")
             self.edu_dept = ed.get("department", "")
+            self.edu_dept_en = ed.get("department_en", "")
             self.edu_degree = ed.get("degree", "")
+            self.edu_degree_en = ed.get("degree_en", "")
             self.edu_start = ed.get("start_year", "")
             self.edu_end = ed.get("end_year", "")
             self.edu_desc = ed.get("description", "")
+            self.edu_desc_en = ed.get("description_en", "")
             self.editing_edu_index = index
 
     @rx.event
     def cancel_edit_education(self):
-        self.edu_school = self.edu_dept = self.edu_degree = self.edu_start = self.edu_end = self.edu_desc = ""
+        self.edu_school = ""
+        self.edu_dept = ""
+        self.edu_dept_en = ""
+        self.edu_degree = ""
+        self.edu_degree_en = ""
+        self.edu_start = ""
+        self.edu_end = ""
+        self.edu_desc = ""
+        self.edu_desc_en = ""
         self.editing_edu_index = -1
 
     @rx.event
@@ -1087,9 +1227,11 @@ class AdminEduExpState(rx.State):
         new_exp = {
             "company": self.exp_company,
             "role": self.exp_role,
+            "role_en": self.exp_role_en or self.exp_role,
             "start_date": self.exp_start,
             "end_date": self.exp_end,
             "description": self.exp_desc,
+            "description_en": self.exp_desc_en or self.exp_desc,
             "tags": self.exp_tags_selected,
         }
         # If editing, replace existing entry
@@ -1100,12 +1242,13 @@ class AdminEduExpState(rx.State):
         save_experience(self.experiences)
         self.exp_company = ""
         self.exp_role = ""
+        self.exp_role_en = ""
         self.exp_start = ""
         self.exp_end = ""
         self.exp_desc = ""
+        self.exp_desc_en = ""
         self.exp_tags_selected = []
-        # Compute highlight BEFORE clearing editing_exp_index so the
-        # edit-path (highlighting the updated row) actually fires.
+        
         saved_idx = self.editing_exp_index
         self.editing_exp_index = -1
         if saved_idx is not None and saved_idx >= 0:
@@ -1121,10 +1264,8 @@ class AdminEduExpState(rx.State):
         self.experiences = [e for i, e in enumerate(self.experiences) if i != index]
         save_experience(self.experiences)
 
-        # reset edit index if necessary
         if self.editing_exp_index == index:
             self.cancel_edit_experience()
-        # set a toast
         self.show_toast("Deneyim silindi!")
 
     @rx.event
@@ -1137,10 +1278,13 @@ class AdminEduExpState(rx.State):
         new_edu = {
             "school": self.edu_school,
             "department": self.edu_dept,
+            "department_en": self.edu_dept_en or self.edu_dept,
             "degree": self.edu_degree,
+            "degree_en": self.edu_degree_en or self.edu_degree,
             "start_year": self.edu_start,
             "end_year": self.edu_end,
             "description": self.edu_desc,
+            "description_en": self.edu_desc_en or self.edu_desc,
         }
         if self.editing_edu_index is not None and self.editing_edu_index >= 0 and self.editing_edu_index < len(self.education):
             self.education[self.editing_edu_index] = new_edu
@@ -1149,12 +1293,14 @@ class AdminEduExpState(rx.State):
         save_education(self.education)
         self.edu_school = ""
         self.edu_dept = ""
+        self.edu_dept_en = ""
         self.edu_degree = ""
+        self.edu_degree_en = ""
         self.edu_start = ""
         self.edu_end = ""
         self.edu_desc = ""
-        # Compute highlight BEFORE clearing editing_edu_index (same fix
-        # as save_experience — the old code always fell to the else branch).
+        self.edu_desc_en = ""
+        
         saved_edu_idx = self.editing_edu_index
         self.editing_edu_index = -1
         if saved_edu_idx is not None and saved_edu_idx >= 0:
@@ -1507,6 +1653,7 @@ class AdminCareerState(rx.State):
 
 class SkillCategoryDict(TypedDict):
     category: str
+    category_en: str
     skills: list[str]
 
 
