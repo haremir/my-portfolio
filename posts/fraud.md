@@ -1,14 +1,28 @@
 ---
-title: "Kredi Kartı Dolandırıcılık Tespiti: Makine Öğrenmesi ile Güvenlik Çözümü"
-date: "2025-05-15"
-description: "Bu yazıda, 284.807 işlem içeren ve yalnızca %0.17'si dolandırıcılık olan dengesiz bir kredi kartı veri seti üzerinde makine öğrenmesi tabanlı bir tespit sistemi geliştirilen 'Fraud Eye' projesi ele alınıyor. SMOTE ve örnekleme teknikleriyle sınıf dengesizliği giderildikten sonra XGBoost ve Logistic Regression modelleri karşılaştırıldı. XGBoost, 0.9799 ROC AUC ve 0.8222 Average Precision ile ana model olarak seçildi. Dolandırıcılık sinyallerinin belirli PCA bileşenlerinde ve düşük tutarlı işlemlerde yoğunlaştığı gözlemlendi."
+cover: /blog/fraud-cover.png
+date: '2025-05-15'
+description: Bu yazıda, 284.807 işlem içeren ve yalnızca %0.17'si dolandırıcılık olan
+  dengesiz bir kredi kartı veri seti üzerinde makine öğrenmesi tabanlı bir tespit
+  sistemi geliştirilen 'Fraud Eye' projesi ele alınıyor. SMOTE ve örnekleme teknikleriyle
+  sınıf dengesizliği giderildikten sonra XGBoost ve Logistic Regression modelleri
+  karşılaştırıldı. XGBoost, 0.9799 ROC AUC ve 0.8222 Average Precision ile ana model
+  olarak seçildi. Dolandırıcılık sinyallerinin belirli PCA bileşenlerinde ve düşük
+  tutarlı işlemlerde yoğunlaştığı gözlemlendi.
+description_en: In this post, the 'Fraud Eye' project is discussed, which develops
+  a machine learning-based detection system on an imbalanced credit card dataset containing
+  284,807 transactions (with only 0.17% fraud). After addressing class imbalance using
+  SMOTE and sampling techniques, XGBoost and Logistic Regression models were compared.
+  XGBoost was selected as the primary model with a 0.9799 ROC AUC and 0.8222 Average
+  Precision. Fraud signals were found to concentrate in specific PCA components and
+  low-value transactions.
 tags:
-  - Supervised Learning
-  - XGBoost
-  - SMOTE
-  - Financial Security
-  - Anomaly Detection
-cover: "/blog/fraud-cover.png"
+- Supervised Learning
+- XGBoost
+- SMOTE
+- Financial Security
+- Anomaly Detection
+title: 'Kredi Kartı Dolandırıcılık Tespiti: Makine Öğrenmesi ile Güvenlik Çözümü'
+title_en: 'Credit Card Fraud Detection: A Machine Learning-Based Security Solution'
 ---
 
 Kredi kartı dolandırıcılığı, dijitalleşen dünyada finansal güvenliği tehdit eden en büyük sorunlardan biri hâline geldi. Her yıl milyonlarca kullanıcı kötü niyetli kişilerin hedefi olurken, bankalar milyarlarca dolar zararla karşılaşıyor. Ben de bu soruna çözüm üretmek için yola çıktım. Geleneksel yöntemlerin yetersiz kaldığını görünce, makine öğrenmesi tekniklerini kullanarak etkili ve ölçeklenebilir bir dolandırıcılık tespit sistemi geliştirmeye karar verdim.

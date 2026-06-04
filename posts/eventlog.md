@@ -1,13 +1,28 @@
 ---
-title: "Windows Event Log'larında Birliktelik Kuralları: Sistem Logs'un Gizli Dili"
-date: "2025-11-15"
-description: "Bu yazıda, Kaggle'dan alınan 158.184 Windows Event Log kaydı üzerinde Association Rule Mining uygulanıyor. 9 farklı makineye ait Information, Warning, Error ve Type0 log türleri 'market basket' formatına çevrilerek Apriori ve FP-Growth algoritmaları ile analiz edildi. 'Error görüldüğünde Warning her zaman eşlik eder (Confidence: %100)' gibi güçlü birliktelik kuralları ortaya çıktı. Bu kuralların proaktif alarm sistemleri kurarak sorunları önceden tespit etmekte nasıl kullanılabileceği gösterildi."
+cover: /blog/eventlog-cover.png
+date: '2025-11-15'
+description: 'Bu yazıda, Kaggle''dan alınan 158.184 Windows Event Log kaydı üzerinde
+  Association Rule Mining uygulanıyor. 9 farklı makineye ait Information, Warning,
+  Error ve Type0 log türleri ''market basket'' formatına çevrilerek Apriori ve FP-Growth
+  algoritmaları ile analiz edildi. ''Error görüldüğünde Warning her zaman eşlik eder
+  (Confidence: %100)'' gibi güçlü birliktelik kuralları ortaya çıktı. Bu kuralların
+  proaktif alarm sistemleri kurarak sorunları önceden tespit etmekte nasıl kullanılabileceği
+  gösterildi.'
+description_en: 'In this post, Association Rule Mining is applied to 158,184 Windows
+  Event Log entries obtained from Kaggle. Parsing Information, Warning, Error, and
+  Type0 log types from 9 different machines into a ''market basket'' format, the data
+  was analyzed using Apriori and FP-Growth algorithms. Strong association rules like
+  ''Warning always accompanies Error (Confidence: 100%)'' were discovered. This post
+  shows how these rules can be utilized to set up proactive alert systems to anticipate
+  system failures.'
 tags:
-  - Association Rule Mining
-  - Apriori Algorithm
-  - Windows Event Logs
-  - Anomaly Detection
-cover: "/blog/eventlog-cover.png"
+- Association Rule Mining
+- Apriori Algorithm
+- Windows Event Logs
+- Anomaly Detection
+title: 'Windows Event Log''larında Birliktelik Kuralları: Sistem Logs''un Gizli Dili'
+title_en: 'Association Rules in Windows Event Logs: The Secret Language of System
+  Logs'
 ---
 
 Bilgisayarınızı açtığınızda neler oluyor? Binlerce event log üretiliyor. Information, Warning, Error... İşletim sistemi muhabbet ediyor kendisiyle ama biz hiç dinlemiyoruz. Ya peki bu muhabbetin içinde saklı kalıplar varsa? "Error görüldüğünde Warning de olmasi gerekir mi? Belki de sistem sağlığının bir göstergesi?" İşte bu yazıda, Windows Event Log'larında Association Rule Mining ile bu gizli dili deşifre edeceğiz.

@@ -1,13 +1,30 @@
 ---
-title: "Ev Elektrik Tüketimini Tahmin Etmek: Regresyon ile Zaman Serisi Analizi"
-date: "2025-10-28"
-description: "Bu yazıda, UCI Machine Learning Repository'den alınan 'Household Power Consumption' veri seti üzerinde ev elektrik tüketimi tahmini yapan bir proje ele alınıyor. 2 milyonun üzerinde dakikalık kayıt içeren bu veri setinde lag, rolling ve cyclical feature engineering teknikleri uygulandı; Simple Linear Regression, Multiple Linear Regression, Polynomial Regression, Random Forest ve AutoGluon modelleri karşılaştırıldı. En iyi performansı AutoGluon gösterdi (RMSE: 0.345, R²: 0.923). Geçmiş tüketim değerleri ve saat bilgisinin tahmin gücünü en çok belirleyen özellikler olduğu ortaya çıktı."
+cover: /blog/elektrik-cover.png
+date: '2025-10-28'
+description: 'Bu yazıda, UCI Machine Learning Repository''den alınan ''Household Power
+  Consumption'' veri seti üzerinde ev elektrik tüketimi tahmini yapan bir proje ele
+  alınıyor. 2 milyonun üzerinde dakikalık kayıt içeren bu veri setinde lag, rolling
+  ve cyclical feature engineering teknikleri uygulandı; Simple Linear Regression,
+  Multiple Linear Regression, Polynomial Regression, Random Forest ve AutoGluon modelleri
+  karşılaştırıldı. En iyi performansı AutoGluon gösterdi (RMSE: 0.345, R²: 0.923).
+  Geçmiş tüketim değerleri ve saat bilgisinin tahmin gücünü en çok belirleyen özellikler
+  olduğu ortaya çıktı.'
+description_en: 'In this post, a project forecasting household electricity consumption
+  using the ''Household Power Consumption'' dataset from the UCI Machine Learning
+  Repository is discussed. Applying lag, rolling, and cyclical feature engineering
+  techniques across 2+ million minute-by-minute records, the project compares Simple
+  Linear Regression, Multiple Linear Regression, Polynomial Regression, Random Forest,
+  and AutoGluon models. AutoGluon showed the best performance (RMSE: 0.345, R²: 0.923).
+  Prior consumption values and hour information emerged as the most critical features
+  for predicting electricity demands.'
 tags:
-  - Time Series Analysis
-  - Regression Models
-  - Energy Analytics
-  - Feature Engineering
-cover: "/blog/elektrik-cover.png"
+- Time Series Analysis
+- Regression Models
+- Energy Analytics
+- Feature Engineering
+title: 'Ev Elektrik Tüketimini Tahmin Etmek: Regresyon ile Zaman Serisi Analizi'
+title_en: 'Forecasting Household Electricity Consumption: Time Series Analysis with
+  Regression'
 ---
 
 Elektrik faturanızın neden bazen beklenmedik şekilde yükseldiğini hiç merak ettiniz mi? Ya da bir sonraki saatte ne kadar elektrik tüketeceğinizi önceden bilseydiniz, enerji kullanımınızı optimize edebilir miydiniz? İşte bu yazıda, makine öğrenmesi ile ev elektrik tüketimini tahmin etme projesine derin bir dalış yapacağız.

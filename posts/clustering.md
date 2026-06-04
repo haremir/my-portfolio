@@ -1,13 +1,25 @@
 ---
-title: "Ağ Trafiğini Anlamak: Clustering ile Anomali Tespiti"
-date: "2025-10-12"
-description: "Bu yazıda, UNSW-NB15 veri seti üzerinde unsupervised clustering kullanarak ağ trafiğindeki gizli paternler keşfediliyor. 175.000'in üzerinde bağlantı kaydı ve 42 özellik üzerinde K-Means ve Fuzzy C-Means algoritmaları karşılaştırıldı. Silhouette skoru açısından daha iyi performans gösteren K-Means, 5 optimal küme üretti: normal trafik, DoS saldırıları, port scanning, exploitation girişimleri ve diğer anomaliler. Etiket kullanılmadan üretilen bu kümelerin gerçek saldırı türleriyle örtüştüğü görüldü."
+cover: /blog/clustering-cover.png
+date: '2025-10-12'
+description: 'Bu yazıda, UNSW-NB15 veri seti üzerinde unsupervised clustering kullanarak
+  ağ trafiğindeki gizli paternler keşfediliyor. 175.000''in üzerinde bağlantı kaydı
+  ve 42 özellik üzerinde K-Means ve Fuzzy C-Means algoritmaları karşılaştırıldı. Silhouette
+  skoru açısından daha iyi performans gösteren K-Means, 5 optimal küme üretti: normal
+  trafik, DoS saldırıları, port scanning, exploitation girişimleri ve diğer anomaliler.
+  Etiket kullanılmadan üretilen bu kümelerin gerçek saldırı türleriyle örtüştüğü görüldü.'
+description_en: 'In this post, hidden patterns in network traffic are discovered using
+  unsupervised clustering on the UNSW-NB15 dataset. K-Means and Fuzzy C-Means algorithms
+  were compared over 175,000 connection logs and 42 features. Performing better in
+  terms of Silhouette score, K-Means generated 5 optimal clusters: normal traffic,
+  DoS attacks, port scanning, exploitation attempts, and other anomalies. These clusters,
+  produced without labels, were found to closely align with actual attack types.'
 tags:
-  - Unsupervised Learning
-  - Clustering
-  - Network Security
-  - Anomaly Detection
-cover: "/blog/clustering-cover.png"
+- Unsupervised Learning
+- Clustering
+- Network Security
+- Anomaly Detection
+title: 'Ağ Trafiğini Anlamak: Clustering ile Anomali Tespiti'
+title_en: 'Understanding Network Traffic: Anomaly Detection with Clustering'
 ---
 
 Bir yazılım mimarisinin kalbi nedir? Güvenliği! Ve güvenliğin başını ise ağ trafik analizleri çeker. Her gün binlerce bağlantı, milyonlarca paket, sınırsız veri akışı... İçinde gizli saldırılar, anomaliler, tehditler var. Peki bunları nasıl buluyoruz? İşte bu yazıda, clustering ile ağ trafiğinde gizli paternleri keşfetme yolculuğuna çıkacağız.

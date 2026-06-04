@@ -1,13 +1,27 @@
 ---
-title: "Phishing Web Sitelerini Tespit Etmek: Machine Learning ile Güvenlik"
-date: "2025-11-30"
-description: "Bu yazıda, UCI Machine Learning Repository'den alınan ~11.000 web sitesi verisiyle makine öğrenmesi kullanarak phishing tespiti yapan bir proje ele alınıyor. CRISP-DM metodolojisiyle ilerleyen projede Logistic Regression, Decision Tree, Gradient Boosting ve Random Forest modelleri karşılaştırıldı. En yüksek doğruluk oranına (%96.1) ve en düşük overfitting'e sahip Random Forest kazanan model olarak seçildi. SSL sertifikası, ankor tag'ları ve web trafiği gibi özelliklerin phishing tespitinde en belirleyici faktörler olduğu ortaya çıktı."
+cover: /blog/phishing-cover.png
+date: '2025-11-30'
+description: Bu yazıda, UCI Machine Learning Repository'den alınan ~11.000 web sitesi
+  verisiyle makine öğrenmesi kullanarak phishing tespiti yapan bir proje ele alınıyor.
+  CRISP-DM metodolojisiyle ilerleyen projede Logistic Regression, Decision Tree, Gradient
+  Boosting ve Random Forest modelleri karşılaştırıldı. En yüksek doğruluk oranına
+  (%96.1) ve en düşük overfitting'e sahip Random Forest kazanan model olarak seçildi.
+  SSL sertifikası, ankor tag'ları ve web trafiği gibi özelliklerin phishing tespitinde
+  en belirleyici faktörler olduğu ortaya çıktı.
+description_en: In this post, a project is discussed that detects phishing attempts
+  using machine learning on ~11,000 websites from the UCI Machine Learning Repository.
+  Structured around the CRISP-DM methodology, the project compares Logistic Regression,
+  Decision Tree, Gradient Boosting, and Random Forest models. With the highest accuracy
+  (96.1%) and the lowest overfitting, Random Forest was selected as the winning model.
+  Features like SSL certificates, anchor tags, and web traffic volume emerged as the
+  most critical indicators.
 tags:
-  - Phishing Detection
-  - Tree-Based Models
-  - Cyber Security
-  - Predictive Analytics
-cover: "/blog/phishing-cover.png"
+- Phishing Detection
+- Tree-Based Models
+- Cyber Security
+- Predictive Analytics
+title: 'Phishing Web Sitelerini Tespit Etmek: Machine Learning ile Güvenlik'
+title_en: 'Detecting Phishing Websites: Machine Learning-Based Security'
 ---
 
 Her gün milyonlarca insan internette gezerken, bilinçli ya da bilinçsiz bir şekilde tehlikeli web sitelerle karşılaşıyor. Bankacılık bilgilerinizi çalmaya çalışan, kredi kartı numaranızı istemeye çalışan "resmi görünen" sahte siteler... İşte bu yazıda, makine öğrenmesi ile phishing siteleri nasıl tanıdığımızı ve bununla mücadele ettiğimizi keşfedeceğiz.

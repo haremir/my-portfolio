@@ -2,22 +2,29 @@
   {
     "company": "ProudSec",
     "role": "Associate AI Engineer",
-    "start_date": "2026",
-    "end_date": "Devam ediyor",
-    "description": "Sosyal medya sahte reklam tespiti sistemi için görsel ve video analiz modülü geliştiriyorum. YOLOv8, CLIP, Whisper modelleri ile çalışıyorum.",
+    "role_en": "Associate AI Engineer",
+    "start_date": "MART 2026",
+    "end_date": "HAZİRAN 2026",
+    "description": "Meta Ad Library üzerinden çekilen reklam verilerinin phishing/scam tespiti için çoklu yapay zeka modellerini (mDeBERTa, SigLIP, PaddleOCR ve özel eğitimli YOLOv8) ardışık olarak çalıştıran uçtan uca otonom bir veri işleme hattı (Data Pipeline) geliştirilmiştir. Meta platformunun yavaş yüklenme (lazy-load) kısıtlarından kaynaklanan medya türü hatalı sınıflandırmalarını çözmek amacıyla, görsel ve video işçileri (image_worker / video_worker) arasında asenkron sinyallere dayalı çalışan \"Akıllı Çapraz Yönlendirme (Cross-Routing)\" ve sonsuz döngü koruma altyapısı tasarlanmıştır. Donanım kısıtlarını aşmak için Hugging Face Hub tabanlı dinamik model yükleme katmanları yazılmış; tüm mikro servisler uv workspace standartlarında, otomatik dosya temizlik (cleanup) rutinleriyle ve Supabase entegrasyonuyla merkezi bir orkestratör (main.py) altında birleştirilerek canlıya hazır hale getirilmiştir.",
+    "description_en": "Developed and deployed an autonomous, multi-modal AI data pipeline that sequentially executes mDeBERTa LLMs, custom-trained YOLOv8, SigLIP, and PaddleOCR models for automated phishing and scam detection on data scraped from the Meta Ad Library. Designed and implemented an asynchronous, signal-driven \"Smart Cross-Routing Mechanism\" with infinite-loop prevention guards to dynamically re-route assets between image and video workers, resolving pipeline bottlenecks caused by Meta’s lazy-loading and media misclassification constraints. Engineered hybrid model-loading layers featuring dynamic Hugging Face Hub fetching and automated temporary file cleanup routines, fully unifying disconnected microservices under a centralized master orchestrator (main.py) powered by uv workspaces and Supabase persistence.",
     "tags": [
       "Python",
       "YOLOv8",
       "CLIP",
-      "Whisper"
+      "Whisper",
+      "AI Engineering",
+      "Data Engineering",
+      "Cyber Security"
     ]
   },
   {
     "company": "Lotus AI",
     "role": "Data Science & AI Intern",
+    "role_en": "Data Science & AI Intern",
     "start_date": "EYLÜL 2025",
     "end_date": "KASIM 2025",
     "description": "Uçtan Uca Makine Öğrenmesi (CRISP-DM): Python ve KNIME kullanarak enerji tahmini, oltalama (phishing) tespiti ve ağ trafiği analizi dahil olmak üzere 5 proje geliştirildi.\nİleri Düzey Yapay Zeka ve ETL: 100’den fazla SQL/Pandas sorgusu geliştirildi ve kurumsal LLM çözümleri için RAG ve CAG mimarileri üzerine karşılaştırmalı araştırmalar gerçekleştirildi.",
+    "description_en": "End-to-End Machine Learning (CRISP-DM): Developed 5 projects including energy forecasting, phishing detection, and network traffic analysis using Python and KNIME.\nAdvanced AI & ETL: Developed more than 100 SQL/Pandas queries and conducted comparative research on RAG and CAG architectures for enterprise LLM solutions.",
     "tags": [
       "NLP",
       "Classification",
@@ -32,9 +39,11 @@
   {
     "company": "ICED Company",
     "role": "AI Research Intern",
+    "role_en": "AI Research Intern",
     "start_date": "ŞUBAT 2025",
     "end_date": "HAZİRAN 2025",
     "description": "Python (Pandas, NumPy) kullanılarak büyük ölçekli veri setlerinin ön işleme ve veri temizleme süreçleri gerçekleştirildi.\nHukuki dokümanların verimli şekilde erişilebilir olması için RAG framework’ü ve FAISS embedding yapıları uygulandı.\nHukuki problemleri analiz eden ve ilgili emsal davaları getiren avukatlara yönelik prototip bir yapay zeka aracı geliştirildi.",
+    "description_en": "Conducted preprocessing and data cleaning processes of large-scale datasets using Python (Pandas, NumPy).\nImplemented RAG framework and FAISS embedding structures to make legal documents efficiently accessible.\nDeveloped a prototype AI tool for lawyers that analyzes legal problems and retrieves relevant precedent cases.",
     "tags": [
       "RAG",
       "FAISS",
@@ -45,9 +54,11 @@
   {
     "company": "SCA & TNC Group",
     "role": "Project Management & Strategy Intern",
+    "role_en": "Project Management & Strategy Intern",
     "start_date": "HAZİRAN 2025",
     "end_date": "TEMMUZ 2025",
     "description": "Proje Yönetimi: Yönetim, organizasyon ve proje stratejileri üzerine profesyonel eğitim tamamlandı.\nBilişim Hukuku ve Uyumluluk: KVKK (GDPR) ve veri gizliliği regülasyonları üzerine vaka çalışmaları yürütülerek hukuki uyumluluk raporları hazırlandı.\nKurumsal Liderlik: Organizasyon teorileri, yönetici simülasyonları ve stratejik planlama çalışmaları üzerinden uygulamalı olarak değerlendirildi.",
+    "description_en": "Project Management: Completed professional training on management, organization, and project strategies.\nIT Law & Compliance: Conducted case studies on KVKK (GDPR) and data privacy regulations, preparing legal compliance reports.\nCorporate Leadership: Evaluated hands-on through organizational theories, management simulations, and strategic planning studies.",
     "tags": [
       "Project Management",
       "KVKK",
@@ -57,9 +68,11 @@
   {
     "company": "Takımada",
     "role": "Part-time Data Labeling Specialist",
+    "role_en": "Part-time Data Labeling Specialist",
     "start_date": "Eylül 2024",
     "end_date": "Eylül 2025",
     "description": "Çeşitli makine öğrenmesi projeleri için veri anotasyonu ve etiketleme süreçlerinde görev alındı.\nYüksek kaliteli etiketlenmiş veri setleri sağlayarak yapay zeka modellerinin doğruluk oranlarının artırılmasına katkıda bulunuldu.",
+    "description_en": "Participated in data annotation and labeling processes for various machine learning projects.\nContributed to increasing the accuracy rates of AI models by providing high-quality labeled datasets.",
     "tags": [
       "Data Labeling",
       "Annotation",
@@ -69,9 +82,11 @@
   {
     "company": "Mucitpark ETÜ",
     "role": "Part-time Instructor",
+    "role_en": "Part-time Instructor",
     "start_date": "KASIM 2021",
     "end_date": "EKİM 2022",
     "description": "İlkokul ve ortaokul öğrencilerine sosyal bilimler ve mühendislik alanlarında proje tabanlı eğitimler verildi.\nArduino eğitimleri düzenlenerek robotik kodlama atölyeleri yürütüldü.\nDonanım ve yazılım projeleri tasarlanıp mentorluk sağlanarak disiplinlerarası çalışma yaklaşımı desteklendi.",
+    "description_en": "Provided project-based training in social sciences and engineering to primary and middle school students.\nOrganized Arduino training sessions and conducted robotic coding workshops.\nDesigned hardware and software projects and provided mentoring to support an interdisciplinary working approach.",
     "tags": [
       "Teaching",
       "Robotics",
@@ -82,9 +97,11 @@
   {
     "company": "Acun Medya Akademi",
     "role": "AI & Python Training Intern",
+    "role_en": "AI & Python Training Intern",
     "start_date": "OCAK 2025",
     "end_date": "TEMMUZ 2025",
     "description": "Yapay zeka uygulamalarına yönelik Python programlama alanında yoğun uygulamalı eğitim tamamlandı.\nVeri ön işleme ve model prototipleme odaklı pratik projeler geliştirildi.",
+    "description_en": "Completed intensive practical training in Python programming for artificial intelligence applications.\nDeveloped practical projects focused on data preprocessing and model prototyping.",
     "tags": [
       "Python",
       "PostgreSQL",

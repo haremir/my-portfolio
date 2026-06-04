@@ -1,13 +1,27 @@
 ---
-title: "UNSW-NB15 ile Anomali Tespiti: Saldırıları Aramak"
-date: "2025-12-15"
-description: "Bu yazıda, Avustralya'nın New South Wales Üniversitesi tarafından derlenen UNSW-NB15 veri seti üzerinde ağ saldırısı tespiti yapan bir proje ele alınıyor. 175.000 bağlantı kaydı ve 42 özellik içeren bu veri setinde DBSCAN, K-NN (unsupervised) ve AutoML (supervised) yöntemleri karşılaştırıldı. Unsupervised yöntemler label olmadan anomali varlığını sezebilirken (%51 ve %36 doğruluk), etiketli veriye erişildiğinde AutoML %93.5 doğruluğa ulaştı. İki yaklaşımın birbirini tamamladığı ve tek modelin production için yeterli olmadığı sonucuna varıldı."
+cover: /blog/unsw-cover.png
+date: '2025-12-15'
+description: Bu yazıda, Avustralya'nın New South Wales Üniversitesi tarafından derlenen
+  UNSW-NB15 veri seti üzerinde ağ saldırısı tespiti yapan bir proje ele alınıyor.
+  175.000 bağlantı kaydı ve 42 özellik içeren bu veri setinde DBSCAN, K-NN (unsupervised)
+  ve AutoML (supervised) yöntemleri karşılaştırıldı. Unsupervised yöntemler label
+  olmadan anomali varlığını sezebilirken (%51 ve %36 doğruluk), etiketli veriye erişildiğinde
+  AutoML %93.5 doğruluğa ulaştı. İki yaklaşımın birbirini tamamladığı ve tek modelin
+  production için yeterli olmadığı sonucuna varıldı.
+description_en: In this post, a network attack detection project on the UNSW-NB15
+  dataset compiled by the University of New South Wales in Australia is evaluated.
+  Comparing DBSCAN, K-NN (unsupervised), and AutoML (supervised) methods over 175,000
+  connection logs and 42 features, unsupervised methods detected anomalies without
+  labels (51% and 36% accuracy), whereas AutoML achieved 93.5% accuracy using labeled
+  data. It is concluded that both approaches complement each other and a single model
+  is insufficient for production.
 tags:
-  - Network Security
-  - Anomaly Detection
-  - Clustering
-  - Supervised Learning
-cover: "/blog/unsw-cover.png"
+- Network Security
+- Anomaly Detection
+- Clustering
+- Supervised Learning
+title: 'UNSW-NB15 ile Anomali Tespiti: Saldırıları Aramak'
+title_en: 'Anomaly Detection with UNSW-NB15: Hunting for Network Attacks'
 ---
 
 Hayal edin: 175.000 paket görmüş olan bir ağ yöneticisi. Bunların 31'i normal, 69'u saldırı. Peki hangileri hangileri? Elinde 42 özellik var - TTL değeri, paket sayısı, protokol türü, port numarası... Gözle incelemek imkansız. İşte bu yazıda, makine öğrenmesi ile saldırıları normal trafikten nasıl ayırt ettiğimizi göreceğiz. Hatta daha ilginç olanı: unsupervised ve supervised yöntemlerinin karşılaşmasını izleyeceğiz.
