@@ -1,0 +1,13 @@
+[
+  {
+    "school": "Erzurum Teknik Üniversitesi",
+    "department": "Bilgisayar Mühendisliği",
+    "department_en": "Computer Engineering",
+    "degree": "Lisans",
+    "degree_en": "Bachelor's Degree",
+    "start_year": "2020",
+    "end_year": "2025",
+    "description": "Python, Java ve C programlama dillerinde yetkinlik geliştirildi.\nVeri bilimi, algoritmalar, yapay zeka ve doğal dil işleme alanlarında eğitimler tamamlandı.\nYazılım eğitiminin yanı sıra disiplinlerarası robotik ve donanım projelerinde aktif olarak görev alındı.",
+    "description_en": "Developed proficiency in Python, Java, and C programming languages.\nCompleted coursework in data science, algorithms, artificial intelligence, and natural language processing.\nIn addition to software education, actively participated in interdisciplinary robotics and hardware projects."
+  }
+]

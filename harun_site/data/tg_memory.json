@@ -1,0 +1,12 @@
+{
+  "1230146095": [
+    {
+      "role": "user",
+      "content": "Durum ne"
+    },
+    {
+      "role": "assistant",
+      "content": "**Sohbet kayıtlarından elde edilen bilgiler**:\n- Ziyaretçi, en iyi proje ve case study hakkında bilgi almak istiyor.\n- **CebirX** projesi, ziyaretçiye göre en güçlü proje olarak bahsediliyor.\n- Ziyaretçi, kullanılan teknolojileri ve iş birliği olanaklarını öğrenmek istiyor.\n- **Kullanılan teknolojiler**: Python, YOLOv8, CLIP, Whisper, NLP, Classification, TF-IDF, Embeddings, ML, AI, RAG, FA.\n\n**Aksiyonlar**:\n1. **CebirX projesi hakkında daha fazla bilgi sağlamak**.\n2. **Kullanılan teknolojileri ve iş birliği olanaklarını daha detaylı olarak açıklamak**.\n3. **Ziyaretçinin sorularını ve taleplerini daha iyi anlamak için sohbeti devam ettirmek**."
+    }
+  ]
+}

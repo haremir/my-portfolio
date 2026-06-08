@@ -1,0 +1,97 @@
+[
+  {
+    "category": "AI & Machine Learning",
+    "tags": [
+      "Machine Learning",
+      "AI Engineering",
+      "Agentic Workflows",
+      "LangChain",
+      "LangGraph",
+      "RAG",
+      "Supervised Learning",
+      "Unsupervised Learning",
+      "Predictive Modeling",
+      "Predictive Analytics",
+      "Regression Models",
+      "Tree-Based Models",
+      "XGBoost",
+      "Scikit-Learn",
+      "SMOTE",
+      "Imbalanced Data",
+      "Multi-Class Classification",
+      "Clustering",
+      "K-Means Algorithm",
+      "Principal Component Analysis (PCA)",
+      "Dimensionality Reduction",
+      "Regularization (Ridge/Lasso)"
+    ]
+  },
+  {
+    "category": "Data Science & Engineering",
+    "tags": [
+      "Data Science",
+      "Data Engineering",
+      "Data Mining",
+      "Data Preprocessing",
+      "Feature Engineering",
+      "Big Data Processing",
+      "RFM Analysis",
+      "User Segmentation",
+      "Behavior Analytics",
+      "Time Series Analysis",
+      "Association Rule Mining",
+      "Apriori Algorithm",
+      "Pattern Recognition",
+      "Anomaly Detection",
+      "EDA"
+    ]
+  },
+  {
+    "category": "Cyber Security",
+    "tags": [
+      "Cyber Security",
+      "Network Security",
+      "Intrusion Detection",
+      "Phishing Detection",
+      "URL Analytics",
+      "Threat Hunting",
+      "SIEM Correlation",
+      "Windows Event Logs",
+      "Network Analytics",
+      "Network Segmentation",
+      "Financial Security"
+    ]
+  },
+  {
+    "category": "Backend & Infrastructure",
+    "tags": [
+      "Python",
+      "FastAPI",
+      "PostgreSQL",
+      "Redis",
+      "Docker",
+      "Reflex",
+      "API Gateway",
+      "Multi-tenant",
+      "Multi-Tenant Architecture",
+      "Qdrant",
+      "JWT",
+      "Circuit Breaker",
+      "Rate Limiting",
+      "State Machine",
+      "Pipeline",
+      "Logging"
+    ]
+  },
+  {
+    "category": "Domain & Application",
+    "tags": [
+      "Production",
+      "Sports Analytics",
+      "Energy Analytics",
+      "Smart Grid",
+      "Decision Support Systems",
+      "Healthcare"
+    ]
+  }
+]

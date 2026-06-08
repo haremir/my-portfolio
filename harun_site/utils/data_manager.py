@@ -106,10 +106,25 @@ def _atomic_write_json(path: Path, data: object) -> None:
             pass
         raise
 
-# Paths
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+# ── PATHS ──────────────────────────────────────────────────────────────
+# Primary data location: inside the Python package (harun_site/data/)
+# This ensures Reflex Cloud includes the data in the production build.
+# Fallback: project root /data/ for local development.
+_HERE = Path(__file__).resolve().parent.parent  # harun_site/
+BASE_DIR = _HERE.parent                         # project root
+
+# Check both locations: package data (harun_site/data/) has priority
+PACKAGE_DATA_DIR = _HERE / "data"
+ROOT_DATA_DIR = BASE_DIR / "data"
+
+if PACKAGE_DATA_DIR.exists() and any(PACKAGE_DATA_DIR.iterdir()):
+    DATA_DIR = PACKAGE_DATA_DIR
+    print(f"[DATA_MANAGER] Using package data dir: {DATA_DIR}", flush=True)
+else:
+    DATA_DIR = ROOT_DATA_DIR
+    print(f"[DATA_MANAGER] Using root data dir: {DATA_DIR}", flush=True)
+
 _BASE_DIR = BASE_DIR
-DATA_DIR = BASE_DIR / "data"
 PROJECTS_FILE = DATA_DIR / "projects.json"
 CHAT_LOGS_DIR = DATA_DIR / "chat_logs"
 POSTS_DIR = BASE_DIR / "posts"
@@ -460,7 +475,10 @@ def delete_tag(tag: str):
 # ---- CHAT SUGGESTIONS ----
 
 def load_suggestions(lang: str = "tr") -> list[str]:
-    path = _BASE_DIR / "data" / "suggestions.json"
+    # Check DATA_DIR first
+    path = DATA_DIR / "suggestions.json"
+    if not path.exists():
+        path = BASE_DIR / "data" / "suggestions.json"
     if not path.exists():
         return []
     try:
@@ -475,7 +493,7 @@ def load_suggestions(lang: str = "tr") -> list[str]:
 
 
 def save_suggestions(suggestions: list[str]):
-    _atomic_write_json(_BASE_DIR / "data" / "suggestions.json", suggestions)
+    _atomic_write_json(DATA_DIR / "suggestions.json", suggestions)
 
 # ---- CV ----
 
@@ -498,7 +516,11 @@ def get_cv_path() -> str:
 # ---- EDUCATION & EXPERIENCE ----
 
 def load_education() -> list[dict]:
-    path = BASE_DIR / "data" / "education.json"
+    # Check DATA_DIR first (harun_site/data/ or project root data/)
+    path = DATA_DIR / "education.json"
+    if not path.exists():
+        # Fallback to explicit project root (legacy)
+        path = BASE_DIR / "data" / "education.json"
     if not path.exists():
         return []
     try:
@@ -508,11 +530,14 @@ def load_education() -> list[dict]:
 
 
 def save_education(data: list[dict]):
-    _atomic_write_json(BASE_DIR / "data" / "education.json", data)
+    _atomic_write_json(DATA_DIR / "education.json", data)
 
 
 def load_experience() -> list[dict]:
-    path = BASE_DIR / "data" / "experience.json"
+    # Check DATA_DIR first
+    path = DATA_DIR / "experience.json"
+    if not path.exists():
+        path = BASE_DIR / "data" / "experience.json"
     if not path.exists():
         return []
     try:
@@ -522,4 +547,4 @@ def load_experience() -> list[dict]:
 
 
 def save_experience(data: list[dict]):
-    _atomic_write_json(BASE_DIR / "data" / "experience.json", data)
+    _atomic_write_json(DATA_DIR / "experience.json", data)

@@ -3,16 +3,13 @@ import reflex as rx
 from harun_site.theme import APP_THEME
 
 # Exclude directories containing runtime-written files to prevent hot-reload server restarts
-exclude_paths = [
-    "data",
-    "posts",
-    "assets/cv",
-    "assets/blog",
-]
+# NOTE: data/, posts/, assets/cv, assets/blog are needed in production builds!
+# The hot-reload exclusion only applies in dev mode; in production these dirs must exist.
+exclude_paths: list[str] = []
 os.environ["REFLEX_HOT_RELOAD_EXCLUDE_PATHS"] = ":".join(exclude_paths)
 
 
-# Production: Railway sets RAILWAY_PUBLIC_DOMAIN
+# Production: Railway (for Telegram bot) sets RAILWAY_PUBLIC_DOMAIN
 railway_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
 custom_domain = os.environ.get("SITE_DOMAIN", "")
 

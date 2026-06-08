@@ -36,9 +36,19 @@ from typing import Any
 import httpx
 
 # ── Paths ──────────────────────────────────────────────────────────────────
-_BASE       = Path(__file__).resolve().parent.parent.parent
-_GUARD_FILE = _BASE / "data" / "tg_notify_state.json"
-_WATCH_FILE = _BASE / "data" / "tg_watchlist.json"
+_HERE       = Path(__file__).resolve().parent.parent  # harun_site/
+_BASE       = _HERE.parent                             # project root
+
+# Use the same DATA_DIR logic as data_manager.py
+_PKG_DATA = _HERE / "data"
+_ROOT_DATA = _BASE / "data"
+if _PKG_DATA.exists() and any(_PKG_DATA.iterdir()):
+    _DATA_DIR = _PKG_DATA
+else:
+    _DATA_DIR = _ROOT_DATA
+
+_GUARD_FILE = _DATA_DIR / "tg_notify_state.json"
+_WATCH_FILE = _DATA_DIR / "tg_watchlist.json"
 
 # ── Cooldown config (seconds) ──────────────────────────────────────────────
 _HIRING_COOLDOWN    = int(os.environ.get("HIRING_INTENT_COOLDOWN_MINUTES",  "60"))  * 60

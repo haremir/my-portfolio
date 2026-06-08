@@ -1,0 +1,17 @@
+[
+  {
+    "category": "AI & ML",
+    "category_en": "AI & ML",
+    "skills": ["LLM", "RAG", "LangChain", "LangGraph", "YOLOv8", "CLIP", "Whisper"]
+  },
+  {
+    "category": "Backend",
+    "category_en": "Backend",
+    "skills": ["Python", "FastAPI", "PostgreSQL", "Redis", "Docker"]
+  },
+  {
+    "category": "Araçlar",
+    "category_en": "Tools",
+    "skills": ["Git", "Groq", "Reflex", "uv"]
+  }
+]

@@ -53,6 +53,13 @@ app.add_page(admin, route="/admin", on_load=[AdminState.load_admin_data, AdminEd
 import sys as _sys
 import os as _os
 
+# 0. Debug: check Telegram credentials
+_tg_token = _os.environ.get("TELEGRAM_BOT_TOKEN", "")
+_tg_admin = _os.environ.get("TELEGRAM_ADMIN_ID", "")
+print(f"[STARTUP_DEBUG] TELEGRAM_BOT_TOKEN set: {bool(_tg_token)} (len={len(_tg_token)})", file=_sys.stderr, flush=True)
+print(f"[STARTUP_DEBUG] TELEGRAM_ADMIN_ID set: {bool(_tg_admin)} (value={_tg_admin[:4] + '...' if _tg_admin else 'NONE'})", file=_sys.stderr, flush=True)
+del _tg_token, _tg_admin
+
 # 1. Database tables — must run AFTER rx.App() so rxconfig is loaded.
 models.ensure_tables()
 
