@@ -1845,11 +1845,85 @@ def admin_page() -> rx.Component:
             rx.hstack(
                 rx.heading("Yönetim Paneli", size="6", color=PRIMARY, font_family=FONT_MONO),
                 rx.spacer(),
+                rx.button("Şifre Değiştir", on_click=AdminAuthState.toggle_change_password_form, background="transparent", border=f"1px solid {BORDER}", color=TEXT),
                 rx.button("Çıkış Yap", on_click=AdminAuthState.logout, background="transparent", border=f"1px solid {ACCENT}", color=ACCENT),
                 width="100%",
                 padding="1em 2em",
                 background=BG_CARD,
                 border_bottom=f"1px solid {BORDER}"
+            ),
+            rx.cond(
+                AdminAuthState.change_password_visible,
+                rx.center(
+                    rx.vstack(
+                        rx.heading("Şifre Değiştir", size="4", color=PRIMARY, font_family=FONT_MONO),
+                        rx.cond(
+                            AdminAuthState.change_password_error != "",
+                            rx.text(AdminAuthState.change_password_error, color=ACCENT, font_size="0.85em"),
+                            rx.fragment()
+                        ),
+                        rx.cond(
+                            AdminAuthState.change_password_success != "",
+                            rx.text(AdminAuthState.change_password_success, color="green", font_size="0.85em"),
+                            rx.fragment()
+                        ),
+                        rx.input(
+                            placeholder="Mevcut şifre...",
+                            type=rx.cond(AdminAuthState.show_old_password, "text", "password"),
+                            value=AdminAuthState.old_password,
+                            on_change=AdminAuthState.set_old_password,
+                            width="100%",
+                            background=BG_CARD,
+                            color=TEXT,
+                            border=f"1px solid {BORDER}",
+                            size="2",
+                        ),
+                        rx.button(
+                            rx.cond(AdminAuthState.show_old_password, "Gizle", "Göster"),
+                            on_click=AdminAuthState.toggle_show_old_password,
+                            variant="ghost",
+                            size="1",
+                            color=TEXT_MUTED,
+                        ),
+                        rx.input(
+                            placeholder="Yeni şifre (en az 6 karakter)...",
+                            type=rx.cond(AdminAuthState.show_new_password, "text", "password"),
+                            value=AdminAuthState.new_password,
+                            on_change=AdminAuthState.set_new_password,
+                            width="100%",
+                            background=BG_CARD,
+                            color=TEXT,
+                            border=f"1px solid {BORDER}",
+                            size="2",
+                        ),
+                        rx.input(
+                            placeholder="Yeni şifre (tekrar)...",
+                            type=rx.cond(AdminAuthState.show_new_password, "text", "password"),
+                            value=AdminAuthState.new_password_confirm,
+                            on_change=AdminAuthState.set_new_password_confirm,
+                            width="100%",
+                            background=BG_CARD,
+                            color=TEXT,
+                            border=f"1px solid {BORDER}",
+                            size="2",
+                        ),
+                        rx.hstack(
+                            rx.button("Şifreyi Güncelle", on_click=AdminAuthState.change_password, background=PRIMARY, color="white", size="2"),
+                            rx.button("İptal", on_click=AdminAuthState.toggle_change_password_form, variant="ghost", color=TEXT_MUTED, size="2"),
+                            spacing="3",
+                        ),
+                        spacing="3",
+                        padding="1.5em",
+                        border=f"1px solid {BORDER}",
+                        border_radius="10px",
+                        background=BG_CARD,
+                        max_width="400px",
+                        width="100%",
+                    ),
+                    width="100%",
+                    padding="1em 2em",
+                ),
+                rx.fragment()
             ),
             rx.tabs.root(
                 rx.tabs.list(

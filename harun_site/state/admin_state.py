@@ -1,6 +1,47 @@
 import os
 import sys
 import reflex as rx
+import json
+import os
+import shutil
+import tempfile
+from pathlib import Path
+
+# ── Admin şifre yönetimi ──────────────────────────────────────────────────
+_ADMIN_PW_FILE = Path(__file__).resolve().parent.parent / "data" / "admin_password.json"
+
+
+def _get_admin_password() -> str:
+    """Şifreyi önce dosyadan, yoksa env'den, o da yoksa varsayılandan al."""
+    try:
+        if _ADMIN_PW_FILE.exists():
+            data = json.loads(_ADMIN_PW_FILE.read_text(encoding="utf-8"))
+            pw = data.get("password", "")
+            if pw:
+                return pw
+    except Exception:
+        pass
+    return os.environ.get("ADMIN_PASSWORD", "SoloTrk826!")
+
+
+def _save_admin_password(new_password: str) -> bool:
+    """Şifreyi dosyaya kaydet. Başarılıysa True döner."""
+    try:
+        _ADMIN_PW_FILE.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=str(_ADMIN_PW_FILE.parent), prefix="admin_pw_", suffix=".tmp")
+        try:
+            with open(fd, "w", encoding="utf-8") as f:
+                json.dump({"password": new_password}, f, ensure_ascii=False)
+            shutil.move(tmp, str(_ADMIN_PW_FILE))
+            return True
+        except Exception:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            return False
+    except Exception:
+        return False
 from harun_site.utils import data_manager
 from harun_site.utils.project_registry import project_url_from_slug
 from harun_site.utils.markdown_parser import get_all_posts, get_post_by_slug
@@ -113,6 +154,15 @@ class AdminAuthState(rx.State):
     is_authenticated: bool = False
     login_error: str = ""
     show_password: bool = False
+    # Şifre değiştirme alanları
+    change_password_visible: bool = False
+    old_password: str = ""
+    new_password: str = ""
+    new_password_confirm: str = ""
+    change_password_error: str = ""
+    change_password_success: str = ""
+    show_old_password: bool = False
+    show_new_password: bool = False
 
     @rx.event
     def set_password(self, value: str):
@@ -123,13 +173,42 @@ class AdminAuthState(rx.State):
         self.show_password = not self.show_password
 
     @rx.event
+    def set_old_password(self, value: str):
+        self.old_password = value
+
+    @rx.event
+    def set_new_password(self, value: str):
+        self.new_password = value
+
+    @rx.event
+    def set_new_password_confirm(self, value: str):
+        self.new_password_confirm = value
+
+    @rx.event
+    def toggle_change_password_form(self):
+        self.change_password_visible = not self.change_password_visible
+        self.change_password_error = ""
+        self.change_password_success = ""
+        self.old_password = ""
+        self.new_password = ""
+        self.new_password_confirm = ""
+
+    @rx.event
+    def toggle_show_old_password(self):
+        self.show_old_password = not self.show_old_password
+
+    @rx.event
+    def toggle_show_new_password(self):
+        self.show_new_password = not self.show_new_password
+
+    @rx.event
     def handle_keydown(self, key: str, info: rx.event.KeyInputInfo):
         if key == "Enter":
             return self.login()
 
     @rx.event
     def login(self):
-        env_password = os.environ.get("ADMIN_PASSWORD", "SoloTrk826!")
+        env_password = _get_admin_password()
         if self.password == env_password:
             self.is_authenticated = True
             self.login_error = ""
@@ -139,8 +218,39 @@ class AdminAuthState(rx.State):
             self.password = ""
 
     @rx.event
+    def change_password(self):
+        """Şifre değiştir. Eski şifreyi doğrula, yeniler eşleşsin, kaydet."""
+        current_pw = _get_admin_password()
+        if self.old_password != current_pw:
+            self.change_password_error = "Mevcut şifre yanlış"
+            self.change_password_success = ""
+            return
+        if len(self.new_password) < 6:
+            self.change_password_error = "Yeni şifre en az 6 karakter olmalı"
+            self.change_password_success = ""
+            return
+        if self.new_password != self.new_password_confirm:
+            self.change_password_error = "Yeni şifreler eşleşmiyor"
+            self.change_password_success = ""
+            return
+        if _save_admin_password(self.new_password):
+            self.change_password_success = "✅ Şifre başarıyla güncellendi!"
+            self.change_password_error = ""
+            self.old_password = ""
+            self.new_password = ""
+            self.new_password_confirm = ""
+        else:
+            self.change_password_error = "Şifre kaydedilemedi, lütfen tekrar deneyin"
+            self.change_password_success = ""
+
+    @rx.event
     def logout(self):
         self.is_authenticated = False
+        self.password = ""
+        self.login_error = ""
+        self.change_password_visible = False
+        self.change_password_error = ""
+        self.change_password_success = ""
 
 
 class AdminBlogState(rx.State):
