@@ -1,5 +1,5 @@
+# -*- coding: utf-8 -*-
 """
-harun_site/telegram_bot/notifier.py
 ────────────────────────────────────
 All outbound Telegram message logic.
 
@@ -57,9 +57,9 @@ _DAILY_COOLDOWN     = int(os.environ.get("DAILY_SUMMARY_COOLDOWN_HOURS",    "23"
 _WATCH_COOLDOWN     = int(os.environ.get("WATCH_ALERT_COOLDOWN_MINUTES",    "30"))  * 60
 _VISITOR_COOLDOWN   = int(os.environ.get("VISITOR_NOTIFY_COOLDOWN_SECONDS", "5"))
 
-# ── Test-session anti-spam: >3 new sessions in 60s → treat as self-test ───
-_TEST_SPAM_WINDOW   = 60   # seconds
-_TEST_SPAM_THRESHOLD = 3
+# ── Test-session anti-spam: >5 new sessions in 60s → treat as self-test ───
+_TEST_SPAM_WINDOW   = int(os.environ.get("TEST_SPAM_WINDOW_SECONDS",  "60"))
+_TEST_SPAM_THRESHOLD = int(os.environ.get("TEST_SPAM_THRESHOLD_COUNT", "5"))   # 3→5: daha toleranslı
 
 # Hiring intent keyword signals (Turkish + English)
 _HIRING_KEYWORDS = [
@@ -86,6 +86,56 @@ _CONFUSION_KEYWORDS = [
     "anlamadım", "anlamıyorum", "ne demek", "açıklar mısın",
     "confused", "unclear", "bilmiyorum", "neden",
 ]
+
+
+# ── Sync wrappers for async API client ────────────────────────────────────
+# notifier runs in sync context (Reflex event handler threads), so we need
+# to call async api_client methods via a dedicated event loop.
+
+def _run_async(coro):
+    """Run an async coroutine synchronously. Safe to call from any thread.
+
+    Strategy:
+      1. Try asyncio.run() — cleanest, works when no loop is running.
+      2. If a loop is already running (e.g. inside bot handler thread),
+         dispatch to a fresh thread to avoid blocking.
+    """
+    try:
+        return asyncio.run(coro)
+    except RuntimeError:
+        # A running event loop exists in this thread (e.g. Reflex / bot).
+        import concurrent.futures
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                return pool.submit(asyncio.run, coro).result(timeout=15)
+        except Exception as exc:
+            print(f"[NOTIFY] _run_async thread fallback failed: {exc}", file=sys.stderr)
+            return None
+    except Exception as exc:
+        print(f"[NOTIFY] _run_async failed: {exc}", file=sys.stderr)
+        return None
+
+
+def _get_projects_sync() -> list[dict]:
+    """Fetch project list from Reflex API synchronously."""
+    try:
+        from harun_site.telegram_bot.api_client import api_client
+        result = _run_async(api_client.get_projects())
+        return result if isinstance(result, list) else []
+    except Exception as e:
+        print(f"[NOTIFY] _get_projects_sync failed: {e}", file=sys.stderr)
+        return []
+
+
+def _get_chat_logs_sync() -> list[dict]:
+    """Fetch chat logs from Reflex API synchronously."""
+    try:
+        from harun_site.telegram_bot.api_client import api_client
+        result = _run_async(api_client.get_chat_logs())
+        return result if isinstance(result, list) else []
+    except Exception as e:
+        print(f"[NOTIFY] _get_chat_logs_sync failed: {e}", file=sys.stderr)
+        return []
 
 
 # ── Atomic write helper ────────────────────────────────────────────────────
@@ -301,10 +351,16 @@ def _get_creds() -> tuple[str, int] | None:
     token       = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     chat_id_str = os.environ.get("TELEGRAM_ADMIN_ID", "")
     if not token or not chat_id_str:
+        print(
+            f"[NOTIFY] ⚠️ TELEGRAM_BOT_TOKEN={'var' if token else 'YOK'} "
+            f"TELEGRAM_ADMIN_ID={'var' if chat_id_str else 'YOK'} — bildirim GÖNDERİLEMEZ!",
+            file=sys.stderr,
+        )
         return None
     try:
         return token, int(chat_id_str)
     except ValueError:
+        print(f"[NOTIFY] ⚠️ TELEGRAM_ADMIN_ID geçersiz: '{chat_id_str}'", file=sys.stderr)
         return None
 
 
@@ -317,11 +373,13 @@ def send_notification(text: str, *, ignore_mute: bool = False) -> None:
     ignore_mute=True bypasses mute for critical alerts (errors, daily summary).
     """
     if not ignore_mute and is_muted():
+        print("[NOTIFY] Mute aktif — bildirim atlanıyor", file=sys.stderr)
         return
 
     creds = _get_creds()
     if not creds:
         return
+    print(f"[NOTIFY] Gönderiliyor: {text[:100].replace(chr(10),' ')}...", file=sys.stderr)
     token, chat_id = creds
 
     async def _go() -> None:
@@ -398,9 +456,8 @@ def detect_hiring_intent(messages: list[dict]) -> dict[str, Any] | None:
     if not triggered:
         return None
 
-    # Figure out which project was mentioned most
-    from harun_site.utils.data_manager import load_projects
-    projects = load_projects()
+    # Fetch project list via API (sync wrapper around async api_client)
+    projects = _get_projects_sync()
     top_project = ""
     top_count = 0
     for p in projects:
@@ -491,35 +548,33 @@ def fmt_long_session_alert(msg_count: int, top_project: str, level: int = 1) -> 
 def notify_new_visitor(first_message: str, log_filename: str) -> None:
     """
     Called when a brand-new chat session starts (first message of a new log).
-
-    Admin self-test detection:
-      If 3+ new log files were created within the last 60 seconds,
-      we treat it as a self-test burst and skip the notification.
-    This prevents spam when you're testing the site yourself.
     """
     if not is_new_visitor_notify_enabled():
+        print("[NOTIFY] Yeni ziyaretçi bildirimi KAPALI (toggle)", file=sys.stderr)
         return
     if is_muted():
+        print("[NOTIFY] Mute aktif — yeni ziyaretçi bildirimi atlanıyor", file=sys.stderr)
         return
 
-    # Anti-spam: check for self-test burst
+    # Anti-spam: check for self-test burst (via API, sync wrapper)
     try:
-        from harun_site.utils.data_manager import load_chat_logs
-        logs = load_chat_logs()
+        logs = _get_chat_logs_sync()
         now = time.time()
         recent = [l for l in logs if now - l.get("mtime", 0) < _TEST_SPAM_WINDOW]
+        print(f"[NOTIFY] Self-test check: {len(recent)}/{_TEST_SPAM_THRESHOLD} recent logs in {_TEST_SPAM_WINDOW}s", file=sys.stderr)
         if len(recent) >= _TEST_SPAM_THRESHOLD:
             print(
-                f"[NOTIFY] New visitor skipped — self-test burst detected "
+                f"[NOTIFY] ⚠️ Yeni ziyaretçi ATLANDI — self-test burst detected "
                 f"({len(recent)} logs in {_TEST_SPAM_WINDOW}s)",
                 file=sys.stderr,
             )
             return
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[NOTIFY] Self-test check hatası: {e}", file=sys.stderr)
 
     # Per-session dedup: only fire once per log file
     if not _should_send("new_visitor", log_filename, cooldown_secs=86400 * 7):
+        print(f"[NOTIFY] Yeni ziyaretçi bildirimi ATLANDI — cooldown (log={log_filename})", file=sys.stderr)
         return
 
     from datetime import datetime
@@ -531,7 +586,7 @@ def notify_new_visitor(first_message: str, log_filename: str) -> None:
     now_dt = datetime.now(tz) if tz else datetime.now()
     time_str = now_dt.strftime("%H:%M")
 
-    print(f"[NOTIFY] Firing new_visitor alert (log={log_filename})", file=sys.stderr)
+    print(f"[NOTIFY] ✅ Yeni ziyaretçi bildirimi GÖNDERİLİYOR (log={log_filename}, msg='{first_message[:80]}...')", file=sys.stderr)
     send_notification(fmt_new_visitor_alert(first_message, time_str))
 
 
@@ -541,14 +596,37 @@ def notify_hiring_if_warranted(messages: list[dict], log_filename: str = "") -> 
         return
     signal = detect_hiring_intent(messages)
     if not signal:
+        # Debug: neden tetiklenmediğini göster
+        user_msgs = [m for m in messages if m.get("role") == "user"]
+        if user_msgs:
+            text = _text_of(messages)
+            score = _keyword_score(text, _HIRING_KEYWORDS)
+            contact_score = _keyword_score(text, _CONTACT_KEYWORDS)
+            if score > 0 or contact_score > 0:
+                print(
+                    f"[HIRING] ⚠️ Eşik altı: score={score} contact={contact_score} "
+                    f"msg_count={len(user_msgs)} (tetiklenmedi)",
+                    file=sys.stderr,
+                )
         return
     # Dedup key: per-session (log filename) to avoid repeat on every message
     key = log_filename or hashlib.md5(
         _text_of(messages).encode()[:200]
     ).hexdigest()[:12]
     if _should_send("hiring", key, _HIRING_COOLDOWN):
-        print(f"[NOTIFY] Firing hiring alert (score={signal['score']})", file=sys.stderr)
+        print(
+            f"[HIRING] ✅ İşe alım sinyali GÖNDERİLİYOR! "
+            f"score={signal['score']} contact={signal['contact']} "
+            f"msgs={signal['msg_count']} project={signal.get('top_project','—')}",
+            file=sys.stderr,
+        )
         send_notification(fmt_hiring_alert(signal))
+    else:
+        print(
+            f"[HIRING] Tetiklendi ama cooldown'da "
+            f"(score={signal['score']}, key={key})",
+            file=sys.stderr,
+        )
 
 
 def notify_watch_if_warranted(messages: list[dict]) -> None:
@@ -595,8 +673,7 @@ def notify_long_session(messages: list[dict], log_filename: str = "") -> None:
     else:
         return
 
-    from harun_site.utils.data_manager import load_projects
-    projects = load_projects()
+    projects = _get_projects_sync()
     text = _text_of(messages)
     top_project = ""
     top_count = 0

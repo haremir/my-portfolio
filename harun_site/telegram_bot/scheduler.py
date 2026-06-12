@@ -1,5 +1,5 @@
+# -*- coding: utf-8 -*-
 """
-harun_site/telegram_bot/scheduler.py
 ──────────────────────────────────────
 Lightweight async background scheduler for the Telegram bot.
 
@@ -47,9 +47,9 @@ def _get_notifier():
     return _n
 
 
-def _get_data_manager():
-    from harun_site.utils import data_manager as _dm
-    return _dm
+def _get_api_client():
+    from harun_site.telegram_bot.api_client import api_client as _ac
+    return _ac
 
 
 # ── Config from env ────────────────────────────────────────────────────────
@@ -89,10 +89,10 @@ async def build_daily_summary() -> str:
     Build a rich human-readable daily summary string.
     No Groq — fast, free, keyword-based analysis.
     """
-    dm        = _get_data_manager()
+    ac        = _get_api_client()
     notifier  = _get_notifier()
     today     = _today_str()
-    logs      = dm.load_chat_logs()
+    logs      = await ac.get_chat_logs()
 
     # Filter logs from today
     today_logs = [l for l in logs if (l.get("timestamp") or "").startswith(today)]
@@ -105,8 +105,7 @@ async def build_daily_summary() -> str:
     all_sessions = len(logs)
 
     # ── Project mention tally ────────────────────────────────────────────
-    from harun_site.utils.data_manager import load_projects, load_chat_log_messages
-    projects = load_projects()
+    projects = await ac.get_projects()
     proj_counts: dict[str, int] = {p.get("name", ""): 0 for p in projects}
 
     # ── Hiring signal count + top user questions ─────────────────────────
@@ -116,7 +115,7 @@ async def build_daily_summary() -> str:
     from harun_site.telegram_bot.notifier import _HIRING_KEYWORDS, _keyword_score
 
     for log in today_logs:
-        messages = load_chat_log_messages(log["filename"])
+        messages = await ac.get_chat_log_messages(log["filename"])
         user_text = " ".join(
             m.get("content", "") for m in messages if m.get("role") == "user"
         ).lower()
@@ -204,38 +203,49 @@ async def build_daily_summary() -> str:
 
 # ── Health report builder ──────────────────────────────────────────────────
 async def build_health_report() -> str:
-    """Fast health check — no external API calls."""
-    dm        = _get_data_manager()
+    """Health check -- log count via API, local disk stats if accessible."""
+    ac        = _get_api_client()
     notifier  = _get_notifier()
-    logs      = dm.load_chat_logs()
+    logs      = await ac.get_chat_logs()
     watchlist = notifier.load_watchlist()
-    data_dir  = Path(__file__).resolve().parent.parent.parent / "data"
-    disk_mb   = sum(
-        f.stat().st_size for f in data_dir.rglob("*.json") if f.is_file()
-    ) / (1024 * 1024)
+
+    # Disk size: best-effort (may not be available on Railway)
+    data_dir = Path(__file__).resolve().parent.parent.parent / "data"
+    try:
+        disk_mb = sum(
+            f.stat().st_size for f in data_dir.rglob("*.json") if f.is_file()
+        ) / (1024 * 1024)
+        disk_line = f"\U0001f4be Data boyutu: {disk_mb:.2f} MB"
+        warn_line = (
+            "\u26a0\ufe0f Data dizini buyuyor -- eski loglari temizlemeyi dusun."
+            if disk_mb > 50 else ""
+        )
+    except Exception:
+        disk_line = "\U0001f4be Data boyutu: olculemedI (uzak ortam)"
+        warn_line = ""
 
     mute_state = notifier.get_mute_state()
     mute_info  = ""
     if mute_state["muted"]:
         if mute_state["until"] == -1:
-            mute_info = "\n🔇 Bildirimler: MUTE (süresiz)"
+            mute_info = "\n\U0001f507 Bildirimler: MUTE (suresiz)"
         else:
             until_dt = datetime.fromtimestamp(mute_state["until"], tz=_TZ) if _TZ else datetime.fromtimestamp(mute_state["until"])
-            mute_info = f"\n🔇 Bildirimler: MUTE ({until_dt.strftime('%H:%M')}'e kadar)"
+            mute_info = f"\n\U0001f507 Bildirimler: MUTE ({until_dt.strftime('%H:%M')}'e kadar)"
     else:
-        mute_info = "\n🔔 Bildirimler: Aktif"
+        mute_info = "\n\U0001f514 Bildirimler: Aktif"
 
     lines = [
-        "🩺 <b>Sistem Durumu</b>",
+        "\U0001fa7a <b>Sistem Durumu</b>",
         "",
-        f"📁 Chat log sayısı: {len(logs)}",
-        f"👀 Watchlist: {', '.join(watchlist) if watchlist else '—'}",
-        f"💾 Data boyutu: {disk_mb:.2f} MB",
-        f"🕐 Sunucu saati: {_now().strftime('%H:%M')} (İstanbul)",
+        f"\U0001f4c1 Chat log sayisi: {len(logs)}",
+        f"\U0001f440 Watchlist: {', '.join(watchlist) if watchlist else chr(8212)}",
+        disk_line,
+        f"\U0001f550 Sunucu saati: {_now().strftime('%H:%M')} (Istanbul)",
         mute_info,
     ]
-    if disk_mb > 50:
-        lines.append("⚠️ Data dizini büyüyor — eski logları temizlemeyi düşün.")
+    if warn_line:
+        lines.append(warn_line)
     return "\n".join(lines)
 
 
