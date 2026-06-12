@@ -55,11 +55,11 @@ class ReflexApiError(Exception):
 class ReflexApiClient:
     """Async HTTP client for the Reflex Cloud REST API."""
 
-    def __init__(self, base_url: str = "", secret: str = "") -> None:
+    def __init__(self, base_url: str = "", secret: str | None = None) -> None:
         self.base_url = (base_url or os.environ.get(
             "REFLEX_API_URL", "http://localhost:3000"
         )).rstrip("/")
-        self.secret = secret or os.environ.get("TELEGRAM_API_SECRET", "")
+        self.secret = os.environ.get("TELEGRAM_API_SECRET", "") if secret is None else secret
         self._headers = {"Authorization": f"Bearer {self.secret}"} if self.secret else {}
 
     async def _get(self, path: str) -> Any:
