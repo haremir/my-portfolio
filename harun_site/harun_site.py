@@ -85,4 +85,18 @@ if not _admin_pw or _admin_pw == "SoloTrk826!":
         file=_sys.stderr,
     )
 
+
+# 4. Register REST API endpoints for Telegram bot interop
+try:
+    from harun_site.api.endpoints import register_api_routes
+    register_api_routes(app)
+    print("[STARTUP] \u2705 API routes registered successfully.", file=_sys.stderr, flush=True)
+except Exception as _api_err:
+    print(f"[STARTUP] \u26a0\ufe0f API route registration failed: {_api_err}", file=_sys.stderr, flush=True)
+    try:
+        import traceback as _tb
+        _tb.print_exc()
+    except Exception:
+        pass
+
 del _sys, _os, _admin_pw
