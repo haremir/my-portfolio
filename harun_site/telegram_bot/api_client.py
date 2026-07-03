@@ -57,7 +57,7 @@ class ReflexApiClient:
 
     def __init__(self, base_url: str = "", secret: str | None = None) -> None:
         self.base_url = (base_url or os.environ.get(
-            "REFLEX_API_URL", "http://localhost:3000"
+            "REFLEX_API_URL", f"http://localhost:{os.environ.get('PORT', '8000')}"
         )).rstrip("/")
         self.secret = os.environ.get("TELEGRAM_API_SECRET", "") if secret is None else secret
         self._headers = {"Authorization": f"Bearer {self.secret}"} if self.secret else {}

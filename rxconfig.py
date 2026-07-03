@@ -9,24 +9,44 @@ exclude_paths: list[str] = []
 os.environ["REFLEX_HOT_RELOAD_EXCLUDE_PATHS"] = ":".join(exclude_paths)
 
 
-# Production: Railway (for Telegram bot) sets RAILWAY_PUBLIC_DOMAIN
-railway_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
-custom_domain = os.environ.get("SITE_DOMAIN", "")
+import sys
 
-if custom_domain:
-    api_url = f"https://{custom_domain}"
-elif railway_domain:
-    api_url = f"https://{railway_domain}"
-else:
-    api_url = "http://127.0.0.1:8004"
+# Determine the API URL: Check environment variables first (Reflex Cloud sets REFLEX_API_URL or API_URL)
+api_url = os.environ.get("REFLEX_API_URL") or os.environ.get("API_URL")
 
-backend_port = int(os.environ.get("PORT", "8004"))
+if not api_url:
+    # If compiling during 'reflex deploy' or 'reflex export', use the production backend URL on Reflex Cloud
+    if any(arg in sys.argv for arg in ["deploy", "export"]):
+        api_url = "https://7be2c768-4224-4737-8cbe-bca20c8477e9.fly.dev"
+    else:
+        railway_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
+        custom_domain = os.environ.get("SITE_DOMAIN", "")
+
+        if custom_domain:
+            api_url = f"https://{custom_domain}"
+        elif railway_domain:
+            api_url = f"https://{railway_domain}"
+        else:
+            api_url = "http://127.0.0.1:8004"
+
+# Backend port: use PORT env var if set (Reflex Cloud sets this), otherwise
+# default to 8000 (Reflex's standard default, which Caddy reverse proxy expects).
+# For local dev, set PORT=8004 in .env or override via command line.
+backend_port = int(os.environ.get("PORT", "8000"))
 
 config = rx.Config(
     app_name="harun_site",
     db_url="sqlite:///reflex.db",
     api_url=api_url,
     backend_port=backend_port,
+    cors_allowed_origins=[
+        "https://harunemirhan-gray-orca.reflex.run",
+        "https://7be2c768-4224-4737-8cbe-bca20c8477e9.fly.dev",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8004",
+        "http://127.0.0.1:8004",
+    ],
     show_built_with_reflex=False,
     plugins=[
         rx.plugins.SitemapPlugin(),
